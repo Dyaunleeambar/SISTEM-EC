@@ -47,10 +47,19 @@ El estado de Fin de Misión se controla mediante un checkbox en la interfaz:
 1. **Checkbox desmarcado (estado inicial)**: El colaborador no está en Fin de Misión
 2. **Checkbox marcado**: El colaborador está en Fin de Misión
 
+Validaciones:
+- Se requiere una fecha de salida válida para marcar el checkbox. Una fecha válida debe:
+  - Existir (no ser vacía)
+  - Ser una fecha válida según JavaScript (formato YYYY-MM-DD)
+  - No contener caracteres inválidos
+- Si se intenta marcar sin fecha de salida, se mostrará un mensaje de error
+- Se deshabilita el input de fecha de entrada cuando se marca el checkbox
+- No se puede marcar el checkbox si no hay una fecha de salida registrada
+
 Cuando se marca el checkbox:
 - Se deshabilita el input de fecha de entrada
 - Se actualiza automáticamente el campo 'Fin de Misión' a 'Sí'
-- Se recalcula el estado de estimulación
+- Se recalcula el estado de estimulación basado en las reglas definidas
 - Se actualizan los contadores generales y por ubicación
 
 Cuando se desmarca el checkbox:

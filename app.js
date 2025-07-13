@@ -2,6 +2,23 @@
 function parseDate(dateString) {
     if (!dateString) return null;
     try {
+        // Intentar parsear como MM/DD/YYYY
+        const parts = dateString.split('/');
+        if (parts.length === 3) {
+            const month = parseInt(parts[0], 10) - 1; // Los meses en JavaScript son 0-based
+            const day = parseInt(parts[1], 10);
+            const year = parseInt(parts[2], 10);
+            const date = new Date(year, month, day);
+            
+            // Verificar si el parseo fue exitoso
+            if (isNaN(date.getTime())) {
+                console.warn('Fecha inválida (MM/DD/YYYY):', dateString);
+                return null;
+            }
+            return date;
+        }
+
+        // Si no es MM/DD/YYYY, intentar parsear como YYYY-MM-DD
         const date = new Date(dateString);
         if (isNaN(date.getTime())) {
             console.warn('Fecha inválida:', dateString);
@@ -206,13 +223,13 @@ function updateTable(data) {
         tr.innerHTML = `
             <td data-field="estado">${row.Estado}</td>
             <td data-field="nombre">${row['Nombre y Apellidos']}</td>
-            <td><input type="date" class="date-input" value="${salidaFormatted}" data-id="${row.id}" data-field="fecha_salida"></td>
+            <td><input type="date" class="date-input" value="${salidaFormatted}" data-id="${row.id}" data-field="Fecha de Salida"></td>
             <td data-field="estimulacion">${row.Estimulacion}</td>
             <td>
                 <div class="date-control">
                     <input type="checkbox" class="disable-date" data-id="${row.id}" data-field="fin_mision">
-                    <label>Deshabilitar fecha</label>
-                    <input type="date" class="date-input" value="${entradaFormatted}" data-id="${row.id}" data-field="fecha_entrada">
+                    <label>Fin de Misi</label>
+                    <input type="date" class="date-input" value="${entradaFormatted}" data-id="${row.id}" data-field="Fecha de Entrada">
                 </div>
             </td>
             <td data-field="vacaciones">${row.Vacaciones}</td>
@@ -268,7 +285,13 @@ function getData() {
         
         row.querySelectorAll('[data-field]').forEach(input => {
             const field = input.dataset.field;
-            rowData[field] = input.value || input.textContent;
+            // Para campos de fecha, asegurarse de que el valor no esté vacío
+            if (field.includes('fecha')) {
+                const value = input.value || '';
+                rowData[field] = value; // Guardar como cadena vacía si está vacío
+            } else {
+                rowData[field] = input.value || input.textContent || '';
+            }
         });
         data.push(rowData);
     });
@@ -279,25 +302,15 @@ function getData() {
 // Función para manejar cambios en los checkboxes
 function handleCheckboxChange(event) {
     const checkbox = event.target;
-    const dateInput = checkbox.closest('.date-control').querySelector('.date-input');
-    const dataId = checkbox.dataset.id || checkbox.closest('.date-control').querySelector('.date-input').dataset.id;
+    const dataId = checkbox.dataset.id;
     const dataField = checkbox.dataset.field;
     
-    // Validar que tenemos todos los datos necesarios
+    // Validar que tenemos el ID necesario
     if (!dataId) {
         console.error('ID no encontrado en el checkbox');
         console.log('Checkbox:', checkbox);
-        console.log('Date input:', dateInput);
         return;
     }
-    if (!dateInput) {
-        console.error('Input de fecha no encontrado');
-        return;
-    }
-    
-    // Actualizar el estado del input
-    dateInput.disabled = checkbox.checked;
-    dateInput.style.cursor = checkbox.checked ? 'not-allowed' : 'auto';
     
     // Obtener el row correspondiente
     const data = getData();
@@ -314,10 +327,32 @@ function handleCheckboxChange(event) {
     }
 
     // Verificar si hay fecha de salida
-    const salidaDate = parseDate(row['Fecha de Salida']);
-    if (!salidaDate) {
+    const fechaSalida = row['Fecha de Salida'];
+    console.log('Fecha de salida en row:', fechaSalida);
+    console.log('Tipo de fecha:', typeof fechaSalida);
+    
+    // Verificar si el valor está vacío o es una cadena vacía
+    if (!fechaSalida || fechaSalida.trim() === '') {
+        console.log('Fecha considerada vacía:', fechaSalida);
         checkbox.checked = false;
-        showMessage('No se puede marcar Fin de Misión sin fecha de salida', 'error');
+        showMessage('No se puede marcar Fin de Misión: La fecha de salida está vacía', 'error');
+        return;
+    }
+
+    // Intentar parsear la fecha
+    const salidaDate = parseDate(fechaSalida);
+    if (!salidaDate) {
+        console.log('Fecha de salida:', fechaSalida);
+        checkbox.checked = false;
+        showMessage(`No se puede marcar Fin de Misión: La fecha de salida '${fechaSalida}' no es válida`, 'error');
+        return;
+    }
+
+    // Verificar que la fecha no sea futura
+    const today = new Date();
+    if (salidaDate > today) {
+        checkbox.checked = false;
+        showMessage('No se puede marcar Fin de Misión: La fecha de salida es futura', 'error');
         return;
     }
 
@@ -330,6 +365,16 @@ function handleCheckboxChange(event) {
     // Actualizar los contadores
     updateCounters(data);
     updateLocationCounters(data);
+
+    // Deshabilitar/habilitar el input de Fecha de Entrada
+    const rowElement = checkbox.closest('.data-row');
+    if (rowElement) {
+        const entradaInput = rowElement.querySelector('[data-field="Fecha de Entrada"]');
+        if (entradaInput) {
+            entradaInput.disabled = checkbox.checked;
+            entradaInput.style.cursor = checkbox.checked ? 'not-allowed' : 'auto';
+        }
+    }
 }
 
 // Función para manejar cambios en las fechas
@@ -339,9 +384,55 @@ function handleDateChange(event) {
     const field = input.dataset.field;
     const value = input.value;
 
-    // Aquí podríamos actualizar el estado del colaborador basado en la fecha
-    // Por ahora solo actualizamos el valor en la UI
-    console.log(`Fecha cambiada para colaborador ${collaboradorId}: ${field} = ${value}`);
+    // Obtener los datos actuales
+    const data = getData();
+    if (!data || data.length === 0) {
+        console.error('No hay datos disponibles');
+        return;
+    }
+
+    // Encontrar y actualizar la fila correspondiente
+    const row = data.find(r => r.id === parseInt(collaboratorId));
+    if (!row) {
+        console.error('Row no encontrado para ID:', collaboratorId);
+        return;
+    }
+
+    // Actualizar el valor de la fecha
+    row[field] = value;
+    
+    // Actualizar el DOM
+    const rowElement = input.closest('.data-row');
+    if (rowElement) {
+        // Actualizar el valor en el DOM
+        const displayElement = rowElement.querySelector(`[data-field="${field}"]`);
+        if (displayElement) {
+            if (displayElement.type === 'date') {
+                displayElement.value = value;
+            } else {
+                displayElement.textContent = value;
+            }
+        }
+
+        // Actualizar la estimulación en el DOM
+        const estimacionElement = rowElement.querySelector('[data-field="estimulacion"]');
+        if (estimacionElement) {
+            estimacionElement.textContent = row.Estimulacion;
+        }
+    }
+
+    // Actualizar los contadores
+    updateCounters(data);
+    updateLocationCounters(data);
+
+    // Actualizar el estado de Fin de Misión si es necesario
+    const finMisionCheckbox = rowElement.querySelector('.disable-date');
+    if (finMisionCheckbox) {
+        const finMisionField = rowElement.querySelector('[data-field="fin_mision"]');
+        if (finMisionField) {
+            finMisionField.textContent = row['Fin de Misión'];
+        }
+    }
 }
 
 function updateCounters(data) {
