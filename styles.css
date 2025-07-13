@@ -118,6 +118,13 @@ body {
     margin-bottom: 10px;
 }
 
+input[type="file"] {
+    margin-bottom: 15px;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+
 button {
     background-color: #4CAF50;
     color: white;
