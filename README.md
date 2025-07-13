@@ -1,7 +1,37 @@
 # Sistema de Evaluación de Estado de Colaboradores
 
 ## Descripción
-Sistema para evaluar y determinar el estado de los colaboradores en una misión, incluyendo su derecho a estimulación, estado de vacaciones o fin de misión.
+Sistema web para evaluar y gestionar el estado de colaboradores en misiones, incluyendo su derecho a estimulación, estado de vacaciones y fin de misión. La aplicación permite importar datos de colaboradores desde archivos Excel y visualizar estadísticas en tiempo real.
+
+## Funcionalidades Implementadas
+
+### Importación de Datos
+- Importación de archivos Excel (.xlsx, .xls)
+- Validación de formato de archivo
+- Mensajes de éxito/error durante la importación
+- Deshabilitación automática del botón de importación cuando no hay archivo seleccionado
+
+### Visualización de Datos
+- Tabla dinámica con información de colaboradores
+- Campos editables para fechas de entrada y salida
+- Indicadores de estado (estimulación, vacaciones, fin de misión)
+
+### Estadísticas y Contadores
+- Contadores generales:
+  - Total de colaboradores
+  - Colaboradores con estimulación
+  - Colaboradores en vacaciones
+  - Colaboradores en fin de misión
+- Contadores por ubicación:
+  - Total de colaboradores por estado geográfico
+  - Contadores detallados para cada estado
+  - Botones dinámicos por estado con totales
+
+### Interfaz de Usuario
+- Diseño responsive y adaptable a diferentes tamaños de pantalla
+- Tarjetas fijas para estadísticas que permanecen visibles durante el scroll
+- Botones intuitivos con estados de hover y deshabilitado
+- Mensajes informativos durante la importación de datos
 
 ## Reglas de Evaluación
 
@@ -20,19 +50,20 @@ Un colaborador está en estado de Vacaciones si:
 1. Sale del país
 2. Y no tiene término de misión
 
-## Flujo de Decisión
-1. Verificar si el colaborador está en el país
-   - Si SÍ: Tiene derecho a estimulación
-   - Si NO: Continuar al paso 2
-2. Verificar si el colaborador sale del país
-   - Si SÍ: Continuar al paso 3
-   - Si NO: No aplica ninguna condición
-3. Verificar la fecha de salida
-   - Si es después del día 15: Tiene derecho a estimulación
-   - Si es antes del día 15: Continuar al paso 4
-4. Verificar si es término de misión
-   - Si SÍ: Estado Fin de Misión
-   - Si NO: Estado Vacaciones
+## Estructura del Proyecto
+```
+SistemaEstimulación01/
+├── index.html        # Archivo principal de la aplicación
+├── app.js            # Lógica de la aplicación y manejo de datos
+├── styles.css        # Estilos y diseño de la interfaz
+└── README.md         # Documentación del proyecto
+```
+
+## Tecnologías Utilizadas
+- HTML5
+- CSS3
+- JavaScript
+- XLSX.js (para procesamiento de archivos Excel)
 
 ## Consideraciones Técnicas
 
