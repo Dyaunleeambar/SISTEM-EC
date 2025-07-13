@@ -1,10 +1,70 @@
+// Funciones auxiliares
+function parseDate(dateString) {
+    if (!dateString) return null;
+    try {
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) {
+            console.warn('Fecha inválida:', dateString);
+            return null;
+        }
+        return date;
+    } catch (error) {
+        console.error('Error parsing date:', error);
+        return null;
+    }
+}
+
+function formatDate(date) {
+    if (!date) return '';
+    return date.toISOString().split('T')[0];
+}
+
+function getDayOfMonth(date) {
+    if (!date) return null;
+    return date.getDate();
+}
+
+function evaluateStimulation(row) {
+    // 1. Verificar si está en el país
+    if (row.Estado === 'En país') {
+        return 'Sí';
+    }
+
+    // 2. Verificar si no tiene fecha de salida
+    const salidaDate = parseDate(row['Fecha de Salida']);
+    if (!salidaDate) {
+        return 'Sí';
+    }
+
+    // 3. Verificar si sale después del día 15
+    const salidaDay = getDayOfMonth(salidaDate);
+    if (salidaDay >= 15) {
+        return 'Sí';
+    }
+
+    // 4. Si sale antes del día 15
+    if (row['Fin de Misión'] === 'Sí') {
+        return 'No';
+    }
+
+    // Si sale antes del día 15 y no es fin de misión, está en vacaciones
+    return 'No';
+}
+
+// Función para mostrar mensajes
+function showMessage(message, type) {
+    const importMessage = document.getElementById('importMessage');
+    if (importMessage) {
+        importMessage.textContent = message;
+        importMessage.className = `import-message ${type}`;
+    }
+}
+
 // Función para manejar la importación del archivo Excel
 document.addEventListener('DOMContentLoaded', () => {
     const fileInput = document.getElementById('fileInput');
     const importButton = document.getElementById('importButton');
-    const importMessage = document.createElement('div');
-    importMessage.className = 'import-message';
-    importButton.parentNode.appendChild(importMessage);
+    const importMessage = document.getElementById('importMessage');
     
     fileInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
@@ -80,58 +140,196 @@ function processExcelData(workbook) {
     // Obtener la primera hoja
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
-    const data = XLSX.utils.sheet_to_json(worksheet);
+    const rawData = XLSX.utils.sheet_to_json(worksheet);
+
+    // Validar y procesar los datos
+    const processedData = rawData.map(row => {
+        // Validar y limpiar el nombre
+        const nombre = row['Nombre y Apellidos'] ? row['Nombre y Apellidos'].trim() : '';
+        if (!nombre) {
+            console.warn('Fila sin nombre:', row);
+        }
+
+        // Validar otros campos importantes
+        const estado = row.Estado ? row.Estado.trim() : '';
+        const fechaSalida = parseDate(row['Fecha de Salida']);
+        const fechaEntrada = parseDate(row['Fecha de Entrada']);
+        const finMision = row['Fin de Misión'] ? row['Fin de Misión'].trim() : '';
+
+        // Formatear fechas como yyyy-MM-dd
+        const salidaFormatted = formatDate(fechaSalida);
+        const entradaFormatted = formatDate(fechaEntrada);
+
+        return {
+            ...row,
+            'Nombre y Apellidos': nombre,
+            Estado: estado,
+            'Fecha de Salida': salidaFormatted,
+            'Fin de Misión': finMision
+        };
+    });
 
     // Procesar los datos y actualizar la UI
-    updateTable(data);
-    updateCounters(data);
+    updateTable(processedData);
+    updateCounters(processedData);
 }
 
 function updateTable(data) {
     const tbody = document.querySelector('#collaboratorsTable tbody');
+    if (!tbody) {
+        console.error('No se encontró el tbody de la tabla');
+        return;
+    }
     tbody.innerHTML = '';
 
+    let idCounter = 0;
     data.forEach(row => {
+        if (!row['Nombre y Apellidos']) {
+            console.error('Fila sin nombre:', row);
+            return;
+        }
+
+        // Asignar un ID único si no existe
+        if (!row.id) {
+            row.id = idCounter++;
+        }
+
+        // Formatear fechas
+        const salidaFormatted = formatDate(row['Fecha de Salida']);
+        const entradaFormatted = formatDate(row['Fecha de Entrada']);
+
+        // Actualizar el estado de estimulación basado en las reglas
+        row.Estimulacion = evaluateStimulation(row);
+        
         const tr = document.createElement('tr');
+        tr.className = 'data-row';
         tr.innerHTML = `
-            <td>${row.Estado}</td>
-            <td>${row.Nombre}</td>
-            <td><input type="date" class="date-input" value="${row['Fecha de Salida']}" data-id="${row.id}" data-field="fecha_salida"></td>
-            <td>${row.Estimulacion}</td>
+            <td data-field="estado">${row.Estado}</td>
+            <td data-field="nombre">${row['Nombre y Apellidos']}</td>
+            <td><input type="date" class="date-input" value="${salidaFormatted}" data-id="${row.id}" data-field="fecha_salida"></td>
+            <td data-field="estimulacion">${row.Estimulacion}</td>
             <td>
                 <div class="date-control">
-                    <input type="checkbox" class="disable-date" ${row['Fecha de Entrada'] ? '' : 'checked'}>
+                    <input type="checkbox" class="disable-date" data-id="${row.id}" data-field="fin_mision">
                     <label>Deshabilitar fecha</label>
-                    <input type="date" class="date-input" value="${row['Fecha de Entrada']}" data-id="${row.id}" data-field="fecha_entrada">
+                    <input type="date" class="date-input" value="${entradaFormatted}" data-id="${row.id}" data-field="fecha_entrada">
                 </div>
             </td>
-            <td>${row.Vacaciones}</td>
-            <td>${row['Fin de Misión']}</td>
+            <td data-field="vacaciones">${row.Vacaciones}</td>
+            <td data-field="fin_mision">${row['Fin de Misión']}</td>
         `;
         tbody.appendChild(tr);
     });
 
-    // Agregar eventos para los checkboxes y los inputs de fecha
+    // Agregar event listeners después de que todos los elementos estén en el DOM
     const dateControls = document.querySelectorAll('.date-control');
-    dateControls.forEach(control => {
-        const checkbox = control.querySelector('.disable-date');
-        const input = control.querySelector('.date-input');
-        
-        // Evento para el checkbox
-        checkbox.addEventListener('change', () => {
-            input.disabled = checkbox.checked;
-            input.style.cursor = checkbox.checked ? 'not-allowed' : 'auto';
+    if (dateControls && dateControls.length > 0) {
+        dateControls.forEach(control => {
+            const checkbox = control.querySelector('.disable-date');
+            const input = control.querySelector('.date-input');
+            
+            if (checkbox && input) {
+                // Asegurarse de que el checkbox tenga el ID correcto
+                checkbox.dataset.id = checkbox.dataset.id || input.dataset.id;
+                
+                checkbox.addEventListener('change', handleCheckboxChange);
+                input.addEventListener('change', handleDateChange);
+                
+                // Establecer el estado inicial del input basado en el checkbox
+                input.disabled = checkbox.checked;
+                input.style.cursor = checkbox.checked ? 'not-allowed' : 'auto';
+            }
         });
+    }
+}
 
-        // Evento para el input de fecha
-        input.addEventListener('change', handleDateChange);
+// Función para obtener los datos almacenados en el DOM
+function getData() {
+    const table = document.getElementById('collaboratorsTable');
+    if (!table) {
+        console.error('Tabla no encontrada');
+        return [];
+    }
+    const tbody = table.querySelector('tbody');
+    if (!tbody) {
+        console.error('tbody no encontrado');
+        return [];
+    }
+    const rows = tbody.querySelectorAll('.data-row');
+    const data = [];
+    
+    rows.forEach(row => {
+        const rowData = {};
+        // Obtener el ID del input de fecha
+        const dateInput = row.querySelector('.date-input');
+        if (dateInput) {
+            rowData.id = parseInt(dateInput.dataset.id);
+        }
+        
+        row.querySelectorAll('[data-field]').forEach(input => {
+            const field = input.dataset.field;
+            rowData[field] = input.value || input.textContent;
+        });
+        data.push(rowData);
     });
+    
+    return data;
+}
 
-    // Agregar evento de cambio para los inputs de fecha de salida
-    const dateInputs = document.querySelectorAll('.date-input:not(.date-control .date-input)');
-    dateInputs.forEach(input => {
-        input.addEventListener('change', handleDateChange);
-    });
+// Función para manejar cambios en los checkboxes
+function handleCheckboxChange(event) {
+    const checkbox = event.target;
+    const dateInput = checkbox.closest('.date-control').querySelector('.date-input');
+    const dataId = checkbox.dataset.id || checkbox.closest('.date-control').querySelector('.date-input').dataset.id;
+    const dataField = checkbox.dataset.field;
+    
+    // Validar que tenemos todos los datos necesarios
+    if (!dataId) {
+        console.error('ID no encontrado en el checkbox');
+        console.log('Checkbox:', checkbox);
+        console.log('Date input:', dateInput);
+        return;
+    }
+    if (!dateInput) {
+        console.error('Input de fecha no encontrado');
+        return;
+    }
+    
+    // Actualizar el estado del input
+    dateInput.disabled = checkbox.checked;
+    dateInput.style.cursor = checkbox.checked ? 'not-allowed' : 'auto';
+    
+    // Obtener el row correspondiente
+    const data = getData();
+    if (!data || data.length === 0) {
+        console.error('No hay datos disponibles');
+        return;
+    }
+    
+    const row = data.find(r => r.id === parseInt(dataId));
+    if (!row) {
+        console.error('Row no encontrado para ID:', dataId);
+        console.log('Datos disponibles:', data);
+        return;
+    }
+
+    // Verificar si hay fecha de salida
+    const salidaDate = parseDate(row['Fecha de Salida']);
+    if (!salidaDate) {
+        checkbox.checked = false;
+        showMessage('No se puede marcar Fin de Misión sin fecha de salida', 'error');
+        return;
+    }
+
+    // Actualizar el estado de Fin de Misión
+    row['Fin de Misión'] = checkbox.checked ? 'Sí' : 'No';
+
+    // Actualizar la estimulación basada en el nuevo estado
+    row.Estimulacion = evaluateStimulation(row);
+
+    // Actualizar los contadores
+    updateCounters(data);
+    updateLocationCounters(data);
 }
 
 // Función para manejar cambios en las fechas

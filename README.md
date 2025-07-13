@@ -38,12 +38,26 @@ Sistema web para evaluar y gestionar el estado de colaboradores en misiones, inc
 ### Estimulación
 Un colaborador tiene derecho a estimulación si:
 1. Se encuentra en el país
-2. O sale del país después del día 15 del mes
+2. No tiene fecha de salida
+3. O sale del país después del día 15 del mes
 
 ### Fin de Misión
-Un colaborador está en estado de Fin de Misión si:
-1. Sale del país
-2. Y tiene término de misión
+El estado de Fin de Misión se controla mediante un checkbox en la interfaz:
+
+1. **Checkbox desmarcado (estado inicial)**: El colaborador no está en Fin de Misión
+2. **Checkbox marcado**: El colaborador está en Fin de Misión
+
+Cuando se marca el checkbox:
+- Se deshabilita el input de fecha de entrada
+- Se actualiza automáticamente el campo 'Fin de Misión' a 'Sí'
+- Se recalcula el estado de estimulación
+- Se actualizan los contadores generales y por ubicación
+
+Cuando se desmarca el checkbox:
+- Se habilita nuevamente el input de fecha de entrada
+- Se actualiza el campo 'Fin de Misión' a 'No'
+- Se recalcula el estado de estimulación
+- Se actualizan los contadores
 
 ### Vacaciones
 Un colaborador está en estado de Vacaciones si:

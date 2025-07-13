@@ -10,24 +10,68 @@ body {
     line-height: 1.6;
     background-color: #f5f5f5;
     margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* Estilos generales */
+.container {
+    flex: 1;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    background-color: white;
     padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+}
+
+/* Mensajes de importación */
+.import-message {
+    margin-top: 10px;
+    padding: 10px;
+    border-radius: 4px;
+    display: none;
+}
+
+.import-message.success {
+    background-color: #d4edda;
+    color: #155724;
+    display: block;
+}
+
+.import-message.error {
+    background-color: #f8d7da;
+    color: #721c24;
+    display: block;
 }
 
 .container {
     display: flex;
-    gap: 20px;
-    padding: 0;
+    flex-direction: column;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 /* Estilos para las tarjetas */
 .central-card {
+    flex: 1;
     background: white;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     padding: 20px;
-    flex: 1;
-    min-width: 300px;
-    margin-left: 320px;
+    width: 100%;
+    max-width: 100%;
+    overflow: auto;
 }
 
 .left-cards-container {
