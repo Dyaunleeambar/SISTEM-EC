@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Evaluación de Colaboradores</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Tarjeta Central -->        
+        <div class="central-card">
+            <h1>Sistema de Estimulación Colaboradores</h1>
+            <div class="import-section">
+                <h2>Importar Datos</h2>
+                <input type="file" id="fileInput" accept=".xlsx, .xls">
+                <button id="importButton">Importar</button>
+            </div>
+            <!-- Tabla de colaboradores -->
+            <table id="collaboratorsTable">
+                <thead>
+                    <tr>
+                        <th>Estado</th>
+                        <th>Nombre del Colaborador</th>
+                        <th>Fecha de Salida</th>
+                        <th>Estimulación</th>
+                        <th>Fecha de Entrada</th>
+                        <th>Vacaciones</th>
+                        <th>Fin de Misión</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Datos se cargarán dinámicamente -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Contenedor de tarjetas izquierdas -->
+        <div class="left-cards-container">
+            <!-- Tarjeta: Contadores Generales -->
+            <div class="left-card">
+                <h3>Contadores Generales</h3>
+                <div class="counters">
+                    <div class="counter">
+                        <span class="counter-label">Total Colaboradores</span>
+                        <span id="totalCollaborators" class="counter-value">0</span>
+                    </div>
+                    <div class="counter">
+                        <span class="counter-label">Con Estímulo</span>
+                        <span id="withStimulation" class="counter-value">0</span>
+                    </div>
+                    <div class="counter">
+                        <span class="counter-label">En Vacaciones</span>
+                        <span id="onVacation" class="counter-value">0</span>
+                    </div>
+                    <div class="counter">
+                        <span class="counter-label">Fin de Misión</span>
+                        <span id="endOfMission" class="counter-value">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tarjeta: Contadores por Ubicación -->
+            <div class="left-card">
+                <h3>Contadores por Ubicación</h3>
+                <div class="location-buttons">
+                    <!-- Los botones de estados se generarán dinámicamente -->
+                </div>
+                <div class="location-details" style="display: none;">
+                    <div class="counters">
+                        <div class="counter">
+                            <span class="counter-label">Total Colaboradores</span>
+                            <span class="counter-value">0</span>
+                        </div>
+                        <div class="counter">
+                            <span class="counter-label">Con Estímulo</span>
+                            <span class="counter-value">0</span>
+                        </div>
+                        <div class="counter">
+                            <span class="counter-label">En Vacaciones</span>
+                            <span class="counter-value">0</span>
+                        </div>
+                        <div class="counter">
+                            <span class="counter-label">Fin de Misión</span>
+                            <span class="counter-value">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
