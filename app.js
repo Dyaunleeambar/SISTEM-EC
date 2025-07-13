@@ -1,6 +1,9 @@
 // Funciones auxiliares
 function parseDate(dateString) {
-    if (!dateString) return null;
+    if (!dateString || dateString.trim() === '') {
+        console.log('Fecha vacía o nula:', dateString);
+        return null;
+    }
     try {
         // Intentar parsear como MM/DD/YYYY
         const parts = dateString.split('/');
@@ -42,29 +45,23 @@ function getDayOfMonth(date) {
 }
 
 function evaluateStimulation(row) {
-    // 1. Verificar si está en el país
-    if (row.Estado === 'En país') {
+    // 1. Si está en el país o no tiene fecha de salida
+    if (row.Estado === 'En país' || !row['Fecha de Salida']) {
         return 'Sí';
     }
 
-    // 2. Verificar si no tiene fecha de salida
+    // 2. Si tiene fecha de salida, verificar el día
     const salidaDate = parseDate(row['Fecha de Salida']);
     if (!salidaDate) {
-        return 'Sí';
+        console.error('Error al parsear la fecha de salida:', row['Fecha de Salida']);
+        return 'No';
     }
 
-    // 3. Verificar si sale después del día 15
     const salidaDay = getDayOfMonth(salidaDate);
     if (salidaDay >= 15) {
         return 'Sí';
     }
 
-    // 4. Si sale antes del día 15
-    if (row['Fin de Misión'] === 'Sí') {
-        return 'No';
-    }
-
-    // Si sale antes del día 15 y no es fin de misión, está en vacaciones
     return 'No';
 }
 
@@ -74,6 +71,11 @@ function showMessage(message, type) {
     if (importMessage) {
         importMessage.textContent = message;
         importMessage.className = `import-message ${type}`;
+        // Ocultar el mensaje después de 5 segundos
+        setTimeout(() => {
+            importMessage.textContent = '';
+            importMessage.className = 'import-message';
+        }, 5000);
     }
 }
 
@@ -134,6 +136,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function showMessage(message, type) {
         importMessage.textContent = message;
         importMessage.className = `import-message ${type}`;
+        // Ocultar el mensaje después de 5 segundos
+        setTimeout(() => {
+            importMessage.textContent = '';
+            importMessage.className = 'import-message';
+        }, 5000);
     }
 });
 
@@ -233,28 +240,28 @@ function updateTable(data) {
                 </div>
             </td>
             <td data-field="vacaciones">${row.Vacaciones}</td>
-            <td data-field="fin_mision">${row['Fin de Misión']}</td>
+            <td data-field="Fin de Misión">${row['Fin de Misión'] || 'No'}</td>
         `;
         tbody.appendChild(tr);
     });
 
-    // Agregar event listeners después de que todos los elementos estén en el DOM
-    const dateControls = document.querySelectorAll('.date-control');
-    if (dateControls && dateControls.length > 0) {
-        dateControls.forEach(control => {
-            const checkbox = control.querySelector('.disable-date');
-            const input = control.querySelector('.date-input');
+    // Agregar event listeners a todos los inputs de fecha
+    const dateInputs = document.querySelectorAll('.date-input');
+    if (dateInputs && dateInputs.length > 0) {
+        dateInputs.forEach(input => {
+            input.addEventListener('change', handleDateChange);
             
-            if (checkbox && input) {
-                // Asegurarse de que el checkbox tenga el ID correcto
-                checkbox.dataset.id = checkbox.dataset.id || input.dataset.id;
-                
-                checkbox.addEventListener('change', handleCheckboxChange);
-                input.addEventListener('change', handleDateChange);
-                
-                // Establecer el estado inicial del input basado en el checkbox
-                input.disabled = checkbox.checked;
-                input.style.cursor = checkbox.checked ? 'not-allowed' : 'auto';
+            // Si es el input de Fin de Misión, agregar el listener del checkbox
+            const isFinMisionInput = input.dataset.field === 'Fecha de Entrada';
+            if (isFinMisionInput) {
+                const checkbox = input.parentElement.querySelector('.disable-date');
+                if (checkbox) {
+                    checkbox.addEventListener('change', handleCheckboxChange);
+                    
+                    // Establecer el estado inicial del input basado en el checkbox
+                    input.disabled = checkbox.checked;
+                    input.style.cursor = checkbox.checked ? 'not-allowed' : 'auto';
+                }
             }
         });
     }
@@ -283,14 +290,15 @@ function getData() {
             rowData.id = parseInt(dateInput.dataset.id);
         }
         
-        row.querySelectorAll('[data-field]').forEach(input => {
-            const field = input.dataset.field;
-            // Para campos de fecha, asegurarse de que el valor no esté vacío
+        row.querySelectorAll('[data-field]').forEach(element => {
+            const field = element.dataset.field;
+            // Para campos de fecha, usar el valor directamente
             if (field.includes('fecha')) {
-                const value = input.value || '';
-                rowData[field] = value; // Guardar como cadena vacía si está vacío
+                rowData[field] = element.value;
+            } else if (field === 'Fin de Misión') {
+                rowData[field] = element.textContent || '';
             } else {
-                rowData[field] = input.value || input.textContent || '';
+                rowData[field] = element.value || element.textContent || '';
             }
         });
         data.push(rowData);
@@ -334,7 +342,6 @@ function handleCheckboxChange(event) {
     // Verificar si el valor está vacío o es una cadena vacía
     if (!fechaSalida || fechaSalida.trim() === '') {
         console.log('Fecha considerada vacía:', fechaSalida);
-        checkbox.checked = false;
         showMessage('No se puede marcar Fin de Misión: La fecha de salida está vacía', 'error');
         return;
     }
@@ -343,7 +350,6 @@ function handleCheckboxChange(event) {
     const salidaDate = parseDate(fechaSalida);
     if (!salidaDate) {
         console.log('Fecha de salida:', fechaSalida);
-        checkbox.checked = false;
         showMessage(`No se puede marcar Fin de Misión: La fecha de salida '${fechaSalida}' no es válida`, 'error');
         return;
     }
@@ -351,7 +357,6 @@ function handleCheckboxChange(event) {
     // Verificar que la fecha no sea futura
     const today = new Date();
     if (salidaDate > today) {
-        checkbox.checked = false;
         showMessage('No se puede marcar Fin de Misión: La fecha de salida es futura', 'error');
         return;
     }
@@ -366,9 +371,16 @@ function handleCheckboxChange(event) {
     updateCounters(data);
     updateLocationCounters(data);
 
-    // Deshabilitar/habilitar el input de Fecha de Entrada
+    // Obtener la fila y actualizar los elementos
     const rowElement = checkbox.closest('.data-row');
     if (rowElement) {
+        // Actualizar el valor visible en la tabla
+        const finMisionCell = rowElement.querySelector('[data-field="Fin de Misión"]');
+        if (finMisionCell) {
+            finMisionCell.textContent = row['Fin de Misión'];
+        }
+
+        // Deshabilitar/habilitar el input de Fecha de Entrada
         const entradaInput = rowElement.querySelector('[data-field="Fecha de Entrada"]');
         if (entradaInput) {
             entradaInput.disabled = checkbox.checked;
@@ -401,38 +413,40 @@ function handleDateChange(event) {
     // Actualizar el valor de la fecha
     row[field] = value;
     
+    // Recalcular la estimulación basada en la nueva fecha
+    const newEstimulacion = evaluateStimulation(row);
+    row.Estimulacion = newEstimulacion;
+    
     // Actualizar el DOM
     const rowElement = input.closest('.data-row');
     if (rowElement) {
-        // Actualizar el valor en el DOM
-        const displayElement = rowElement.querySelector(`[data-field="${field}"]`);
-        if (displayElement) {
-            if (displayElement.type === 'date') {
-                displayElement.value = value;
-            } else {
-                displayElement.textContent = value;
-            }
-        }
-
         // Actualizar la estimulación en el DOM
         const estimacionElement = rowElement.querySelector('[data-field="estimulacion"]');
         if (estimacionElement) {
-            estimacionElement.textContent = row.Estimulacion;
+            estimacionElement.textContent = newEstimulacion;
+        }
+
+        // Actualizar el valor de la fecha en el DOM
+        const dateElement = rowElement.querySelector(`[data-field="${field}"]`);
+        if (dateElement && dateElement.type === 'date') {
+            dateElement.value = value;
+        }
+
+        // Actualizar el estado de Fin de Misión si es necesario
+        if (field === 'Fecha de Salida') {
+            const finMisionCheckbox = rowElement.querySelector('.disable-date');
+            if (finMisionCheckbox) {
+                const finMisionField = rowElement.querySelector('[data-field="fin_mision"]');
+                if (finMisionField) {
+                    finMisionField.textContent = row['Fin de Misión'];
+                }
+            }
         }
     }
 
     // Actualizar los contadores
     updateCounters(data);
     updateLocationCounters(data);
-
-    // Actualizar el estado de Fin de Misión si es necesario
-    const finMisionCheckbox = rowElement.querySelector('.disable-date');
-    if (finMisionCheckbox) {
-        const finMisionField = rowElement.querySelector('[data-field="fin_mision"]');
-        if (finMisionField) {
-            finMisionField.textContent = row['Fin de Misión'];
-        }
-    }
 }
 
 function updateCounters(data) {
@@ -453,24 +467,32 @@ function updateCounters(data) {
 }
 
 function updateLocationCounters(data) {
+    // Verificar si el contenedor existe
+    const locationButtonsContainer = document.querySelector('.location-buttons');
+    if (!locationButtonsContainer) {
+        console.error('Contenedor de botones de ubicación no encontrado');
+        return;
+    }
+
     // Limpiar los botones existentes
-    const locationButtons = document.querySelector('.location-buttons');
-    locationButtons.innerHTML = '';
+    locationButtonsContainer.innerHTML = '';
 
     // Crear un objeto para almacenar los datos por estado
     const stateData = {};
     
     // Contar los datos por estado
-    data.forEach(row => {
-        const state = row.Estado;
-        if (!stateData[state]) {
-            stateData[state] = { total: 0, stimulation: 0, vacation: 0, mission: 0 };
-        }
-        stateData[state].total++;
-        if (row.Estimulacion === 'Sí') stateData[state].stimulation++;
-        if (row.Vacaciones === 'Sí') stateData[state].vacation++;
-        if (row['Fin de Misión'] === 'Sí') stateData[state].mission++;
-    });
+    if (data && Array.isArray(data)) {
+        data.forEach(row => {
+            const state = row.Estado;
+            if (!stateData[state]) {
+                stateData[state] = { total: 0, stimulation: 0, vacation: 0, mission: 0 };
+            }
+            stateData[state].total++;
+            if (row.Estimulacion === 'Sí') stateData[state].stimulation++;
+            if (row.Vacaciones === 'Sí') stateData[state].vacation++;
+            if (row['Fin de Misión'] === 'Sí') stateData[state].mission++;
+        });
+    }
 
     // Crear botones para cada estado
     Object.entries(stateData).forEach(([state, counts]) => {
@@ -492,17 +514,21 @@ function updateLocationCounters(data) {
             
             // Actualizar los contadores de detalles
             const details = document.querySelector('.location-details');
-            details.style.display = 'block';
-            
-            // Actualizar los valores de los contadores
-            const counters = details.querySelectorAll('.counter-value');
-            counters[0].textContent = counts.total;
-            counters[1].textContent = counts.stimulation;
-            counters[2].textContent = counts.vacation;
-            counters[3].textContent = counts.mission;
+            if (details) {
+                details.style.display = 'block';
+                
+                // Actualizar los valores de los contadores
+                const counters = details.querySelectorAll('.counter-value');
+                if (counters.length === 4) {
+                    counters[0].textContent = counts.total;
+                    counters[1].textContent = counts.stimulation;
+                    counters[2].textContent = counts.vacation;
+                    counters[3].textContent = counts.mission;
+                }
+            }
         });
 
         // Agregar el botón al DOM
-        locationButtons.appendChild(button);
+        locationButtonsContainer.appendChild(button);
     });
 }
