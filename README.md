@@ -1,7 +1,7 @@
 # Sistema de Evaluación de Estado de Colaboradores
 
 ## Descripción
-Sistema web para evaluar y gestionar el estado de colaboradores en misiones, incluyendo su derecho a estimulación, estado de vacaciones y fin de misión. La aplicación permite importar datos de colaboradores desde archivos Excel y visualizar estadísticas en tiempo real.
+Sistema web para evaluar y gestionar el estado de colaboradores en misiones, incluyendo su derecho a estimulación, estado de vacaciones y fin de misión. La aplicación permite importar datos de colaboradores desde archivos Excel (.xlsx, .xls) y visualizar estadísticas en tiempo real con una interfaz responsive y moderna.
 
 ## Funcionalidades Implementadas
 
@@ -13,8 +13,9 @@ Sistema web para evaluar y gestionar el estado de colaboradores en misiones, inc
 
 ### Visualización de Datos
 - Tabla dinámica con información de colaboradores
-- Campos editables para fechas de entrada y salida
+- Campos editables para fechas de salida y entrada
 - Indicadores de estado (estimulación, vacaciones, fin de misión)
+- Formato de fecha flexible (YYYY-MM-DD, MM/DD/YYYY, ISO)
 
 ### Estadísticas y Contadores
 - Contadores generales:
@@ -41,10 +42,14 @@ Un colaborador tiene derecho a estimulación si:
 2. No tiene fecha de salida
 3. O sale del país después del día 15 del mes
 
+### Vacaciones
+Un colaborador está en estado de Vacaciones si:
+1. Tiene fecha de salida
+2. No está en estado de Fin de Misión
+
 ### Fin de Misión
 El estado de Fin de Misión se controla mediante un checkbox en la interfaz:
-
-1. **Checkbox desmarcado (estado inicial)**: El colaborador no está en Fin de Misión
+1. **Checkbox desmarcado**: El colaborador no está en Fin de Misión
 2. **Checkbox marcado**: El colaborador está en Fin de Misión
 
 Validaciones:
@@ -79,32 +84,35 @@ SistemaEstimulación01/
 ├── index.html        # Archivo principal de la aplicación
 ├── app.js            # Lógica de la aplicación y manejo de datos
 ├── styles.css        # Estilos y diseño de la interfaz
-└── README.md         # Documentación del proyecto
+├── README.md         # Documentación del proyecto
+└── assets/
+    └── xlsx.js      # Biblioteca para procesamiento de Excel
 ```
 
 ## Tecnologías Utilizadas
 - HTML5
 - CSS3
 - JavaScript
-- XLSX.js (para procesamiento de archivos Excel)
+- XLSX.js v0.18.5 (para procesamiento de archivos Excel)
+- Modern CSS Grid y Flexbox para diseño responsive
 
 ## Consideraciones Técnicas
 
 ### Estructura de Datos
 - Cada colaborador debe tener un registro con los siguientes campos:
-  - ID único del colaborador
-  - Nombre completo
-  - Estado actual (En país/Salida)
-  - Fecha de salida (opcional)
-  - Estado de misión (Activa/Término)
-  - Estado actual (Estimulación/Vacaciones/Fin de Misión)
-  - Fecha de última actualización
-  - Historial de cambios
+  - Estado (En país/Salida)
+  - Nombre del Colaborador
+  - Fecha de Salida
+  - Estimulación
+  - Fecha de Entrada
+  - Vacaciones
+  - Fin de Misión
 
 ### Validaciones
-- Verificar que la fecha de salida no sea anterior a la fecha actual
-- Validar que el estado de misión sea consistente con el tipo de salida
-- Mantener consistencia en los estados históricos
+- Formato de fecha flexible (YYYY-MM-DD, MM/DD/YYYY, ISO)
+- Validación de fechas inválidas
+- Consistencia en el estado de Fin de Misión
+- Validación de estados de estimulación y vacaciones
 
 ### Seguridad
 - Autenticación de usuarios con permisos de acceso
