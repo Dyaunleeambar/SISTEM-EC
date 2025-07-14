@@ -1,28 +1,38 @@
 // Funciones auxiliares
 function parseDate(dateString) {
     if (!dateString) {
-        // Si no hay fecha, retornamos null
         return null;
     }
     
-    // Eliminar espacios en blanco
     const trimmedDate = dateString.trim();
-    
     if (trimmedDate === '') {
-        // Si la fecha está vacía después de trim, retornamos null
         return null;
     }
     
     try {
-        // Intentar parsear como MM/DD/YYYY
-        const parts = trimmedDate.split('/');
+        // Intentar parsear como YYYY-MM-DD (formato más común)
+        const parts = trimmedDate.split('-');
         if (parts.length === 3) {
-            const month = parseInt(parts[0], 10) - 1; // Los meses en JavaScript son 0-based
-            const day = parseInt(parts[1], 10);
-            const year = parseInt(parts[2], 10);
+            const year = parseInt(parts[0], 10);
+            const month = parseInt(parts[1], 10) - 1; // Los meses en JavaScript son 0-based
+            const day = parseInt(parts[2], 10);
             const date = new Date(year, month, day);
             
-            // Verificar si el parseo fue exitoso
+            if (isNaN(date.getTime())) {
+                console.warn('Fecha inválida (YYYY-MM-DD):', dateString);
+                return null;
+            }
+            return date;
+        }
+
+        // Intentar parsear como MM/DD/YYYY
+        const partsSlash = trimmedDate.split('/');
+        if (partsSlash.length === 3) {
+            const month = parseInt(partsSlash[0], 10) - 1; // Los meses en JavaScript son 0-based
+            const day = parseInt(partsSlash[1], 10);
+            const year = parseInt(partsSlash[2], 10);
+            const date = new Date(year, month, day);
+            
             if (isNaN(date.getTime())) {
                 console.warn('Fecha inválida (MM/DD/YYYY):', dateString);
                 return null;
@@ -30,7 +40,7 @@ function parseDate(dateString) {
             return date;
         }
 
-        // Si no es MM/DD/YYYY, intentar parsear como YYYY-MM-DD
+        // Intentar parsear como fecha ISO
         const date = new Date(trimmedDate);
         if (isNaN(date.getTime())) {
             console.warn('Fecha inválida:', dateString);
@@ -62,16 +72,30 @@ function evaluateStimulation(row) {
     // 2. Si tiene fecha de salida, verificar el día
     const salidaDate = parseDate(row['Fecha de Salida']);
     if (!salidaDate) {
-        // Si no se puede parsear la fecha, asumimos que no tiene fecha de salida
-        return 'Sí';
+        console.warn('Fecha no válida:', row['Fecha de Salida']);
+        return 'No'; // Si la fecha no es válida, no tiene estimulación
     }
 
-    const salidaDay = getDayOfMonth(salidaDate);
+    // Obtener el día del mes (1-31)
+    const salidaDay = salidaDate.getDate();
+    
+    // Regla: Si sale después del día 15, tiene estimulación
     if (salidaDay >= 15) {
         return 'Sí';
     }
 
     return 'No';
+}
+
+// Función para calcular el estado de vacaciones
+function evaluateVacaciones(row) {
+    // Reglas de vacaciones:
+    // 1. Debe tener fecha de salida
+    // 2. No debe estar en fin de misión
+    const hasSalida = row['Fecha de Salida'] && row['Fecha de Salida'].trim() !== '';
+    const isInFinMision = row['Fin de Misión'] === 'Sí';
+
+    return hasSalida && !isInFinMision ? 'Sí' : 'No';
 }
 
 // Función para mostrar mensajes
@@ -333,8 +357,24 @@ function getData() {
                     'Fecha de Salida': fechaSalida
                 });
             } else if (field === 'vacaciones') {
-                // Para el campo de vacaciones, usar textContent
-                rowData[field] = element.textContent || '';
+                // Calcular el estado de vacaciones basado en las reglas
+                const estado = row.querySelector('[data-field="estado"]').textContent || '';
+                const finMision = row.querySelector('[data-field="Fin de Misión"]').textContent || '';
+                const fechaSalida = row.querySelector('[data-field="Fecha de Salida"]').value || '';
+
+                // Reglas de vacaciones:
+                // 1. Debe tener fecha de salida
+                // 2. No debe estar en fin de misión
+                const hasSalida = fechaSalida && fechaSalida.trim() !== '';
+                const isInFinMision = finMision === "Sí";
+
+                rowData[field] = hasSalida && !isInFinMision ? "Sí" : "No";
+                
+                // Actualizar el DOM con el nuevo valor
+                const vacacionesElement = row.querySelector('[data-field="vacaciones"]');
+                if (vacacionesElement) {
+                    vacacionesElement.textContent = rowData[field];
+                }
             } else {
                 // Para otros campos, usar value si existe, sino textContent
                 rowData[field] = element.value || element.textContent || '';
@@ -403,12 +443,9 @@ function handleCheckboxChange(event) {
     // Actualizar el estado de Fin de Misión
     row['Fin de Misión'] = checkbox.checked ? 'Sí' : 'No';
 
-    // Actualizar la estimulación basada en el nuevo estado
+    // Recalcular la estimulación y vacaciones basadas en el nuevo estado
     row.Estimulacion = evaluateStimulation(row);
-
-    // Actualizar los contadores
-    updateCounters(data);
-    updateLocationCounters(data);
+    row.Vacaciones = evaluateVacaciones(row);
 
     // Obtener la fila y actualizar los elementos
     const rowElement = checkbox.closest('.data-row');
@@ -425,7 +462,36 @@ function handleCheckboxChange(event) {
             entradaInput.disabled = checkbox.checked;
             entradaInput.style.cursor = checkbox.checked ? 'not-allowed' : 'auto';
         }
+
+        // Actualizar la estimulación y vacaciones en el DOM
+        const estimulacionCell = rowElement.querySelector('[data-field="estimulacion"]');
+        if (estimulacionCell) {
+            estimulacionCell.textContent = row.Estimulacion;
+        }
+
+        const vacacionesCell = rowElement.querySelector('[data-field="vacaciones"]');
+        if (vacacionesCell) {
+            vacacionesCell.textContent = row.Vacaciones;
+        }
     }
+
+    // Actualizar los contadores después de que el DOM se haya actualizado
+    requestAnimationFrame(() => {
+        // Obtener los datos actualizados
+        const updatedData = getData();
+        
+        // Recalcular la estimulación y vacaciones para todas las filas
+        updatedData.forEach(row => {
+            const newEstimulacion = evaluateStimulation(row);
+            const newVacaciones = evaluateVacaciones(row);
+            row.Estimulacion = newEstimulacion;
+            row.Vacaciones = newVacaciones;
+        });
+
+        // Actualizar los contadores
+        updateCounters(updatedData);
+        updateLocationCounters(updatedData);
+    });
 }
 
 // Función para manejar cambios en las fechas
@@ -452,26 +518,18 @@ function handleDateChange(event) {
     // Actualizar el valor de la fecha
     row[field] = value;
     
-    // Recalcular la estimulación basada en la nueva fecha
+    // Recalcular la estimulación y vacaciones basadas en la nueva fecha
     const newEstimulacion = evaluateStimulation(row);
+    const newVacaciones = evaluateVacaciones(row);
+    
+    // Actualizar los valores en el objeto de datos
     row.Estimulacion = newEstimulacion;
+    row.Vacaciones = newVacaciones;
     
     // Actualizar el DOM
     const rowElement = input.closest('.data-row');
     if (rowElement) {
-        // Actualizar la estimulación en el DOM
-        const estimacionElement = rowElement.querySelector('[data-field="estimulacion"]');
-        if (estimacionElement) {
-            // Asegurarnos de que el texto esté en mayúsculas
-            const estimulacionText = newEstimulacion.toUpperCase();
-            estimacionElement.textContent = estimulacionText;
-            // También actualizar el value si es un input
-            if (estimacionElement.tagName === 'INPUT') {
-                estimacionElement.value = estimulacionText;
-            }
-        }
-
-        // Actualizar el valor de la fecha en el DOM
+        // Actualizar el valor de la fecha en el DOM primero
         const dateElement = rowElement.querySelector(`[data-field="${field}"]`);
         if (dateElement && dateElement.type === 'date') {
             dateElement.value = value;
@@ -487,18 +545,53 @@ function handleDateChange(event) {
                 }
             }
         }
+
+        // Actualizar la estimulación y vacaciones en el DOM
+        const estimacionElement = rowElement.querySelector('[data-field="estimulacion"]');
+        if (estimacionElement) {
+            // Asegurarnos de que el texto esté en mayúsculas
+            const estimulacionText = newEstimulacion.toUpperCase();
+            estimacionElement.textContent = estimulacionText;
+            // También actualizar el value si es un input
+            if (estimacionElement.tagName === 'INPUT') {
+                estimacionElement.value = estimulacionText;
+            }
+        }
+
+        // Actualizar el estado de vacaciones en el DOM
+        const vacacionesElement = rowElement.querySelector('[data-field="vacaciones"]');
+        if (vacacionesElement) {
+            vacacionesElement.textContent = newVacaciones;
+        }
     }
 
     // Actualizar los contadores después de que el DOM se haya actualizado
-    // Usamos requestAnimationFrame para asegurar que el DOM se actualice primero
     requestAnimationFrame(() => {
         // Obtener los datos actualizados
         const updatedData = getData();
         
-        // Recalcular la estimulación para cada fila
+        // Recalcular la estimulación y vacaciones para todas las filas
         updatedData.forEach(row => {
             const newEstimulacion = evaluateStimulation(row);
+            const newVacaciones = evaluateVacaciones(row);
             row.Estimulacion = newEstimulacion;
+            row.Vacaciones = newVacaciones;
+
+            // Actualizar el DOM de nuevo con los valores calculados
+            const rowElement = document.querySelector(`.data-row[data-id="${row.id}"]`);
+            if (rowElement) {
+                // Actualizar estimulación
+                const estimulacionCell = rowElement.querySelector('[data-field="estimulacion"]');
+                if (estimulacionCell) {
+                    estimulacionCell.textContent = newEstimulacion;
+                }
+
+                // Actualizar vacaciones
+                const vacacionesCell = rowElement.querySelector('[data-field="vacaciones"]');
+                if (vacacionesCell) {
+                    vacacionesCell.textContent = newVacaciones;
+                }
+            }
         });
 
         // Actualizar los contadores
@@ -511,6 +604,13 @@ function updateCounters(data) {
     // Contadores generales
     const totalCollaborators = data.length;
     const withStimulation = data.filter(row => row.Estimulacion === 'Sí').length;
+    
+    // Verificar los valores de Vacaciones
+    console.log('Datos de vacaciones:');
+    data.forEach(row => {
+        console.log(`ID: ${row.id}, Vacaciones: ${row.Vacaciones}, Estado: ${row.Estado}, Fin de Misión: ${row['Fin de Misión']}`);
+    });
+    
     const onVacation = data.filter(row => row.Vacaciones === 'Sí').length;
     const endOfMission = data.filter(row => row['Fin de Misión'] === 'Sí').length;
 
