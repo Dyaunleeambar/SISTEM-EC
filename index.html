@@ -11,6 +11,25 @@
         <!-- Tarjeta Central -->        
         <div class="central-card">
             <h1>Sistema de Estimulación Colaboradores</h1>
+            <h3>Contadores Generales</h3>
+            <div class="counters">
+                <div class="counter">
+                    <span class="counter-label">Total Colaboradores</span>
+                    <span id="totalCollaborators" class="counter-value">0</span>
+                </div>
+                <div class="counter">
+                    <span class="counter-label">Con Estímulo</span>
+                    <span id="withStimulation" class="counter-value">0</span>
+                </div>
+                <div class="counter">
+                    <span class="counter-label">En Vacaciones</span>
+                    <span id="onVacation" class="counter-value">0</span>
+                </div>
+                <div class="counter">
+                    <span class="counter-label">Fin de Misión</span>
+                    <span id="endOfMission" class="counter-value">0</span>
+                </div>
+            </div>
             <div class="import-section">
                 <h2>Importar Datos</h2>
                 <input type="file" id="fileInput" accept=".xlsx, .xls">
@@ -38,28 +57,7 @@
 
         <!-- Contenedor de tarjetas izquierdas -->
         <div class="left-cards-container">
-            <!-- Tarjeta: Contadores Generales -->
-            <div class="left-card">
-                <h3>Contadores Generales</h3>
-                <div class="counters">
-                    <div class="counter">
-                        <span class="counter-label">Total Colaboradores</span>
-                        <span id="totalCollaborators" class="counter-value">0</span>
-                    </div>
-                    <div class="counter">
-                        <span class="counter-label">Con Estímulo</span>
-                        <span id="withStimulation" class="counter-value">0</span>
-                    </div>
-                    <div class="counter">
-                        <span class="counter-label">En Vacaciones</span>
-                        <span id="onVacation" class="counter-value">0</span>
-                    </div>
-                    <div class="counter">
-                        <span class="counter-label">Fin de Misión</span>
-                        <span id="endOfMission" class="counter-value">0</span>
-                    </div>
-                </div>
-            </div>
+
 
             <!-- Tarjeta: Contadores por Ubicación -->
             <div class="left-card">
@@ -70,7 +68,7 @@
                 <div class="location-details" style="display: none;">
                     <div class="counters">
                         <div class="counter">
-                            <span class="counter-label">Total Colaboradores</span>
+                            <span class="counter-label">Total</span>
                             <span class="counter-value">0</span>
                         </div>
                         <div class="counter">
@@ -78,7 +76,7 @@
                             <span class="counter-value">0</span>
                         </div>
                         <div class="counter">
-                            <span class="counter-label">En Vacaciones</span>
+                            <span class="counter-label">Vacaciones</span>
                             <span class="counter-value">0</span>
                         </div>
                         <div class="counter">

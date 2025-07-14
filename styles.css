@@ -96,7 +96,7 @@ body {
 
 .left-card {
     left: 20px;
-    width: 300px;
+    width: 350px;
 }
 
 .right-card {
@@ -147,16 +147,7 @@ body {
     border: 1px solid #ddd;
 }
 
-.location-details .counter-group {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 15px;
-}
-
-/* Estilos para la sección de importación */
-.import-section {
-    margin-bottom: 20px;
-    padding: 20px 0;
+.location-details .counters {
     border-bottom: 1px solid #eee;
     color: #666;
     margin-bottom: 10px;
@@ -276,11 +267,13 @@ th {
 }
 
 /* Estilos para los contadores */
-.counter-group {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 15px;
-    margin-top: 20px;
+.counters {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    margin-top: 15px;
+    gap: 20px;
+    flex-wrap: wrap;
 }
 
 .counter {

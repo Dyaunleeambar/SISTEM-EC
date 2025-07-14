@@ -222,6 +222,23 @@ function processExcelData(workbook) {
             'Fecha de Salida': salidaFormatted
         });
 
+        // Calcular el estado de vacaciones
+        const vacaciones = evaluateVacaciones({
+            'Fecha de Salida': salidaFormatted,
+            'Fin de Misión': finMision
+        });
+
+        return {
+            ...row,
+            'Nombre y Apellidos': nombre,
+            Estado: estado,
+            'Fecha de Salida': salidaFormatted,
+            'Fecha de Entrada': entradaFormatted,
+            'Fin de Misión': finMision,
+            Estimulacion: estimulacion,
+            Vacaciones: vacaciones
+        };
+
         return {
             ...row,
             'Nombre y Apellidos': nombre,
@@ -279,7 +296,7 @@ function updateTable(data) {
                     <input type="date" class="date-input" value="${entradaFormatted}" data-id="${row.id}" data-field="Fecha de Entrada">
                 </div>
             </td>
-            <td data-field="vacaciones">${row.Vacaciones}</td>
+            <td data-field="vacaciones">${row['Vacaciones'] || 'No'}</td>
             <td data-field="Fin de Misión">${row['Fin de Misión'] || 'No'}</td>
         `;
         
@@ -356,7 +373,10 @@ function getData() {
                     'Fecha de Salida': fechaSalida
                 });
             } else if (field === 'vacaciones') {
-                // Calcular el estado de vacaciones basado en las reglas
+                // Obtener el valor directamente del DOM
+                rowData[field] = element.textContent || '';
+                
+                // Actualizar el estado de vacaciones basado en las reglas
                 const estado = row.querySelector('[data-field="estado"]').textContent || '';
                 const finMision = row.querySelector('[data-field="Fin de Misión"]').textContent || '';
                 const fechaSalida = row.querySelector('[data-field="Fecha de Salida"]').value || '';
@@ -367,12 +387,12 @@ function getData() {
                 const hasSalida = fechaSalida && fechaSalida.trim() !== '';
                 const isInFinMision = finMision === "Sí";
 
-                rowData[field] = hasSalida && !isInFinMision ? "Sí" : "No";
+                const nuevoEstado = hasSalida && !isInFinMision ? "Sí" : "No";
                 
-                // Actualizar el DOM con el nuevo valor
+                // Actualizar el DOM con el nuevo valor solo si ha cambiado
                 const vacacionesElement = row.querySelector('[data-field="vacaciones"]');
-                if (vacacionesElement) {
-                    vacacionesElement.textContent = rowData[field];
+                if (vacacionesElement && vacacionesElement.textContent !== nuevoEstado) {
+                    vacacionesElement.textContent = nuevoEstado;
                 }
             } else {
                 // Para otros campos, usar value si existe, sino textContent
@@ -489,6 +509,7 @@ function handleCheckboxChange(event) {
 
         // Actualizar los contadores
         updateCounters(updatedData);
+        updateLocationCounters(updatedData);
         
         // Mantener el estado activo del botón de ubicación
         const activeButton = document.querySelector('.location-button.active');
@@ -496,7 +517,16 @@ function handleCheckboxChange(event) {
         
         // Si había un botón activo, restaurarlo
         if (activeState) {
-            const newActiveButton = document.querySelector(`.location-button span:first-child:contains('${activeState}')`).parentElement;
+            // Encontrar el botón que tiene el mismo texto
+            const locationButtons = document.querySelectorAll('.location-button');
+            let newActiveButton = null;
+            locationButtons.forEach(button => {
+                const buttonState = button.querySelector('span:first-child').textContent;
+                if (buttonState === activeState) {
+                    newActiveButton = button;
+                }
+            });
+            
             if (newActiveButton) {
                 newActiveButton.classList.add('active');
                 const details = document.querySelector('.location-details');
@@ -636,43 +666,102 @@ function updateCounters(data) {
 
 function updateLocationCounters(data) {
     // Verificar si el contenedor existe
-    const locationButtonsContainer = document.querySelector('.location-buttons');
-    if (!locationButtonsContainer) {
+    const container = document.querySelector('.location-buttons');
+    if (!container) {
         console.error('Contenedor de botones de ubicación no encontrado');
         return;
     }
 
-    // Mantener referencia al botón activo actual
-    const activeButton = document.querySelector('.location-button.active');
-    const activeState = activeButton ? activeButton.querySelector('span:first-child').textContent : null;
-
     // Limpiar los botones existentes
-    locationButtonsContainer.innerHTML = '';
+    container.innerHTML = '';
 
-    // Crear un objeto para almacenar los datos por estado
-    const stateData = {};
+    // Contadores por ubicación
+    const countersByLocation = {};
     
-    // Contar los datos por estado
+    // Contar los datos por ubicación usando el mismo método que los contadores generales
     if (data && Array.isArray(data)) {
-        data.forEach(row => {
-            const state = row.Estado;
-            if (!stateData[state]) {
-                stateData[state] = { total: 0, stimulation: 0, vacation: 0, mission: 0 };
+        // Obtener los valores del DOM
+        const tbody = document.querySelector('#collaboratorsTable tbody');
+        if (!tbody) {
+            console.error('No se encontró el tbody de la tabla');
+            return;
+        }
+
+        // Obtener todas las filas
+        const rows = tbody.querySelectorAll('.data-row');
+        
+        // Procesar cada fila usando los valores del DOM
+        rows.forEach(row => {
+            const location = row.querySelector('[data-field="estado"]')?.textContent || '';
+            if (!location) return;
+
+            if (!countersByLocation[location]) {
+                countersByLocation[location] = {
+                    total: 0,
+                    stimulation: 0,
+                    vacation: 0,
+                    mission: 0
+                };
             }
-            stateData[state].total++;
-            if (row.Estimulacion === 'Sí') stateData[state].stimulation++;
-            if (row.Vacaciones === 'Sí') stateData[state].vacation++;
-            if (row['Fin de Misión'] === 'Sí') stateData[state].mission++;
+            
+            // Contar total
+            countersByLocation[location].total++;
+            
+            // Obtener los valores del DOM
+            const vacacionesCell = row.querySelector('[data-field="vacaciones"]');
+            const finMisionCell = row.querySelector('[data-field="Fin de Misión"]');
+            
+            // Contar con estimulación
+            const estimulacion = row.querySelector('[data-field="estimulacion"]')?.textContent || 'No';
+            if (estimulacion === 'Sí') {
+                countersByLocation[location].stimulation++;
+            }
+            
+            // Contar en vacaciones
+            const vacaciones = vacacionesCell?.textContent || 'No';
+            if (vacaciones === 'Sí') {
+                countersByLocation[location].vacation++;
+            }
+            
+            // Contar fin de misión
+            const finMision = finMisionCell?.textContent || 'No';
+            if (finMision === 'Sí') {
+                countersByLocation[location].mission++;
+            }
+            
+            // Logs para depuración
+            console.log('Procesando fila para ubicación:', location);
+            console.log('Vacaciones:', vacaciones);
+            console.log('Fin de Misión:', finMision);
+            console.log('Contadores:', countersByLocation[location]);
         });
     }
+    
+    // Log final de contadores por ubicación
+    console.log('Contadores por ubicación:', countersByLocation);
 
-    // Crear botones para cada estado
-    Object.entries(stateData).forEach(([state, counts]) => {
+    // Crear botón "Todos"
+    const allBtn = document.createElement('div');
+    allBtn.className = 'location-button';
+    allBtn.innerHTML = `
+        <span>Todos</span>
+        <span class="state-total">${data.length}</span>
+    `;
+    allBtn.addEventListener('click', () => {
+        const currentActive = document.querySelector('.location-button.active');
+        if (currentActive) currentActive.classList.remove('active');
+        allBtn.classList.add('active');
+        filterTableByLocation('Todos');
+    });
+    container.appendChild(allBtn);
+
+    // Crear botones para cada ubicación
+    Object.entries(countersByLocation).forEach(([location, counters]) => {
         const button = document.createElement('div');
         button.className = 'location-button';
         button.innerHTML = `
-            <span>${state}</span>
-            <span class="state-total">${counts.total}</span>
+            <span>${location}</span>
+            <span class="state-total">${counters.total}</span>
         `;
         
         // Agregar evento click
@@ -684,39 +773,67 @@ function updateLocationCounters(data) {
             // Activar el nuevo botón
             button.classList.add('active');
             
-            // Actualizar los contadores de detalles
+            // Mostrar detalles
             const details = document.querySelector('.location-details');
             if (details) {
                 details.style.display = 'block';
-                
-                // Actualizar los valores de los contadores
-                const counters = details.querySelectorAll('.counter-value');
-                if (counters.length === 4) {
-                    counters[0].textContent = counts.total;
-                    counters[1].textContent = counts.stimulation;
-                    counters[2].textContent = counts.vacation;
-                    counters[3].textContent = counts.mission;
+                const counterElements = details.querySelectorAll('.counter-value');
+                if (counterElements.length === 4) {
+                    counterElements.forEach(element => {
+                        const label = element.previousElementSibling.textContent;
+                        console.log('Actualizando contador:', label);
+                        console.log('Valor actual:', element.textContent);
+
+                        const propertyMap = {
+                            'Total': 'total',
+                            'Con Estímulo': 'stimulation',
+                            'Vacaciones': 'vacation',
+                            'Fin de Misión': 'mission'
+                        };
+
+                        const propertyName = propertyMap[label];
+
+                        if (propertyName && counters.hasOwnProperty(propertyName)) {
+                            element.textContent = counters[propertyName];
+                        } else {
+                            console.warn('Propiedad no encontrada para label:', label);
+                            element.textContent = '0';
+                        }
+
+                        console.log('Valor final:', element.textContent);
+                    });
                 }
             }
+
+            // ...
+            filterTableByLocation(location);
         });
+        container.appendChild(button);
+    });
 
-        // Agregar el botón al DOM
-        locationButtonsContainer.appendChild(button);
+    // Restaurar el botón activo si existe
+    const currentActive = document.querySelector('.location-button.active');
+    if (currentActive) {
+        const location = currentActive.querySelector('span:first-child').textContent;
+        filterTableByLocation(location);
+    } else {
+        // Si no hay botón activo, mostrar todos
+        filterTableByLocation('Todos');
+    }
+}
 
-        // Restaurar el estado activo si corresponde
-        if (state === activeState) {
-            button.classList.add('active');
-            const details = document.querySelector('.location-details');
-            if (details) {
-                details.style.display = 'block';
-                const counters = details.querySelectorAll('.counter-value');
-                if (counters.length === 4) {
-                    counters[0].textContent = counts.total;
-                    counters[1].textContent = counts.stimulation;
-                    counters[2].textContent = counts.vacation;
-                    counters[3].textContent = counts.mission;
-                }
-            }
+// Función para filtrar la tabla por ubicación
+function filterTableByLocation(location) {
+    const tbody = document.querySelector('#collaboratorsTable tbody');
+    if (!tbody) return;
+
+    const rows = tbody.querySelectorAll('.data-row');
+    rows.forEach(row => {
+        const estado = row.querySelector('[data-field="estado"]')?.textContent || '';
+        if (location === 'Todos') {
+            row.style.display = '';
+        } else {
+            row.style.display = estado === location ? '' : 'none';
         }
     });
 }
