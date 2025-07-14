@@ -593,12 +593,11 @@ function handleDateChange(event) {
         // Actualizar la estimulación y vacaciones en el DOM
         const estimacionElement = rowElement.querySelector('[data-field="estimulacion"]');
         if (estimacionElement) {
-            // Asegurarnos de que el texto esté en mayúsculas
-            const estimulacionText = newEstimulacion.toUpperCase();
-            estimacionElement.textContent = estimulacionText;
+            // Usar el valor directamente sin convertir a mayúsculas
+            estimacionElement.textContent = newEstimulacion;
             // También actualizar el value si es un input
             if (estimacionElement.tagName === 'INPUT') {
-                estimacionElement.value = estimulacionText;
+                estimacionElement.value = newEstimulacion;
             }
         }
 
@@ -627,7 +626,9 @@ function handleDateChange(event) {
                 // Actualizar estimulación
                 const estimulacionCell = rowElement.querySelector('[data-field="estimulacion"]');
                 if (estimulacionCell) {
-                    estimulacionCell.textContent = newEstimulacion;
+                    // Asegurarnos de que el texto esté en mayúscula inicial
+                    const estimulacionValue = newEstimulacion.charAt(0).toUpperCase() + newEstimulacion.slice(1);
+                    estimulacionCell.textContent = estimulacionValue;
                 }
 
                 // Actualizar vacaciones
@@ -640,6 +641,7 @@ function handleDateChange(event) {
 
         // Actualizar los contadores
         updateCounters(updatedData);
+        updateLocationCounters(updatedData); 
     });
 }
 
@@ -671,7 +673,9 @@ function updateLocationCounters(data) {
         console.error('Contenedor de botones de ubicación no encontrado');
         return;
     }
-
+    // --- GUARDAR el botón activo ANTES de limpiar ---
+    const prevActive = document.querySelector('.location-button.active');
+    const prevLocation = prevActive ? prevActive.querySelector('span:first-child').textContent : 'Todos';
     // Limpiar los botones existentes
     container.innerHTML = '';
 
@@ -753,11 +757,29 @@ function updateLocationCounters(data) {
         <span class="state-total">${data.length}</span>
     `;
     allBtn.addEventListener('click', () => {
-        const currentActive = document.querySelector('.location-button.active');
-        if (currentActive) currentActive.classList.remove('active');
-        allBtn.classList.add('active');
-        filterTableByLocation('Todos');
-    });
+    const currentActive = document.querySelector('.location-button.active');
+    if (currentActive) currentActive.classList.remove('active');
+    allBtn.classList.add('active');
+    filterTableByLocation('Todos');
+
+    // Mostrar la tarjeta de detalles y poner los valores generales
+    const details = document.querySelector('.location-details');
+    if (details) {
+        details.style.display = 'block';
+        const counterElements = details.querySelectorAll('.counter-value');
+        if (counterElements.length === 4) {
+            // Obtén los valores generales
+            const total = data.length;
+            const stimulation = data.filter(row => row.Estimulacion === 'Sí').length;
+            const vacation = data.filter(row => row.Vacaciones === 'Sí').length;
+            const mission = data.filter(row => row['Fin de Misión'] === 'Sí').length;
+            const values = [total, stimulation, vacation, mission];
+            counterElements.forEach((element, idx) => {
+                element.textContent = values[idx];
+            });
+        }
+    }
+});
     container.appendChild(allBtn);
 
     // Crear botones para cada ubicación
@@ -816,14 +838,63 @@ function updateLocationCounters(data) {
         container.appendChild(button);
     });
 
-    // Restaurar el botón activo si existe
-    const currentActive = document.querySelector('.location-button.active');
-    if (currentActive) {
-        const location = currentActive.querySelector('span:first-child').textContent;
-        filterTableByLocation(location);
-    } else {
-        // Si no hay botón activo, mostrar todos
-        filterTableByLocation('Todos');
+    // --- NUEVO BLOQUE PARA RESTAURAR EL BOTÓN ACTIVO ---
+    // Buscar cuál era el botón activo antes de limpiar
+    const activeButton = document.querySelector('.location-button.active');
+    const activeLocation = activeButton ? activeButton.querySelector('span:first-child').textContent : null;
+
+    // Después de crear los botones, restaurar el activo
+    const buttons = container.querySelectorAll('.location-button');
+    let restored = false;
+    buttons.forEach(btn => {
+        const btnLocation = btn.querySelector('span:first-child').textContent;
+        if (btnLocation === prevLocation) {
+            btn.classList.add('active');
+            filterTableByLocation(prevLocation);
+            restored = true;
+            // ...después de btn.classList.add('active'); filterTableByLocation(prevLocation); restored = true;
+
+            // Actualizar los contadores de la tarjeta de detalles en tiempo real
+            const details = document.querySelector('.location-details');
+            if (details && countersByLocation[prevLocation]) {
+                const counterElements = details.querySelectorAll('.counter-value');
+                const counters = countersByLocation[prevLocation];
+                if (counterElements.length === 4) {
+                    const propertyMap = ['total', 'stimulation', 'vacation', 'mission'];
+                    counterElements.forEach((element, idx) => {
+                        element.textContent = counters[propertyMap[idx]] ?? '0';
+                    });
+                }
+            }
+        }
+    });
+    if (!restored) {
+        // Si no se restauró, activar "Todos"
+        const allBtn = container.querySelector('.location-button');
+        if (allBtn) {
+            allBtn.classList.add('active');
+            filterTableByLocation('Todos');
+        }
+    }
+
+    // Si el botón activo es "Todos", actualiza la tarjeta de detalles con los valores generales
+    const activeBtn = container.querySelector('.location-button.active');
+    if (activeBtn && activeBtn.querySelector('span:first-child').textContent === 'Todos') {
+        const details = document.querySelector('.location-details');
+        if (details) {
+            details.style.display = 'block';
+            const counterElements = details.querySelectorAll('.counter-value');
+            if (counterElements.length === 4) {
+                const total = data.length;
+                const stimulation = data.filter(row => row.Estimulacion === 'Sí').length;
+                const vacation = data.filter(row => row.Vacaciones === 'Sí').length;
+                const mission = data.filter(row => row['Fin de Misión'] === 'Sí').length;
+                const values = [total, stimulation, vacation, mission];
+                counterElements.forEach((element, idx) => {
+                    element.textContent = values[idx];
+                });
+            }
+        }
     }
 }
 
