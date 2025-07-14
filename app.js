@@ -1,12 +1,21 @@
 // Funciones auxiliares
 function parseDate(dateString) {
-    if (!dateString || dateString.trim() === '') {
-        console.log('Fecha vacía o nula:', dateString);
+    if (!dateString) {
+        // Si no hay fecha, retornamos null
         return null;
     }
+    
+    // Eliminar espacios en blanco
+    const trimmedDate = dateString.trim();
+    
+    if (trimmedDate === '') {
+        // Si la fecha está vacía después de trim, retornamos null
+        return null;
+    }
+    
     try {
         // Intentar parsear como MM/DD/YYYY
-        const parts = dateString.split('/');
+        const parts = trimmedDate.split('/');
         if (parts.length === 3) {
             const month = parseInt(parts[0], 10) - 1; // Los meses en JavaScript son 0-based
             const day = parseInt(parts[1], 10);
@@ -22,7 +31,7 @@ function parseDate(dateString) {
         }
 
         // Si no es MM/DD/YYYY, intentar parsear como YYYY-MM-DD
-        const date = new Date(dateString);
+        const date = new Date(trimmedDate);
         if (isNaN(date.getTime())) {
             console.warn('Fecha inválida:', dateString);
             return null;
@@ -46,15 +55,15 @@ function getDayOfMonth(date) {
 
 function evaluateStimulation(row) {
     // 1. Si está en el país o no tiene fecha de salida
-    if (row.Estado === 'En país' || !row['Fecha de Salida']) {
+    if (row.Estado === 'En país' || !row['Fecha de Salida'] || row['Fecha de Salida'].trim() === '') {
         return 'Sí';
     }
 
     // 2. Si tiene fecha de salida, verificar el día
     const salidaDate = parseDate(row['Fecha de Salida']);
     if (!salidaDate) {
-        console.error('Error al parsear la fecha de salida:', row['Fecha de Salida']);
-        return 'No';
+        // Si no se puede parsear la fecha, asumimos que no tiene fecha de salida
+        return 'Sí';
     }
 
     const salidaDay = getDayOfMonth(salidaDate);
@@ -184,12 +193,19 @@ function processExcelData(workbook) {
         const salidaFormatted = formatDate(fechaSalida);
         const entradaFormatted = formatDate(fechaEntrada);
 
+        // Calcular la estimulación basada en los datos
+        const estimulacion = evaluateStimulation({
+            Estado: estado,
+            'Fecha de Salida': salidaFormatted
+        });
+
         return {
             ...row,
             'Nombre y Apellidos': nombre,
             Estado: estado,
             'Fecha de Salida': salidaFormatted,
-            'Fin de Misión': finMision
+            'Fin de Misión': finMision,
+            Estimulacion: estimulacion
         };
     });
 
@@ -223,7 +239,8 @@ function updateTable(data) {
         const entradaFormatted = formatDate(row['Fecha de Entrada']);
 
         // Actualizar el estado de estimulación basado en las reglas
-        row.Estimulacion = evaluateStimulation(row);
+        const estimulacion = evaluateStimulation(row);
+        row.Estimulacion = estimulacion;
         
         const tr = document.createElement('tr');
         tr.className = 'data-row';
@@ -231,7 +248,7 @@ function updateTable(data) {
             <td data-field="estado">${row.Estado}</td>
             <td data-field="nombre">${row['Nombre y Apellidos']}</td>
             <td><input type="date" class="date-input" value="${salidaFormatted}" data-id="${row.id}" data-field="Fecha de Salida"></td>
-            <td data-field="estimulacion">${row.Estimulacion}</td>
+            <td data-field="estimulacion">${estimulacion}</td>
             <td>
                 <div class="date-control">
                     <input type="checkbox" class="disable-date" data-id="${row.id}" data-field="fin_mision">
@@ -242,7 +259,13 @@ function updateTable(data) {
             <td data-field="vacaciones">${row.Vacaciones}</td>
             <td data-field="Fin de Misión">${row['Fin de Misión'] || 'No'}</td>
         `;
+        
+        // Primero agregar la fila al DOM
         tbody.appendChild(tr);
+
+        // Luego actualizar los contadores
+        updateCounters(data);
+        updateLocationCounters(data);
     });
 
     // Agregar event listeners a todos los inputs de fecha
@@ -297,7 +320,23 @@ function getData() {
                 rowData[field] = element.value;
             } else if (field === 'Fin de Misión') {
                 rowData[field] = element.textContent || '';
+            } else if (field === 'estimulacion') {
+                // Para el campo de estimulación, calculamos el valor basado en los datos
+                const estadoElement = row.querySelector('[data-field="estado"]');
+                const fechaSalidaElement = row.querySelector('[data-field="Fecha de Salida"]');
+                
+                const estado = estadoElement.textContent || '';
+                const fechaSalida = fechaSalidaElement.value || '';
+                
+                rowData[field] = evaluateStimulation({
+                    Estado: estado,
+                    'Fecha de Salida': fechaSalida
+                });
+            } else if (field === 'vacaciones') {
+                // Para el campo de vacaciones, usar textContent
+                rowData[field] = element.textContent || '';
             } else {
+                // Para otros campos, usar value si existe, sino textContent
                 rowData[field] = element.value || element.textContent || '';
             }
         });
@@ -423,7 +462,13 @@ function handleDateChange(event) {
         // Actualizar la estimulación en el DOM
         const estimacionElement = rowElement.querySelector('[data-field="estimulacion"]');
         if (estimacionElement) {
-            estimacionElement.textContent = newEstimulacion;
+            // Asegurarnos de que el texto esté en mayúsculas
+            const estimulacionText = newEstimulacion.toUpperCase();
+            estimacionElement.textContent = estimulacionText;
+            // También actualizar el value si es un input
+            if (estimacionElement.tagName === 'INPUT') {
+                estimacionElement.value = estimulacionText;
+            }
         }
 
         // Actualizar el valor de la fecha en el DOM
@@ -444,9 +489,22 @@ function handleDateChange(event) {
         }
     }
 
-    // Actualizar los contadores
-    updateCounters(data);
-    updateLocationCounters(data);
+    // Actualizar los contadores después de que el DOM se haya actualizado
+    // Usamos requestAnimationFrame para asegurar que el DOM se actualice primero
+    requestAnimationFrame(() => {
+        // Obtener los datos actualizados
+        const updatedData = getData();
+        
+        // Recalcular la estimulación para cada fila
+        updatedData.forEach(row => {
+            const newEstimulacion = evaluateStimulation(row);
+            row.Estimulacion = newEstimulacion;
+        });
+
+        // Actualizar los contadores
+        updateCounters(updatedData);
+        updateLocationCounters(updatedData);
+    });
 }
 
 function updateCounters(data) {
@@ -456,11 +514,31 @@ function updateCounters(data) {
     const onVacation = data.filter(row => row.Vacaciones === 'Sí').length;
     const endOfMission = data.filter(row => row['Fin de Misión'] === 'Sí').length;
 
-    // Actualizar contadores generales
-    document.getElementById('totalCollaborators').textContent = totalCollaborators;
-    document.getElementById('withStimulation').textContent = withStimulation;
-    document.getElementById('onVacation').textContent = onVacation;
-    document.getElementById('endOfMission').textContent = endOfMission;
+    // Logs de depuración más detallados
+    console.log('Total de colaboradores:', totalCollaborators);
+    console.log('Con estimulación:', withStimulation);
+    console.log('En vacaciones:', onVacation);
+    console.log('Fin de misión:', endOfMission);
+
+    // Actualizar todos los contadores de una vez
+    const counters = {
+        totalCollaborators,
+        withStimulation,
+        onVacation,
+        endOfMission
+    };
+
+    // Actualizar cada contador
+    Object.entries(counters).forEach(([id, value]) => {
+        const element = document.getElementById(id);
+        if (element) {
+            const oldValue = element.textContent;
+            element.textContent = value;
+            console.log(`Actualizando ${id} de ${oldValue} a ${value}`);
+        } else {
+            console.error(`Elemento ${id} no encontrado en el DOM`);
+        }
+    });
 
     // Actualizar contadores por ubicación
     updateLocationCounters(data);
