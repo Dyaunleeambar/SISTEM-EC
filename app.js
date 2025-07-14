@@ -149,7 +149,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 updateTable(jsonData);
                 updateCounters(jsonData);
-                updateLocationCounters(jsonData);
                 
                 showMessage(`Importación exitosa! Total de colaboradores: ${jsonData.length}`, 'success');
                 importButton.disabled = true;
@@ -286,11 +285,11 @@ function updateTable(data) {
         
         // Primero agregar la fila al DOM
         tbody.appendChild(tr);
-
-        // Luego actualizar los contadores
-        updateCounters(data);
-        updateLocationCounters(data);
     });
+
+    // Actualizar los contadores después de que todas las filas hayan sido creadas
+    updateCounters(data);
+    updateLocationCounters(data);
 
     // Agregar event listeners a todos los inputs de fecha
     const dateInputs = document.querySelectorAll('.date-input');
@@ -490,7 +489,22 @@ function handleCheckboxChange(event) {
 
         // Actualizar los contadores
         updateCounters(updatedData);
-        updateLocationCounters(updatedData);
+        
+        // Mantener el estado activo del botón de ubicación
+        const activeButton = document.querySelector('.location-button.active');
+        const activeState = activeButton ? activeButton.querySelector('span:first-child').textContent : null;
+        
+        // Si había un botón activo, restaurarlo
+        if (activeState) {
+            const newActiveButton = document.querySelector(`.location-button span:first-child:contains('${activeState}')`).parentElement;
+            if (newActiveButton) {
+                newActiveButton.classList.add('active');
+                const details = document.querySelector('.location-details');
+                if (details) {
+                    details.style.display = 'block';
+                }
+            }
+        }
     });
 }
 
@@ -596,7 +610,6 @@ function handleDateChange(event) {
 
         // Actualizar los contadores
         updateCounters(updatedData);
-        updateLocationCounters(updatedData);
     });
 }
 
@@ -604,44 +617,21 @@ function updateCounters(data) {
     // Contadores generales
     const totalCollaborators = data.length;
     const withStimulation = data.filter(row => row.Estimulacion === 'Sí').length;
-    
-    // Verificar los valores de Vacaciones
-    console.log('Datos de vacaciones:');
-    data.forEach(row => {
-        console.log(`ID: ${row.id}, Vacaciones: ${row.Vacaciones}, Estado: ${row.Estado}, Fin de Misión: ${row['Fin de Misión']}`);
-    });
-    
     const onVacation = data.filter(row => row.Vacaciones === 'Sí').length;
     const endOfMission = data.filter(row => row['Fin de Misión'] === 'Sí').length;
 
-    // Logs de depuración más detallados
-    console.log('Total de colaboradores:', totalCollaborators);
-    console.log('Con estimulación:', withStimulation);
-    console.log('En vacaciones:', onVacation);
-    console.log('Fin de misión:', endOfMission);
-
-    // Actualizar todos los contadores de una vez
-    const counters = {
+    // Actualizar cada contador
+    Object.entries({
         totalCollaborators,
         withStimulation,
         onVacation,
         endOfMission
-    };
-
-    // Actualizar cada contador
-    Object.entries(counters).forEach(([id, value]) => {
+    }).forEach(([id, value]) => {
         const element = document.getElementById(id);
         if (element) {
-            const oldValue = element.textContent;
             element.textContent = value;
-            console.log(`Actualizando ${id} de ${oldValue} a ${value}`);
-        } else {
-            console.error(`Elemento ${id} no encontrado en el DOM`);
         }
     });
-
-    // Actualizar contadores por ubicación
-    updateLocationCounters(data);
 }
 
 function updateLocationCounters(data) {
@@ -651,6 +641,10 @@ function updateLocationCounters(data) {
         console.error('Contenedor de botones de ubicación no encontrado');
         return;
     }
+
+    // Mantener referencia al botón activo actual
+    const activeButton = document.querySelector('.location-button.active');
+    const activeState = activeButton ? activeButton.querySelector('span:first-child').textContent : null;
 
     // Limpiar los botones existentes
     locationButtonsContainer.innerHTML = '';
@@ -684,8 +678,8 @@ function updateLocationCounters(data) {
         // Agregar evento click
         button.addEventListener('click', () => {
             // Desactivar el botón anterior activo
-            const activeButton = document.querySelector('.location-button.active');
-            if (activeButton) activeButton.classList.remove('active');
+            const currentActive = document.querySelector('.location-button.active');
+            if (currentActive) currentActive.classList.remove('active');
             
             // Activar el nuevo botón
             button.classList.add('active');
@@ -708,5 +702,21 @@ function updateLocationCounters(data) {
 
         // Agregar el botón al DOM
         locationButtonsContainer.appendChild(button);
+
+        // Restaurar el estado activo si corresponde
+        if (state === activeState) {
+            button.classList.add('active');
+            const details = document.querySelector('.location-details');
+            if (details) {
+                details.style.display = 'block';
+                const counters = details.querySelectorAll('.counter-value');
+                if (counters.length === 4) {
+                    counters[0].textContent = counts.total;
+                    counters[1].textContent = counts.stimulation;
+                    counters[2].textContent = counts.vacation;
+                    counters[3].textContent = counts.mission;
+                }
+            }
+        }
     });
 }
