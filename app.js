@@ -913,3 +913,31 @@ function filterTableByLocation(location) {
         }
     });
 }
+// ...existing code...
+
+// Evento para exportar a Excel
+document.getElementById('exportButton').addEventListener('click', exportarDatos);
+
+function exportarDatos() {
+    // Obtén los datos actuales de la tabla
+    const data = getData();
+    if (!data || data.length === 0) {
+        showMessage('No hay datos para exportar.', 'error');
+        return;
+    }
+
+    // Opcional: puedes filtrar los datos según el botón de ubicación activo
+    // const activeBtn = document.querySelector('.location-button.active');
+    // if (activeBtn && activeBtn.querySelector('span:first-child').textContent !== 'Todos') {
+    //     const location = activeBtn.querySelector('span:first-child').textContent;
+    //     data = data.filter(row => row.Estado === location);
+    // }
+
+    // Convierte los datos a una hoja de Excel
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Colaboradores');
+
+    // Descarga el archivo
+    XLSX.writeFile(wb, 'colaboradores_exportados.xlsx');
+}
