@@ -707,26 +707,31 @@ function updateLocationCounters(data) {
             // Contar total
             countersByLocation[location].total++;
             
-            // Obtener los valores del DOM
+            // Obtener los valores directamente de las celdas del DOM
             const vacacionesCell = row.querySelector('[data-field="vacaciones"]');
             const finMisionCell = row.querySelector('[data-field="Fin de Misión"]');
-            
+            const estimulacionCell = row.querySelector('[data-field="estimulacion"]');
+
             // Contar con estimulación
-            const estimulacion = row.querySelector('[data-field="estimulacion"]')?.textContent || 'No';
+            const estimulacion = estimulacionCell?.textContent?.trim() || 'No';
             if (estimulacion === 'Sí') {
                 countersByLocation[location].stimulation++;
             }
             
             // Contar en vacaciones
-            const vacaciones = vacacionesCell?.textContent || 'No';
+            const vacaciones = vacacionesCell?.textContent?.trim() || 'No';
             if (vacaciones === 'Sí') {
                 countersByLocation[location].vacation++;
+            } else {
+                console.log('Valor de vacaciones:', vacaciones);
             }
             
             // Contar fin de misión
-            const finMision = finMisionCell?.textContent || 'No';
+            const finMision = finMisionCell?.textContent?.trim() || 'No';
             if (finMision === 'Sí') {
                 countersByLocation[location].mission++;
+            } else {
+                console.log('Valor de fin de misión:', finMision);
             }
             
             // Logs para depuración
