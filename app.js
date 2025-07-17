@@ -19,28 +19,32 @@ function getColumnValue(row, key) {
     }
     return '';
 }
+
 function processExcelData(workbook) {
     // Obtener la primera hoja
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
     const rawData = XLSX.utils.sheet_to_json(worksheet);
 
-    // Solo extraer Estado y Nombre del Colaborador
+    // Procesar y limpiar los datos
     const processedData = rawData
         .map(row => {
+            // Usar getColumnValue para obtener los valores correctos
             const nombre = getColumnValue(row, 'Nombre y Apellidos')?.trim() || '';
             if (!nombre) {
                 console.warn('Fila sin nombre:', row);
                 return null;
             }
             const estado = getColumnValue(row, 'Estado')?.trim() || '';
+            const fechaSalida = getColumnValue(row, 'Fecha de Salida')?.trim() || '';
+            const fechaEntrada = getColumnValue(row, 'Fecha de Entrada')?.trim() || '';
+            const finMision = getColumnValue(row, 'Fin de Misión')?.trim() || 'No';
 
-            // Inicializa los campos editables
-            const salidaFormatted = '';
-            const entradaFormatted = '';
-            const finMision = 'No';
+            // Formatear fechas
+            const salidaFormatted = formatDate(parseDate(fechaSalida));
+            const entradaFormatted = formatDate(parseDate(fechaEntrada));
 
-            // Calcula los valores dependientes
+            // Calcular valores dependientes
             const conciliationMonth = getConciliationMonth();
             const estimulacion = evaluateStimulation({
                 Estado: estado,
@@ -67,9 +71,21 @@ function processExcelData(workbook) {
         })
         .filter(row => row !== null);
 
-    // Procesar los datos y actualizar la UI
+    // Actualizar la UI
     updateTable(processedData);
     updateCounters(processedData);
+    saveColaboradoresToBackend(processedData);
+}
+
+function saveColaboradoresToBackend(colaboradores) {
+    colaboradores.forEach(colaborador => {
+        fetch('http://localhost:3001/api/colaboradores', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(colaborador)
+        })
+        .catch(err => console.error('Error al guardar colaborador:', err));
+    });
 }
 
 // Funciones auxiliares
@@ -304,68 +320,6 @@ function handleFileUpload(event) {
     reader.readAsArrayBuffer(file);
 }
 
-function processExcelData(workbook) {
-    // Obtener la primera hoja
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
-    const rawData = XLSX.utils.sheet_to_json(worksheet);
-
-    // Validar y procesar los datos
-    const processedData = rawData.map(row => {
-        // Validar y limpiar el nombre
-        const nombre = row['Nombre y Apellidos'] ? row['Nombre y Apellidos'].trim() : '';
-        if (!nombre) {
-            console.warn('Fila sin nombre:', row);
-        }
-
-        // Validar otros campos importantes
-        const estado = row.Estado ? row.Estado.trim() : '';
-        const fechaSalida = parseDate(row['Fecha de Salida']);
-        const fechaEntrada = parseDate(row['Fecha de Entrada']);
-        const finMision = row['Fin de Misión'] ? row['Fin de Misión'].trim() : '';
-
-        // Formatear fechas como yyyy-MM-dd
-        const salidaFormatted = formatDate(fechaSalida);
-        const entradaFormatted = formatDate(fechaEntrada);
-
-        // Calcular la estimulación basada en los datos
-        const conciliationMonth = getConciliationMonth();
-        const estimulacion = evaluateStimulation({
-            Estado: estado,
-            'Fecha de Salida': salidaFormatted
-        }, conciliationMonth);
-
-        // Calcular el estado de vacaciones
-        const vacaciones = evaluateVacaciones({
-            'Fecha de Salida': salidaFormatted,
-            'Fin de Misión': finMision
-        });
-
-        return {
-            ...row,
-            'Nombre y Apellidos': nombre,
-            Estado: estado,
-            'Fecha de Salida': salidaFormatted,
-            'Fecha de Entrada': entradaFormatted,
-            'Fin de Misión': finMision,
-            Estimulacion: estimulacion,
-            Vacaciones: vacaciones
-        };
-
-        return {
-            ...row,
-            'Nombre y Apellidos': nombre,
-            Estado: estado,
-            'Fecha de Salida': salidaFormatted,
-            'Fin de Misión': finMision,
-            Estimulacion: estimulacion
-        };
-    });
-
-    // Procesar los datos y actualizar la UI
-    updateTable(processedData);
-    updateCounters(processedData);
-}
 
 function updateTable(data) {
     const tbody = document.querySelector('#collaboratorsTable tbody');
@@ -1057,3 +1011,34 @@ function exportarDatos() {
     // Descarga el archivo
     XLSX.writeFile(wb, 'colaboradores_exportados.xlsx');
 }
+
+// Nueva función para cargar colaboradores desde el servidor
+function fetchColaboradores() {
+    fetch('http://localhost:3001/api/colaboradores')
+        .then(res => res.json())
+        .then(data => {
+            updateTable(data);
+            updateCounters(data);
+        })
+        .catch(err => {
+            showMessage('Error al cargar colaboradores del servidor.', 'error');
+            console.error(err);
+        });
+}
+
+// Llama a esta función al cargar la página
+document.addEventListener('DOMContentLoaded', () => {
+    fetchColaboradores();
+    // ...resto de tu código...
+});
+
+function updateColaboradorInBackend(colaborador) {
+    fetch(`http://localhost:3001/api/colaboradores/${colaborador.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(colaborador)
+    })
+    .catch(err => console.error('Error al actualizar colaborador:', err));
+}
+
+// Llama a esta función en handleDateChange y handleCheckboxChange después de actualizar el colaborador
