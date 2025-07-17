@@ -30,9 +30,12 @@ function hideLoader() {
 
 // Evento change SOLO habilita el botón importar
 document.getElementById('fileInput').addEventListener('change', function(event) {
-    const file = event.target.files[0];
+    const fileInput = event.target;
     const importButton = document.getElementById('importButton');
-    importButton.disabled = !file;
+    // Solo habilita el botón si el input NO está deshabilitado
+    if (!fileInput.disabled) {
+        importButton.disabled = !fileInput.files[0];
+    }
 });
 
 // Evento click en el botón de importar
@@ -64,7 +67,7 @@ document.getElementById('importButton').addEventListener('click', function() {
                     showMessage('Error al guardar colaboradores.', 'error');
                     console.error('Error:', error);
                     // Solo habilita el input si hubo error
-                    fileInput.disabled = false;
+                    //fileInput.disabled = false;
                 })
                 .finally(() => {
                     hideLoader();
