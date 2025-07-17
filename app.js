@@ -28,7 +28,7 @@ function hideLoader() {
     document.getElementById('loader').style.display = 'none';
 }
 
-// Evento change SOLO habilita el botón
+// Evento change SOLO habilita el botón importar
 document.getElementById('fileInput').addEventListener('change', function(event) {
     const file = event.target.files[0];
     const importButton = document.getElementById('importButton');
@@ -63,6 +63,7 @@ document.getElementById('importButton').addEventListener('click', function() {
                 .catch((error) => {
                     showMessage('Error al guardar colaboradores.', 'error');
                     console.error('Error:', error);
+                    // Solo habilita el input si hubo error
                     fileInput.disabled = false;
                 })
                 .finally(() => {
@@ -310,7 +311,7 @@ function showMessage(message, type) {
         setTimeout(() => {
             importMessage.textContent = '';
             importMessage.className = 'import-message';
-        }, 5000);
+        }, 10000); // Cambiado a 10 segundos
     }
 }
 
@@ -1070,7 +1071,7 @@ function normalizeBackendRow(row) {
     };
 }
 
-// Nuevo evento para limpiar la base de datos
+// Evento para limpiar la base de datos
 document.getElementById('clearDatabaseButton').addEventListener('click', function() {
     if (confirm('¿Estás seguro de que deseas eliminar todos los colaboradores? Esta acción no se puede deshacer.')) {
         fetch('http://localhost:3001/api/colaboradores', { method: 'DELETE' })
@@ -1078,12 +1079,15 @@ document.getElementById('clearDatabaseButton').addEventListener('click', functio
             .then(() => {
                 showMessage('Base de datos limpiada correctamente.', 'success');
                 fetchColaboradores();
+                // Habilita input y deshabilita botón importar
                 document.getElementById('fileInput').disabled = false;
                 document.getElementById('importButton').disabled = true;
             })
             .catch(err => {
                 showMessage('Error al limpiar la base de datos.', 'error');
                 console.error(err);
+                // Solo habilita el input si hubo error
+                document.getElementById('fileInput').disabled = false;
             });
     }
 });

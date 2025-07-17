@@ -1,257 +1,71 @@
-# Sistema de Evaluación de Estado de Colaboradores
+# Sistema de Estimulación de Colaboradores
 
-## Descripción
-Sistema web para evaluar y gestionar el estado de colaboradores en misiones, incluyendo su derecho a estimulación, estado de vacaciones y fin de misión. La aplicación permite importar datos de colaboradores desde archivos Excel (.xlsx, .xls) y visualizar estadísticas en tiempo real con una interfaz responsive y moderna.
+Este sistema permite importar, visualizar, editar y exportar datos de colaboradores desde un archivo Excel, así como limpiar la base de datos para reiniciar el proceso.
 
-## Funcionalidades Implementadas
+## Funcionalidades principales
 
-### Importación de Datos
-- Importación de archivos Excel (.xlsx, .xls)
-- Mapeo flexible de columnas (Nombre, Estado, Fechas de Salida/Entrada, Fin de Misión)
-- Filtrado de datos básicos (Nombre y Estado)
-- Mensajes de advertencia para filas sin nombre
+- **Importar colaboradores** desde un archivo Excel (.xlsx, .xls).
+- **Visualizar y editar** fechas de salida y entrada directamente en la tabla.
+- **Cálculo automático** de estimulación y vacaciones según las reglas de negocio.
+- **Filtrado y contadores** por ubicación y estado.
+- **Exportar datos** a Excel.
+- **Limpiar la base de datos** para reiniciar la carga de colaboradores.
+- **Sincronización automática** con el backend tras cada cambio.
+- **Mensajes de éxito y error** en la interfaz.
 
-### Visualización de Datos
-- Tabla dinámica con información esencial de colaboradores
-- Campos editables para:
-  - Fechas de salida
-  - Fechas de entrada
-  - Estado de Fin de Misión
-- Indicadores de estado (estimulación, vacaciones)
-- Formato de fecha YYYY-MM-DD
+## Flujo de uso
 
-### Estadísticas y Contadores
-- Contadores generales:
-  - Total de colaboradores
-  - Colaboradores con estimulación
-  - Colaboradores en vacaciones
+1. **Importar archivo**
+   - Selecciona un archivo Excel válido.
+   - El botón "Importar" se habilita.
+   - Al importar, tanto el input de archivo como el botón quedan deshabilitados hasta limpiar la base de datos.
 
-### Interfaz de Usuario
-- Diseño responsive y adaptable
-- Actualización automática de la tabla y contadores
-- Mensajes informativos durante la importación
+2. **Visualización y edición**
+   - Los colaboradores se muestran en una tabla editable.
+   - Puedes modificar fechas de salida y entrada.
+   - Los campos de estimulación y vacaciones se recalculan automáticamente.
 
-## Reglas de Evaluación
+3. **Filtrado y contadores**
+   - Puedes filtrar por ubicación usando los botones generados.
+   - Los contadores se actualizan en tiempo real.
 
-### Estimulación
-Un colaborador tiene derecho a estimulación si:
-1. Se encuentra en el país
-2. No tiene fecha de salida
-3. O sale del país después del día 15 del mes
+4. **Exportar a Excel**
+   - Haz clic en "Exportar a Excel" para descargar los datos actuales.
 
-### Vacaciones
-Un colaborador está en estado de Vacaciones si:
-1. Tiene fecha de salida
-2. No está en estado de Fin de Misión
+5. **Limpiar base de datos**
+   - Haz clic en "Limpiar Base de Datos" para borrar todos los colaboradores y volver a habilitar la importación.
 
-### Fin de Misión
-El estado de Fin de Misión se controla mediante un checkbox en la interfaz:
-1. **Checkbox desmarcado**: El colaborador no está en Fin de Misión
-2. **Checkbox marcado**: El colaborador está en Fin de Misión
+## Consideraciones técnicas
 
-Validaciones:
-- Se requiere una fecha de salida válida para marcar el checkbox. Una fecha válida debe:
-  - Existir (no ser vacía)
-  - Ser una fecha válida según JavaScript (formato YYYY-MM-DD)
-  - No contener caracteres inválidos
-- Si se intenta marcar sin fecha de salida, se mostrará un mensaje de error
-- Se deshabilita el input de fecha de entrada cuando se marca el checkbox
-- No se puede marcar el checkbox si no hay una fecha de salida registrada
+- El input de archivo y el botón de importar solo se habilitan/deshabilitan en los siguientes casos:
+  - **Se habilitan** al limpiar la base de datos.
+  - **Se deshabilitan** inmediatamente después de importar.
+- No se reactivan tras editar la tabla ni tras otros eventos.
+- El backend debe estar corriendo en `http://localhost:3001`.
 
-Cuando se marca el checkbox:
-- Se deshabilita el input de fecha de entrada
-- Se actualiza automáticamente el campo 'Fin de Misión' a 'Sí'
-- Se recalcula el estado de estimulación basado en las reglas definidas
-- Se actualizan los contadores generales y por ubicación
+## Estructura de archivos relevante
 
-Cuando se desmarca el checkbox:
-- Se habilita nuevamente el input de fecha de entrada
-- Se actualiza el campo 'Fin de Misión' a 'No'
-- Se recalcula el estado de estimulación
-- Se actualizan los contadores
+- `index.html`: Contiene la estructura de la interfaz y los elementos con los IDs requeridos.
+- `app.js`: Lógica principal del frontend, control de importación, edición, exportación y sincronización.
+- `server.js` (o similar): Backend para almacenar y servir los datos de colaboradores.
 
-### Vacaciones
-Un colaborador está en estado de Vacaciones si:
-1. Sale del país
-2. Y no tiene término de misión
+## Requisitos
 
-## Estructura del Proyecto
-```
-SistemaEstimulación01/
-├── index.html        # Archivo principal de la aplicación
-├── app.js            # Lógica de la aplicación y manejo de datos
-├── styles.css        # Estilos y diseño de la interfaz
-├── README.md         # Documentación del proyecto
-└── assets/
-    └── xlsx.js      # Biblioteca para procesamiento de Excel
-```
+- Node.js y npm instalados.
+- Backend corriendo (`node server.js` o el comando correspondiente).
+- Navegador moderno.
 
-## Tecnologías Utilizadas
-- HTML5
-- CSS3
-- JavaScript
-- XLSX.js v0.18.5 (para procesamiento de archivos Excel)
-- Modern CSS Grid y Flexbox para diseño responsive
+## Instalación y ejecución
 
-## Consideraciones Técnicas
+1. Clona el repositorio.
+2. Instala dependencias y ejecuta el backend.
+3. Abre `index.html` en tu navegador.
 
-### Estructura de Datos
-- Cada colaborador tiene los siguientes campos:
-  - Nombre y Apellidos
-  - Estado
-  - Fecha de Salida
-  - Fecha de Entrada
-  - Fin de Misión
-  - Estimulación (calculado)
-  - Vacaciones (calculado)
+## Notas
 
-### Validaciones
-- Formato de fecha YYYY-MM-DD
-- Validación básica de fechas nulas
-- Verificación de nombres vacíos
-- Estado de Fin de Misión binario (Sí/No)
+- El input de archivo puede parecer habilitado visualmente en algunos navegadores, pero estará realmente deshabilitado y no permitirá seleccionar archivos hasta limpiar la base de datos.
+- Si ves algún error en consola, revisa que los IDs en el HTML coincidan con los usados en el JS y que el backend esté activo.
 
-### Seguridad
-- No implementado en esta versión
+---
 
-## Requisitos Técnicos
-
-### Frontend
-- [x] Interfaz web responsive
-- [x] Tabla de visualización de estados
-- [x] Manejo de eventos y validaciones básicas
-- [ ] Sistema de búsqueda avanzada
-- [ ] Notificaciones detalladas
-- [ ] Sistema de filtrado avanzado
-
-### Base de Datos (Excel)
-- [x] Hoja principal de colaboradores
-- [ ] Sistema de respaldo automático
-- [ ] Validación avanzada de datos
-
-### Integración
-- [x] Sistema de importación de datos
-- [ ] Sistema de exportación de datos
-- [ ] Sistema de reportes
-
-## Diseño de Interfaz de Usuario
-
-### Estructura General
-
-#### Diseño Principal
-- Layout en tres columnas con tarjetas principales
-- Diseño responsive para escritorio y móvil
-- Paleta de colores profesional y consistente
-- Tipografía legible
-
-#### Tarjeta Central (Importación y Tabla)
-- [ ] Área de importación Excel
-  - Botón "Importar archivo"
-  - Indicador de estado de importación
-  - Mensajes de validación
-- [ ] Tabla principal de colaboradores
-  - Columnas:
-    - Estado
-    - Nombre del Colaborador
-    - Fecha de Salida
-    - Estimulación
-    - Fecha de Entrada
-    - Vacaciones
-    - Fin de Misión
-  - Filtros por columna
-  - Ordenamiento
-  - Búsqueda por texto
-  - Exportar tabla
-
-#### Tarjeta Izquierda (Contadores Generales)
-- [ ] Cantidad Total de Colaboradores
-- [ ] Cantidad de Colaboradores con Estímulo
-- [ ] Cantidad de Colaboradores en Vacaciones
-- [ ] Cantidad de Colaboradores con Fin de Misión
-
-#### Tarjeta Derecha (Contadores por Ubicación)
-- [ ] Caracas
-  - Total de colaboradores
-  - Con estímulo
-  - En vacaciones
-  - Fin de misión
-- [ ] Barinas
-  - Total de colaboradores
-  - Con estímulo
-  - En vacaciones
-  - Fin de misión
-- [ ] Zulia
-  - Total de colaboradores
-  - Con estímulo
-  - En vacaciones
-  - Fin de misión
-- [ ] [Otras Ubicaciones]
-  - Total de colaboradores
-  - Con estímulo
-  - En vacaciones
-  - Fin de misión
-
-#### Estilo de Tarjetas
-- [ ] Diseño card con sombras suaves
-- [ ] Iconos representativos
-- [ ] Colores consistentes con el estado
-- [ ] Actualización automática
-- [ ] Animaciones suaves en interacciones
-
-### Componentes Principales
-
-#### Menú Principal
-- [ ] Inicio
-- [ ] Registro de Colaboradores
-- [ ] Consulta de Estados
-- [ ] Reportes
-- [ ] Configuración
-
-#### Formulario de Registro
-- [ ] Campo ID (autogenerado)
-- [ ] Nombre completo
-- [ ] Estado actual (radio buttons: En país/Salida)
-- [ ] Fecha de salida (si aplica)
-- [ ] Estado de misión (radio buttons: Activa/Término)
-- [ ] Botón Guardar
-- [ ] Validaciones en tiempo real
-
-#### Tabla de Consulta
-- [ ] Columnas:
-  - ID
-  - Nombre
-  - Estado actual
-  - Fecha de salida
-  - Estado de misión
-  - Estado final (Estimulación/Vacaciones/Fin de Misión)
-  - Fecha de actualización
-- [ ] Filtros por:
-  - Estado actual
-  - Estado de misión
-  - Estado final
-  - Fecha
-- [ ] Ordenamiento por columnas
-- [ ] Búsqueda por texto
-
-#### Sistema de Notificaciones
-- [ ] Mensajes de éxito/error
-- [ ] Alertas de cambios de estado
-- [ ] Indicadores visuales de estado
-
-#### Estilos
-- [ ] Diseño limpio y minimalista
-- [ ] Colores:
-  - Verde: Estimulación
-  - Azul: Vacaciones
-  - Rojo: Fin de Misión
-  - Gris: En país
-- [ ] Iconos intuitivos
-- [ ] Animaciones suaves
-
-## Próximos Pasos
-1. Diseño de la base de datos
-2. Implementación del backend
-3. Desarrollo de la interfaz de usuario
-4. Pruebas de integración
-5. Implementación de sistema de reportes
-6. Documentación final
+**¡Listo para usar!**
