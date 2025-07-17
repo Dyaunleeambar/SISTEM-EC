@@ -7,32 +7,29 @@ Sistema web para evaluar y gestionar el estado de colaboradores en misiones, inc
 
 ### Importación de Datos
 - Importación de archivos Excel (.xlsx, .xls)
-- Validación de formato de archivo
-- Mensajes de éxito/error durante la importación
-- Deshabilitación automática del botón de importación cuando no hay archivo seleccionado
+- Mapeo flexible de columnas (Nombre, Estado, Fechas de Salida/Entrada, Fin de Misión)
+- Filtrado de datos básicos (Nombre y Estado)
+- Mensajes de advertencia para filas sin nombre
 
 ### Visualización de Datos
-- Tabla dinámica con información de colaboradores
-- Campos editables para fechas de salida y entrada
-- Indicadores de estado (estimulación, vacaciones, fin de misión)
-- Formato de fecha flexible (YYYY-MM-DD, MM/DD/YYYY, ISO)
+- Tabla dinámica con información esencial de colaboradores
+- Campos editables para:
+  - Fechas de salida
+  - Fechas de entrada
+  - Estado de Fin de Misión
+- Indicadores de estado (estimulación, vacaciones)
+- Formato de fecha YYYY-MM-DD
 
 ### Estadísticas y Contadores
 - Contadores generales:
   - Total de colaboradores
   - Colaboradores con estimulación
   - Colaboradores en vacaciones
-  - Colaboradores en fin de misión
-- Contadores por ubicación:
-  - Total de colaboradores por estado geográfico
-  - Contadores detallados para cada estado
-  - Botones dinámicos por estado con totales
 
 ### Interfaz de Usuario
-- Diseño responsive y adaptable a diferentes tamaños de pantalla
-- Tarjetas fijas para estadísticas que permanecen visibles durante el scroll
-- Botones intuitivos con estados de hover y deshabilitado
-- Mensajes informativos durante la importación de datos
+- Diseño responsive y adaptable
+- Actualización automática de la tabla y contadores
+- Mensajes informativos durante la importación
 
 ## Reglas de Evaluación
 
@@ -99,53 +96,43 @@ SistemaEstimulación01/
 ## Consideraciones Técnicas
 
 ### Estructura de Datos
-- Cada colaborador debe tener un registro con los siguientes campos:
-  - Estado (En país/Salida)
-  - Nombre del Colaborador
+- Cada colaborador tiene los siguientes campos:
+  - Nombre y Apellidos
+  - Estado
   - Fecha de Salida
-  - Estimulación
   - Fecha de Entrada
-  - Vacaciones
   - Fin de Misión
+  - Estimulación (calculado)
+  - Vacaciones (calculado)
 
 ### Validaciones
-- Formato de fecha flexible (YYYY-MM-DD, MM/DD/YYYY, ISO)
-- Validación de fechas inválidas
-- Consistencia en el estado de Fin de Misión
-- Validación de estados de estimulación y vacaciones
+- Formato de fecha YYYY-MM-DD
+- Validación básica de fechas nulas
+- Verificación de nombres vacíos
+- Estado de Fin de Misión binario (Sí/No)
 
 ### Seguridad
-- Autenticación de usuarios con permisos de acceso
-- Registro de auditoría de cambios
-- Protección de datos personales
+- No implementado en esta versión
 
 ## Requisitos Técnicos
 
 ### Frontend
-- [ ] Interfaz web responsive (HTML + CSS)
-- [ ] Formulario de registro de colaboradores
-- [ ] Tabla de visualización de estados
-- [ ] Sistema de búsqueda y filtrado
-- [ ] Notificaciones de cambios de estado
-- [ ] Manejo de eventos y validaciones (JavaScript)
-
-### Backend
-- [ ] Manejo de fechas y tiempos
-- [ ] Sistema de caché para consultas frecuentes
+- [x] Interfaz web responsive
+- [x] Tabla de visualización de estados
+- [x] Manejo de eventos y validaciones básicas
+- [ ] Sistema de búsqueda avanzada
+- [ ] Notificaciones detalladas
+- [ ] Sistema de filtrado avanzado
 
 ### Base de Datos (Excel)
-- [ ] Hoja principal de colaboradores
-- [ ] Hoja de estados históricos
-- [ ] Hoja de auditoría
+- [x] Hoja principal de colaboradores
 - [ ] Sistema de respaldo automático
-- [ ] Validación de datos
-- [ ] Fórmulas para cálculos automáticos
-- [ ] Protección de hojas críticas
+- [ ] Validación avanzada de datos
 
 ### Integración
-- [ ] Sistema de importación/exportación de datos
+- [x] Sistema de importación de datos
+- [ ] Sistema de exportación de datos
 - [ ] Sistema de reportes
-- [ ] Sistema de notificaciones
 
 ## Diseño de Interfaz de Usuario
 

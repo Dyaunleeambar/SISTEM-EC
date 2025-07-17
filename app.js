@@ -1,3 +1,77 @@
+// Mapa de equivalencias de columnas
+const COLUMN_MAP = {
+    'Nombre y Apellidos': ['Nombre y Apellidos', 'Nombre', 'Apellidos', 'Colaborador', 'Nombres y Apellidos'],
+    'Estado': ['Estado', 'Ubicación', 'Location'],
+    'Fecha de Salida': ['Fecha de Salida', 'Salida', 'Fecha Salida'],
+    'Fecha de Entrada': ['Fecha de Entrada', 'Entrada', 'Fecha Entrada'],
+    'Fin de Misión': ['Fin de Misión', 'Fin Misión', 'Fin'],
+    'Estimulacion': ['Estimulacion', 'Estimulación', 'Derecho Estimulación'],
+    'Vacaciones': ['Vacaciones', 'En Vacaciones']
+};
+
+// Función para obtener el valor correcto de cada campo
+function getColumnValue(row, key) {
+    const possibleNames = COLUMN_MAP[key];
+    for (let name of possibleNames) {
+        if (row.hasOwnProperty(name)) {
+            return row[name];
+        }
+    }
+    return '';
+}
+function processExcelData(workbook) {
+    // Obtener la primera hoja
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    const rawData = XLSX.utils.sheet_to_json(worksheet);
+
+    // Solo extraer Estado y Nombre del Colaborador
+    const processedData = rawData
+        .map(row => {
+            const nombre = getColumnValue(row, 'Nombre y Apellidos')?.trim() || '';
+            if (!nombre) {
+                console.warn('Fila sin nombre:', row);
+                return null;
+            }
+            const estado = getColumnValue(row, 'Estado')?.trim() || '';
+
+            // Inicializa los campos editables
+            const salidaFormatted = '';
+            const entradaFormatted = '';
+            const finMision = 'No';
+
+            // Calcula los valores dependientes
+            const conciliationMonth = getConciliationMonth();
+            const estimulacion = evaluateStimulation({
+                Estado: estado,
+                'Fecha de Salida': salidaFormatted,
+                'Fecha de Entrada': entradaFormatted,
+                'Fin de Misión': finMision
+            }, conciliationMonth);
+
+            const vacaciones = evaluateVacaciones({
+                'Fecha de Salida': salidaFormatted,
+                'Fecha de Entrada': entradaFormatted,
+                'Fin de Misión': finMision
+            });
+
+            return {
+                'Nombre y Apellidos': nombre,
+                Estado: estado,
+                'Fecha de Salida': salidaFormatted,
+                'Fecha de Entrada': entradaFormatted,
+                'Fin de Misión': finMision,
+                Estimulacion: estimulacion,
+                Vacaciones: vacaciones
+            };
+        })
+        .filter(row => row !== null);
+
+    // Procesar los datos y actualizar la UI
+    updateTable(processedData);
+    updateCounters(processedData);
+}
+
 // Funciones auxiliares
 function parseDate(dateString) {
     if (!dateString) {
@@ -63,32 +137,76 @@ function getDayOfMonth(date) {
     return date.getDate();
 }
 
-function evaluateStimulation(row) {
-    // 1. Si está en el país o no tiene fecha de salida
-    if (row.Estado === 'En país' || !row['Fecha de Salida'] || row['Fecha de Salida'].trim() === '') {
+function evaluateStimulation(row, conciliationMonth) {
+    // conciliationMonth: {year: 2025, month: 7} (mes 1-based)
+    // Si no hay fecha de salida, se asume presencia todo el mes    
+    if (!row['Fecha de Salida'] || row['Fecha de Salida'].trim() === '') {
         return 'Sí';
     }
 
-    // 2. Si tiene fecha de salida, verificar el día
-    const salidaDate = parseDate(row['Fecha de Salida']);
-    if (!salidaDate) {
-        console.warn('Fecha no válida:', row['Fecha de Salida']);
-        return 'No'; // Si la fecha no es válida, no tiene estimulación
+    const salida = parseDate(row['Fecha de Salida']);
+    if (!salida) return 'No';
+
+    // Si no hay fecha de entrada, se asume que no regresó ese mes
+    let entrada = null;
+    if (row['Fecha de Entrada'] && row['Fecha de Entrada'].trim() !== '') {
+        entrada = parseDate(row['Fecha de Entrada']);
+        if (!entrada) return 'No';
+        if (entrada < salida) return 'No'; // Fecha de entrada inválida
     }
 
-    // Obtener el día del mes (1-31)
-    const salidaDay = salidaDate.getDate();
-    
-    // Regla: Si sale después del día 15, tiene estimulación
-    if (salidaDay >= 15) {
-        return 'Sí';
+    // Calcular rango de días en el país durante el mes de conciliación
+    const year = conciliationMonth.year;
+    const month = conciliationMonth.month; // 1-based
+    const firstDay = new Date(year, month - 1, 1);
+    const lastDay = new Date(year, month, 0);
+
+    // Si salió antes del mes, no estuvo presente
+    if (salida < firstDay && (!entrada || entrada < firstDay)) return 'No';
+
+    // Si salió durante el mes, calcular días hasta salida o entrada
+    let presenceStart = firstDay;
+    let presenceEnd = lastDay;
+
+    if (salida > firstDay && salida <= lastDay) {
+        presenceEnd = salida;
+    }
+    if (entrada && entrada > firstDay && entrada <= lastDay) {
+        presenceStart = entrada;
     }
 
-    return 'No';
+    // Si salió y no regresó, presencia hasta salida
+    if (salida >= firstDay && salida <= lastDay && (!entrada || entrada > lastDay)) {
+        presenceEnd = salida;
+    }
+
+    // Si regresó después de salir, presencia desde entrada hasta fin de mes
+    if (entrada && entrada >= firstDay && entrada <= lastDay) {
+        presenceStart = entrada;
+    }
+
+    // Calcular días de presencia
+    const daysPresent = Math.max(0, Math.floor((presenceEnd - presenceStart) / (1000 * 60 * 60 * 24)) + 1);
+
+    return daysPresent >= 15 ? 'Sí' : 'No';
+}
+
+function getConciliationMonth() {
+    const input = document.getElementById('conciliationMonth');
+    let date = new Date();
+    if (input && input.value) {
+        const [year, month] = input.value.split('-');
+        return { year: parseInt(year), month: parseInt(month) };
+    }
+    return { year: date.getFullYear(), month: date.getMonth() + 1 };
 }
 
 // Función para calcular el estado de vacaciones
 function evaluateVacaciones(row) {
+    // Si tiene fecha de entrada, no está de vacaciones
+    if (row['Fecha de Entrada'] && row['Fecha de Entrada'].trim() !== '') {
+        return 'No';
+    }
     // Reglas de vacaciones:
     // 1. Debe tener fecha de salida
     // 2. No debe estar en fin de misión
@@ -143,14 +261,8 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, { type: 'array' });
-                const sheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[sheetName];
-                const jsonData = XLSX.utils.sheet_to_json(worksheet);
-                
-                updateTable(jsonData);
-                updateCounters(jsonData);
-                
-                showMessage(`Importación exitosa! Total de colaboradores: ${jsonData.length}`, 'success');
+                processExcelData(workbook); // <-- SOLO usa el flujo procesado
+                showMessage('Importación exitosa!', 'success');
                 importButton.disabled = true;
             } catch (error) {
                 showMessage('Error al procesar el archivo Excel. Por favor, verifique el formato.', 'error');
@@ -217,10 +329,11 @@ function processExcelData(workbook) {
         const entradaFormatted = formatDate(fechaEntrada);
 
         // Calcular la estimulación basada en los datos
+        const conciliationMonth = getConciliationMonth();
         const estimulacion = evaluateStimulation({
             Estado: estado,
             'Fecha de Salida': salidaFormatted
-        });
+        }, conciliationMonth);
 
         // Calcular el estado de vacaciones
         const vacaciones = evaluateVacaciones({
@@ -279,7 +392,8 @@ function updateTable(data) {
         const entradaFormatted = formatDate(row['Fecha de Entrada']);
 
         // Actualizar el estado de estimulación basado en las reglas
-        const estimulacion = evaluateStimulation(row);
+        const conciliationMonth = getConciliationMonth();
+        const estimulacion = evaluateStimulation(row, conciliationMonth);
         row.Estimulacion = estimulacion;
         
         const tr = document.createElement('tr');
@@ -371,30 +485,27 @@ function getData() {
                 rowData[field] = evaluateStimulation({
                     Estado: estado,
                     'Fecha de Salida': fechaSalida
-                });
+                }, getConciliationMonth());
             } else if (field === 'vacaciones') {
-                // Obtener el valor directamente del DOM
-                rowData[field] = element.textContent || '';
-                
-                // Actualizar el estado de vacaciones basado en las reglas
-                const estado = row.querySelector('[data-field="estado"]').textContent || '';
-                const finMision = row.querySelector('[data-field="Fin de Misión"]').textContent || '';
-                const fechaSalida = row.querySelector('[data-field="Fecha de Salida"]').value || '';
+                // Construir el objeto row para evaluar correctamente
+                const fechaSalida = row.querySelector('[data-field="Fecha de Salida"]')?.value || '';
+                const fechaEntrada = row.querySelector('[data-field="Fecha de Entrada"]')?.value || '';
+                const finMision = row.querySelector('[data-field="Fin de Misión"]')?.textContent || '';
 
-                // Reglas de vacaciones:
-                // 1. Debe tener fecha de salida
-                // 2. No debe estar en fin de misión
-                const hasSalida = fechaSalida && fechaSalida.trim() !== '';
-                const isInFinMision = finMision === "Sí";
+                const vacacionesValue = evaluateVacaciones({
+                    'Fecha de Salida': fechaSalida,
+                    'Fecha de Entrada': fechaEntrada,
+                    'Fin de Misión': finMision
+                });
 
-                const nuevoEstado = hasSalida && !isInFinMision ? "Sí" : "No";
-                
-                // Actualizar el DOM con el nuevo valor solo si ha cambiado
+                rowData[field] = vacacionesValue;
+
+                // Actualizar el DOM solo si ha cambiado
                 const vacacionesElement = row.querySelector('[data-field="vacaciones"]');
-                if (vacacionesElement && vacacionesElement.textContent !== nuevoEstado) {
-                    vacacionesElement.textContent = nuevoEstado;
-                }
-            } else {
+                if (vacacionesElement && vacacionesElement.textContent !== vacacionesValue) {
+                    vacacionesElement.textContent = vacacionesValue;
+            }
+    } else {
                 // Para otros campos, usar value si existe, sino textContent
                 rowData[field] = element.value || element.textContent || '';
             }
@@ -463,7 +574,8 @@ function handleCheckboxChange(event) {
     row['Fin de Misión'] = checkbox.checked ? 'Sí' : 'No';
 
     // Recalcular la estimulación y vacaciones basadas en el nuevo estado
-    row.Estimulacion = evaluateStimulation(row);
+    const conciliationMonth = getConciliationMonth();
+    row.Estimulacion = evaluateStimulation(row, conciliationMonth);
     row.Vacaciones = evaluateVacaciones(row);
 
     // Obtener la fila y actualizar los elementos
@@ -501,10 +613,9 @@ function handleCheckboxChange(event) {
         
         // Recalcular la estimulación y vacaciones para todas las filas
         updatedData.forEach(row => {
-            const newEstimulacion = evaluateStimulation(row);
-            const newVacaciones = evaluateVacaciones(row);
-            row.Estimulacion = newEstimulacion;
-            row.Vacaciones = newVacaciones;
+            const conciliationMonth = getConciliationMonth();
+            row.Estimulacion = evaluateStimulation(row, conciliationMonth);
+            row.Vacaciones = evaluateVacaciones(row);
         });
 
         // Actualizar los contadores
@@ -563,12 +674,9 @@ function handleDateChange(event) {
     row[field] = value;
     
     // Recalcular la estimulación y vacaciones basadas en la nueva fecha
-    const newEstimulacion = evaluateStimulation(row);
-    const newVacaciones = evaluateVacaciones(row);
-    
-    // Actualizar los valores en el objeto de datos
-    row.Estimulacion = newEstimulacion;
-    row.Vacaciones = newVacaciones;
+    const conciliationMonth = getConciliationMonth();
+    row.Estimulacion = evaluateStimulation(row, conciliationMonth);
+    row.Vacaciones = evaluateVacaciones(row);
     
     // Actualizar el DOM
     const rowElement = input.closest('.data-row');
@@ -594,17 +702,17 @@ function handleDateChange(event) {
         const estimacionElement = rowElement.querySelector('[data-field="estimulacion"]');
         if (estimacionElement) {
             // Usar el valor directamente sin convertir a mayúsculas
-            estimacionElement.textContent = newEstimulacion;
+            estimacionElement.textContent = row.Estimulacion;
             // También actualizar el value si es un input
             if (estimacionElement.tagName === 'INPUT') {
-                estimacionElement.value = newEstimulacion;
+                estimacionElement.value = row.Estimulacion;
             }
         }
 
         // Actualizar el estado de vacaciones en el DOM
         const vacacionesElement = rowElement.querySelector('[data-field="vacaciones"]');
         if (vacacionesElement) {
-            vacacionesElement.textContent = newVacaciones;
+            vacacionesElement.textContent = row.Vacaciones;
         }
     }
 
@@ -615,10 +723,9 @@ function handleDateChange(event) {
         
         // Recalcular la estimulación y vacaciones para todas las filas
         updatedData.forEach(row => {
-            const newEstimulacion = evaluateStimulation(row);
-            const newVacaciones = evaluateVacaciones(row);
-            row.Estimulacion = newEstimulacion;
-            row.Vacaciones = newVacaciones;
+            const conciliationMonth = getConciliationMonth();
+            row.Estimulacion = evaluateStimulation(row, conciliationMonth);
+            row.Vacaciones = evaluateVacaciones(row);
 
             // Actualizar el DOM de nuevo con los valores calculados
             const rowElement = document.querySelector(`.data-row[data-id="${row.id}"]`);
@@ -627,14 +734,14 @@ function handleDateChange(event) {
                 const estimulacionCell = rowElement.querySelector('[data-field="estimulacion"]');
                 if (estimulacionCell) {
                     // Asegurarnos de que el texto esté en mayúscula inicial
-                    const estimulacionValue = newEstimulacion.charAt(0).toUpperCase() + newEstimulacion.slice(1);
+                    const estimulacionValue = row.Estimulacion.charAt(0).toUpperCase() + row.Estimulacion.slice(1);
                     estimulacionCell.textContent = estimulacionValue;
                 }
 
                 // Actualizar vacaciones
                 const vacacionesCell = rowElement.querySelector('[data-field="vacaciones"]');
                 if (vacacionesCell) {
-                    vacacionesCell.textContent = newVacaciones;
+                    vacacionesCell.textContent = row.Vacaciones;
                 }
             }
         });
@@ -643,6 +750,16 @@ function handleDateChange(event) {
         updateCounters(updatedData);
         updateLocationCounters(updatedData); 
     });
+}
+
+function validateDates(row) {
+    const salida = parseDate(row['Fecha de Salida']);
+    const entrada = parseDate(row['Fecha de Entrada']);
+    if (salida && entrada && entrada < salida) {
+        showMessage('La fecha de entrada no puede ser anterior a la de salida.', 'error');
+        return false;
+    }
+    return true;
 }
 
 function updateCounters(data) {
@@ -913,7 +1030,6 @@ function filterTableByLocation(location) {
         }
     });
 }
-// ...existing code...
 
 // Evento para exportar a Excel
 document.getElementById('exportButton').addEventListener('click', exportarDatos);
