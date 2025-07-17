@@ -68,6 +68,17 @@ app.delete('/api/colaboradores/:id', (req, res) => {
   });
 });
 
+// Eliminar todos los colaboradores
+app.delete('/api/colaboradores', (req, res) => {
+  db.run('DELETE FROM colaboradores', [], function(err) {
+    if (err) {
+      res.status(500).json({ error: 'Error al eliminar colaboradores' });
+    } else {
+      res.json({ message: 'Todos los colaboradores eliminados' });
+    }
+  });
+});
+
 app.listen(PORT, () => {
   console.log(`Servidor backend escuchando en http://localhost:${PORT}`);
 });

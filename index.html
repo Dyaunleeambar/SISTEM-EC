@@ -7,6 +7,10 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <div id="loader" style="display:none;">
+        <div class="spinner"></div>
+        <span>Procesando datos...</span>
+    </div>
     <div class="container">
         <!-- Tarjeta Central -->        
         <div class="central-card">
@@ -33,9 +37,10 @@
             <div class="import-section">
                 <h2>Importar Datos</h2>
                 <input type="file" id="fileInput" accept=".xlsx, .xls">
-                <button id="importButton">Importar</button>
+                <button id="importButton" disabled>Importar</button>
                 <button id="exportButton">Exportar a Excel</button>
-                <div id="importMessage" class="import-message"></div>
+                <button id="clearDatabaseButton">Limpiar Base de Datos</button>
+                <span id="importMessage" class="import-message"></span>
             </div>            
             <div class="conciliation-section">
                 <label for="conciliationMonth">Mes de Conciliación:</label>

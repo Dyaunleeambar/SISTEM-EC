@@ -11,17 +11,80 @@ const COLUMN_MAP = {
 
 // Función para obtener el valor correcto de cada campo
 function getColumnValue(row, key) {
-    const possibleNames = COLUMN_MAP[key];
-    for (let name of possibleNames) {
-        if (row.hasOwnProperty(name)) {
-            return row[name];
-        }
+    // Usa COLUMN_MAP si existe, y añade variantes comunes
+    const variants = (COLUMN_MAP && COLUMN_MAP[key])
+        ? COLUMN_MAP[key].concat([key, key.toLowerCase(), 'nombre'])
+        : [key, key.toLowerCase(), 'nombre'];
+    for (const variant of variants) {
+        if (row.hasOwnProperty(variant)) return row[variant];
     }
     return '';
 }
 
+function showLoader() {
+    document.getElementById('loader').style.display = 'flex';
+}
+function hideLoader() {
+    document.getElementById('loader').style.display = 'none';
+}
+
+// Evento change SOLO habilita el botón
+document.getElementById('fileInput').addEventListener('change', function(event) {
+    const file = event.target.files[0];
+    const importButton = document.getElementById('importButton');
+    importButton.disabled = !file;
+});
+
+// Evento click en el botón de importar
+document.getElementById('importButton').addEventListener('click', function() {
+    const fileInput = document.getElementById('fileInput');
+    const file = fileInput.files[0];
+    if (!file) {
+        showMessage('Por favor, seleccione un archivo Excel primero.', 'error');
+        return;
+    }
+    showLoader();
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const processedData = processExcelData(workbook);
+
+            // DESHABILITA AMBOS CONTROLES INMEDIATAMENTE
+            fileInput.disabled = true;
+            document.getElementById('importButton').disabled = true;
+
+            saveColaboradoresToBackend(processedData)
+                .then(() => {
+                    fetchColaboradores();
+                    showMessage('Importación exitosa!', 'success');
+                })
+                .catch((error) => {
+                    showMessage('Error al guardar colaboradores.', 'error');
+                    console.error('Error:', error);
+                    fileInput.disabled = false;
+                })
+                .finally(() => {
+                    hideLoader();
+                    fileInput.value = '';
+                    document.getElementById('importButton').disabled = true;
+                });
+        } catch (error) {
+            showMessage('Error al procesar el archivo Excel. Por favor, verifique el formato.', 'error');
+            console.error('Error:', error);
+            hideLoader();
+        }
+    };
+    reader.onerror = function() {
+        showMessage('Error al leer el archivo. Por favor, intente nuevamente.', 'error');
+        hideLoader();
+    };
+    reader.readAsArrayBuffer(file);
+});
+
+// Modifica processExcelData para que SOLO procese y retorne los datos, NO actualice la UI directamente
 function processExcelData(workbook) {
-    // Obtener la primera hoja
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
     const rawData = XLSX.utils.sheet_to_json(worksheet);
@@ -29,7 +92,6 @@ function processExcelData(workbook) {
     // Procesar y limpiar los datos
     const processedData = rawData
         .map(row => {
-            // Usar getColumnValue para obtener los valores correctos
             const nombre = getColumnValue(row, 'Nombre y Apellidos')?.trim() || '';
             if (!nombre) {
                 console.warn('Fila sin nombre:', row);
@@ -71,20 +133,26 @@ function processExcelData(workbook) {
         })
         .filter(row => row !== null);
 
-    // Actualizar la UI
-    updateTable(processedData);
-    updateCounters(processedData);
-    saveColaboradoresToBackend(processedData);
+    return processedData;
 }
 
+// Modifica saveColaboradoresToBackend para que retorne una promesa
 function saveColaboradoresToBackend(colaboradores) {
-    colaboradores.forEach(colaborador => {
-        fetch('http://localhost:3001/api/colaboradores', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(colaborador)
-        })
-        .catch(err => console.error('Error al guardar colaborador:', err));
+    // Primero, elimina todos los colaboradores existentes
+    return fetch('http://localhost:3001/api/colaboradores', {
+        method: 'DELETE'
+    })
+    .then(() => {
+        // Luego, importa los nuevos colaboradores
+        const promises = colaboradores.map(colaborador => {
+            const backendColaborador = mapFrontendToBackend(colaborador);
+            return fetch('http://localhost:3001/api/colaboradores', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(backendColaborador)
+            });
+        });
+        return Promise.all(promises);
     });
 }
 
@@ -246,81 +314,9 @@ function showMessage(message, type) {
     }
 }
 
-// Función para manejar la importación del archivo Excel
-document.addEventListener('DOMContentLoaded', () => {
-    const fileInput = document.getElementById('fileInput');
-    const importButton = document.getElementById('importButton');
-    const importMessage = document.getElementById('importMessage');
-    
-    fileInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            importButton.disabled = false;
-            importMessage.textContent = '';
-            importMessage.className = 'import-message';
-        } else {
-            importButton.disabled = true;
-        }
-    });
-
-    importButton.addEventListener('click', importarDatos);
-
-    function importarDatos() {
-        const file = fileInput.files[0];
-        if (!file) {
-            showMessage('Por favor, seleccione un archivo Excel primero.', 'error');
-            return;
-        }
-
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                processExcelData(workbook); // <-- SOLO usa el flujo procesado
-                showMessage('Importación exitosa!', 'success');
-                importButton.disabled = true;
-            } catch (error) {
-                showMessage('Error al procesar el archivo Excel. Por favor, verifique el formato.', 'error');
-                console.error('Error:', error);
-            }
-        };
-        
-        reader.onerror = () => {
-            showMessage('Error al leer el archivo. Por favor, intente nuevamente.', 'error');
-        };
-        
-        reader.readAsArrayBuffer(file);
-    }
-
-    function showMessage(message, type) {
-        importMessage.textContent = message;
-        importMessage.className = `import-message ${type}`;
-        // Ocultar el mensaje después de 5 segundos
-        setTimeout(() => {
-            importMessage.textContent = '';
-            importMessage.className = 'import-message';
-        }, 5000);
-    }
-});
-
-function handleFileUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    // Leer el archivo
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
-        
-        // Procesar los datos
-        processExcelData(workbook);
-    };
-    reader.readAsArrayBuffer(file);
-}
 
 
+// Función para manejar el cambio de fecha
 function updateTable(data) {
     const tbody = document.querySelector('#collaboratorsTable tbody');
     if (!tbody) {
@@ -601,9 +597,11 @@ function handleCheckboxChange(event) {
             }
         }
     });
+
+    // Sincronizar con el backend
+    updateColaboradorInBackend(row);
 }
 
-// Función para manejar cambios en las fechas
 function handleDateChange(event) {
     const input = event.target;
     const collaboratorId = input.dataset.id;
@@ -704,6 +702,9 @@ function handleDateChange(event) {
         updateCounters(updatedData);
         updateLocationCounters(updatedData); 
     });
+
+    // Sincronizar con el backend
+    updateColaboradorInBackend(row);
 }
 
 function validateDates(row) {
@@ -1017,8 +1018,10 @@ function fetchColaboradores() {
     fetch('http://localhost:3001/api/colaboradores')
         .then(res => res.json())
         .then(data => {
-            updateTable(data);
-            updateCounters(data);
+            // Normaliza los datos antes de pasarlos a la UI
+            const normalized = data.map(normalizeBackendRow);
+            updateTable(normalized);
+            updateCounters(normalized);
         })
         .catch(err => {
             showMessage('Error al cargar colaboradores del servidor.', 'error');
@@ -1032,13 +1035,55 @@ document.addEventListener('DOMContentLoaded', () => {
     // ...resto de tu código...
 });
 
+function mapFrontendToBackend(colaborador) {
+    return {
+        id: colaborador.id,
+        nombre: colaborador['Nombre y Apellidos'],
+        estado: colaborador.Estado,
+        fecha_salida: colaborador['Fecha de Salida'],
+        fecha_entrada: colaborador['Fecha de Entrada'],
+        fin_mision: colaborador['Fin de Misión'] === 'Sí' ? 1 : 0,
+        ubicacion: colaborador.Estado // O usa otro campo si corresponde
+    };
+}
+
 function updateColaboradorInBackend(colaborador) {
-    fetch(`http://localhost:3001/api/colaboradores/${colaborador.id}`, {
+    const backendColaborador = mapFrontendToBackend(colaborador);
+    fetch(`http://localhost:3001/api/colaboradores/${backendColaborador.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(colaborador)
+        body: JSON.stringify(backendColaborador)
     })
     .catch(err => console.error('Error al actualizar colaborador:', err));
 }
 
-// Llama a esta función en handleDateChange y handleCheckboxChange después de actualizar el colaborador
+function normalizeBackendRow(row) {
+    return {
+        'Nombre y Apellidos': row.nombre || '',
+        Estado: row.estado || '',
+        'Fecha de Salida': row.fecha_salida || '',
+        'Fecha de Entrada': row.fecha_entrada || '',
+        'Fin de Misión': row.fin_mision === 1 || row.fin_mision === 'Sí' ? 'Sí' : 'No',
+        Estimulacion: row.Estimulacion || 'No',
+        Vacaciones: row.Vacaciones || 'No',
+        id: row.id
+    };
+}
+
+// Nuevo evento para limpiar la base de datos
+document.getElementById('clearDatabaseButton').addEventListener('click', function() {
+    if (confirm('¿Estás seguro de que deseas eliminar todos los colaboradores? Esta acción no se puede deshacer.')) {
+        fetch('http://localhost:3001/api/colaboradores', { method: 'DELETE' })
+            .then(res => res.json())
+            .then(() => {
+                showMessage('Base de datos limpiada correctamente.', 'success');
+                fetchColaboradores();
+                document.getElementById('fileInput').disabled = false;
+                document.getElementById('importButton').disabled = true;
+            })
+            .catch(err => {
+                showMessage('Error al limpiar la base de datos.', 'error');
+                console.error(err);
+            });
+    }
+});
