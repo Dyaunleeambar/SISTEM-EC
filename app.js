@@ -1042,3 +1042,20 @@ document.getElementById('addCollaboratorForm').addEventListener('submit', functi
 // document.getElementById('fileInput').addEventListener('change', ...);
 // document.getElementById('importButton').addEventListener('click', ...);
 // Funciones de FileReader, XLSX, etc.
+
+app.post('/api/colaboradores', (req, res) => {
+    const { nombre, estado, fecha_salida, fecha_entrada, fin_mision, ubicacion } = req.body;
+    console.log('Nuevo colaborador:', req.body); // <-- Agrega esto
+    db.query(
+        `INSERT INTO colaboradores (nombre, estado, fecha_salida, fecha_entrada, fin_mision, ubicacion)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [nombre, estado, fecha_salida, fecha_entrada, fin_mision, ubicacion],
+        (err, result) => {
+            if (err) {
+                console.error('Error SQL:', err); // <-- Agrega esto
+                return res.status(500).json({ error: err.message });
+            }
+            res.json({ id: result.insertId, nombre, estado, fecha_salida, fecha_entrada, fin_mision, ubicacion });
+        }
+    );
+});
