@@ -1,163 +1,8 @@
-// Mapa de equivalencias de columnas
-const COLUMN_MAP = {
-    'Nombre y Apellidos': ['Nombre y Apellidos', 'Nombre', 'Apellidos', 'Colaborador', 'Nombres y Apellidos'],
-    'Estado': ['Estado', 'Ubicación', 'Location'],
-    'Fecha de Salida': ['Fecha de Salida', 'Salida', 'Fecha Salida'],
-    'Fecha de Entrada': ['Fecha de Entrada', 'Entrada', 'Fecha Entrada'],
-    'Fin de Misión': ['Fin de Misión', 'Fin Misión', 'Fin'],
-    'Estimulacion': ['Estimulacion', 'Estimulación', 'Derecho Estimulación'],
-    'Vacaciones': ['Vacaciones', 'En Vacaciones']
-};
-
-// Función para obtener el valor correcto de cada campo
-function getColumnValue(row, key) {
-    // Usa COLUMN_MAP si existe, y añade variantes comunes
-    const variants = (COLUMN_MAP && COLUMN_MAP[key])
-        ? COLUMN_MAP[key].concat([key, key.toLowerCase(), 'nombre'])
-        : [key, key.toLowerCase(), 'nombre'];
-    for (const variant of variants) {
-        if (row.hasOwnProperty(variant)) return row[variant];
-    }
-    return '';
-}
-
 function showLoader() {
     document.getElementById('loader').style.display = 'flex';
 }
 function hideLoader() {
     document.getElementById('loader').style.display = 'none';
-}
-
-// Evento change SOLO habilita el botón importar
-document.getElementById('fileInput').addEventListener('change', function(event) {
-    const fileInput = event.target;
-    const importButton = document.getElementById('importButton');
-    // Solo habilita el botón si el input NO está deshabilitado
-    if (!fileInput.disabled) {
-        importButton.disabled = !fileInput.files[0];
-    }
-});
-
-// Evento click en el botón de importar
-document.getElementById('importButton').addEventListener('click', function() {
-    const fileInput = document.getElementById('fileInput');
-    const file = fileInput.files[0];
-    if (!file) {
-        showMessage('Por favor, seleccione un archivo Excel primero.', 'error');
-        return;
-    }
-    showLoader();
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        try {
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, { type: 'array' });
-            const processedData = processExcelData(workbook);
-
-            // DESHABILITA AMBOS CONTROLES INMEDIATAMENTE
-            fileInput.disabled = true;
-            document.getElementById('importButton').disabled = true;
-
-            saveColaboradoresToBackend(processedData)
-                .then(() => {
-                    fetchColaboradores();
-                    showMessage('Importación exitosa!', 'success');
-                })
-                .catch((error) => {
-                    showMessage('Error al guardar colaboradores.', 'error');
-                    console.error('Error:', error);
-                    // Solo habilita el input si hubo error
-                    //fileInput.disabled = false;
-                })
-                .finally(() => {
-                    hideLoader();
-                    fileInput.value = '';
-                    document.getElementById('importButton').disabled = true;
-                });
-        } catch (error) {
-            showMessage('Error al procesar el archivo Excel. Por favor, verifique el formato.', 'error');
-            console.error('Error:', error);
-            hideLoader();
-        }
-    };
-    reader.onerror = function() {
-        showMessage('Error al leer el archivo. Por favor, intente nuevamente.', 'error');
-        hideLoader();
-    };
-    reader.readAsArrayBuffer(file);
-});
-
-// Modifica processExcelData para que SOLO procese y retorne los datos, NO actualice la UI directamente
-function processExcelData(workbook) {
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
-    const rawData = XLSX.utils.sheet_to_json(worksheet);
-
-    // Procesar y limpiar los datos
-    const processedData = rawData
-        .map(row => {
-            const nombre = getColumnValue(row, 'Nombre y Apellidos')?.trim() || '';
-            if (!nombre) {
-                console.warn('Fila sin nombre:', row);
-                return null;
-            }
-            const estado = getColumnValue(row, 'Estado')?.trim() || '';
-            const fechaSalida = getColumnValue(row, 'Fecha de Salida')?.trim() || '';
-            const fechaEntrada = getColumnValue(row, 'Fecha de Entrada')?.trim() || '';
-            const finMision = getColumnValue(row, 'Fin de Misión')?.trim() || 'No';
-
-            // Formatear fechas
-            const salidaFormatted = formatDate(parseDate(fechaSalida));
-            const entradaFormatted = formatDate(parseDate(fechaEntrada));
-
-            // Calcular valores dependientes
-            const conciliationMonth = getConciliationMonth();
-            const estimulacion = evaluateStimulation({
-                Estado: estado,
-                'Fecha de Salida': salidaFormatted,
-                'Fecha de Entrada': entradaFormatted,
-                'Fin de Misión': finMision
-            }, conciliationMonth);
-
-            const vacaciones = evaluateVacaciones({
-                'Fecha de Salida': salidaFormatted,
-                'Fecha de Entrada': entradaFormatted,
-                'Fin de Misión': finMision
-            });
-
-            return {
-                'Nombre y Apellidos': nombre,
-                Estado: estado,
-                'Fecha de Salida': salidaFormatted,
-                'Fecha de Entrada': entradaFormatted,
-                'Fin de Misión': finMision,
-                Estimulacion: estimulacion,
-                Vacaciones: vacaciones
-            };
-        })
-        .filter(row => row !== null);
-
-    return processedData;
-}
-
-// Modifica saveColaboradoresToBackend para que retorne una promesa
-function saveColaboradoresToBackend(colaboradores) {
-    // Primero, elimina todos los colaboradores existentes
-    return fetch('http://localhost:3001/api/colaboradores', {
-        method: 'DELETE'
-    })
-    .then(() => {
-        // Luego, importa los nuevos colaboradores
-        const promises = colaboradores.map(colaborador => {
-            const backendColaborador = mapFrontendToBackend(colaborador);
-            return fetch('http://localhost:3001/api/colaboradores', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(backendColaborador)
-            });
-        });
-        return Promise.all(promises);
-    });
 }
 
 // Funciones auxiliares
@@ -304,99 +149,112 @@ function evaluateVacaciones(row) {
     return hasSalida && !isInFinMision ? 'Sí' : 'No';
 }
 
-// Función para mostrar mensajes
-function showMessage(message, type) {
-    const importMessage = document.getElementById('importMessage');
-    if (importMessage) {
-        importMessage.textContent = message;
-        importMessage.className = `import-message ${type}`;
-        // Ocultar el mensaje después de 5 segundos
-        setTimeout(() => {
-            importMessage.textContent = '';
-            importMessage.className = 'import-message';
-        }, 10000); // Cambiado a 10 segundos
-    }
-}
-
-
-
 // Función para manejar el cambio de fecha
 function updateTable(data) {
     const tbody = document.querySelector('#collaboratorsTable tbody');
-    if (!tbody) {
-        console.error('No se encontró el tbody de la tabla');
-        return;
-    }
+    if (!tbody) return;
     tbody.innerHTML = '';
 
-    let idCounter = 0;
     data.forEach(row => {
-        if (!row['Nombre y Apellidos']) {
-            console.error('Fila sin nombre:', row);
-            return;
-        }
-
-        // Asignar un ID único si no existe
-        if (!row.id) {
-            row.id = idCounter++;
-        }
-
-        // Formatear fechas
-        const salidaFormatted = formatDate(row['Fecha de Salida']);
-        const entradaFormatted = formatDate(row['Fecha de Entrada']);
-
-        // Actualizar el estado de estimulación basado en las reglas
-        const conciliationMonth = getConciliationMonth();
-        const estimulacion = evaluateStimulation(row, conciliationMonth);
-        row.Estimulacion = estimulacion;
-        
         const tr = document.createElement('tr');
         tr.className = 'data-row';
         tr.innerHTML = `
-            <td data-field="estado">${row.Estado}</td>
-            <td data-field="nombre">${row['Nombre y Apellidos']}</td>
-            <td><input type="date" class="date-input" value="${salidaFormatted}" data-id="${row.id}" data-field="Fecha de Salida"></td>
-            <td data-field="estimulacion">${estimulacion}</td>
+            <td>${row.Estado}</td>
+            <td>${row['Nombre y Apellidos']}</td>
+            <td>${row['Fecha de Salida'] || ''}</td>
+            <td>${row['Fecha de Entrada'] || ''}</td>
+            <td>${row['Fin de Misión'] || ''}</td>
+            <td>${row.Estimulacion || ''}</td>
+            <td>${row.Vacaciones || ''}</td>
             <td>
-                <div class="date-control">
-                    <input type="checkbox" class="disable-date" data-id="${row.id}" data-field="fin_mision">
-                    <label>Fin de Misi</label>
-                    <input type="date" class="date-input" value="${entradaFormatted}" data-id="${row.id}" data-field="Fecha de Entrada">
-                </div>
+                <button class="edit-btn" data-id="${row.id}">Editar</button>
+                <button class="delete-btn" data-id="${row.id}">Eliminar</button>
             </td>
-            <td data-field="vacaciones">${row['Vacaciones'] || 'No'}</td>
-            <td data-field="Fin de Misión">${row['Fin de Misión'] || 'No'}</td>
         `;
         
         // Primero agregar la fila al DOM
         tbody.appendChild(tr);
     });
 
-    // Actualizar los contadores después de que todas las filas hayan sido creadas
-    updateCounters(data);
-    updateLocationCounters(data);
-
-    // Agregar event listeners a todos los inputs de fecha
-    const dateInputs = document.querySelectorAll('.date-input');
-    if (dateInputs && dateInputs.length > 0) {
-        dateInputs.forEach(input => {
-            input.addEventListener('change', handleDateChange);
-            
-            // Si es el input de Fin de Misión, agregar el listener del checkbox
-            const isFinMisionInput = input.dataset.field === 'Fecha de Entrada';
-            if (isFinMisionInput) {
-                const checkbox = input.parentElement.querySelector('.disable-date');
-                if (checkbox) {
-                    checkbox.addEventListener('change', handleCheckboxChange);
-                    
-                    // Establecer el estado inicial del input basado en el checkbox
-                    input.disabled = checkbox.checked;
-                    input.style.cursor = checkbox.checked ? 'not-allowed' : 'auto';
-                }
+    // Asigna eventos a los botones de eliminar
+    document.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const id = this.dataset.id;
+            if (confirm('¿Seguro que deseas eliminar este colaborador?')) {
+                fetch(`http://localhost:3001/api/colaboradores/${id}`, {
+                    method: 'DELETE'
+                })
+                .then(res => res.json())
+                .then(() => fetchColaboradores());
             }
         });
-    }
+    });
+
+    // Asigna eventos a los botones de editar
+    document.querySelectorAll('.edit-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const id = this.dataset.id;
+            const colaborador = data.find(c => c.id == id);
+            openEditModal(colaborador);
+        });
+    });
 }
+
+// Mostrar el modal y rellenar los datos
+function openEditModal(colaborador) {
+    document.getElementById('editId').value = colaborador.id;
+    document.getElementById('editNombre').value = colaborador['Nombre y Apellidos'];
+    document.getElementById('editEstado').value = colaborador.Estado;
+    document.getElementById('editFechaSalida').value = colaborador['Fecha de Salida'] || '';
+    document.getElementById('editFechaEntrada').value = colaborador['Fecha de Entrada'] || '';
+    document.getElementById('editModal').style.display = 'block';
+}
+
+// Cerrar el modal
+document.getElementById('closeEditModal').onclick = function() {
+    document.getElementById('editModal').style.display = 'none';
+};
+window.onclick = function(event) {
+    if (event.target == document.getElementById('editModal')) {
+        document.getElementById('editModal').style.display = 'none';
+    }
+};
+
+// Enviar cambios de edición
+document.getElementById('editCollaboratorForm').addEventListener('submit', function(event) {
+    event.preventDefault();
+    const id = document.getElementById('editId').value;
+    const nombre = document.getElementById('editNombre').value.trim();
+    const estado = document.getElementById('editEstado').value.trim();
+    const fechaSalida = document.getElementById('editFechaSalida').value;
+    const fechaEntrada = document.getElementById('editFechaEntrada').value;
+
+    const colaboradorEditado = {
+        id: parseInt(id),
+        'Nombre y Apellidos': nombre,
+        Estado: estado,
+        'Fecha de Salida': fechaSalida,
+        'Fecha de Entrada': fechaEntrada,
+        'Fin de Misión': 'No', // Puedes ajustar según tu lógica
+        Estimulacion: 'No',
+        Vacaciones: 'No'
+    };
+
+    fetch(`http://localhost:3001/api/colaboradores/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(mapFrontendToBackend(colaboradorEditado))
+    })
+    .then(res => res.json())
+    .then(() => {
+        document.getElementById('editModal').style.display = 'none';
+        fetchColaboradores();
+    })
+    .catch(err => {
+        alert('Error al actualizar colaborador.');
+        console.error(err);
+    });
+});
 
 // Función para obtener los datos almacenados en el DOM
 function getData() {
@@ -1017,15 +875,62 @@ function exportarDatos() {
     XLSX.writeFile(wb, 'colaboradores_exportados.xlsx');
 }
 
-// Nueva función para cargar colaboradores desde el servidor
+let allCollaborators = []; // Guarda todos los colaboradores para filtrar
+
+function updateStateCounters(data) {
+    // Agrupa por Estado/Ubiación
+    const stateCounts = {};
+    data.forEach(row => {
+        const estado = row.Estado || 'Sin Ubicación';
+        stateCounts[estado] = (stateCounts[estado] || 0) + 1;
+    });
+
+    const container = document.getElementById('stateCountersContent');
+    container.innerHTML = '';
+
+    // Botón para mostrar todos
+    const allBtn = document.createElement('button');
+    allBtn.className = 'location-button';
+    allBtn.textContent = `Todos (${data.length})`;
+    allBtn.onclick = () => {
+        updateTable(allCollaborators);
+        setActiveButton(allBtn);
+    };
+    container.appendChild(allBtn);
+
+    // Botones por estado
+    Object.entries(stateCounts).forEach(([estado, count]) => {
+        const btn = document.createElement('button');
+        btn.className = 'location-button';
+        btn.textContent = `${estado} (${count})`;
+        btn.onclick = () => {
+            const filtrados = allCollaborators.filter(c => (c.Estado || 'Sin Ubicación') === estado);
+            updateTable(filtrados);
+            setActiveButton(btn);
+        };
+        container.appendChild(btn);
+    });
+}
+
+// Marca el botón activo
+function setActiveButton(activeBtn) {
+    document.querySelectorAll('.location-button').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    activeBtn.classList.add('active');
+}
+
+// Modifica fetchColaboradores para guardar todos los colaboradores y actualizar los contadores por estado
 function fetchColaboradores() {
     fetch('http://localhost:3001/api/colaboradores')
         .then(res => res.json())
         .then(data => {
             // Normaliza los datos antes de pasarlos a la UI
             const normalized = data.map(normalizeBackendRow);
+            allCollaborators = normalized;
             updateTable(normalized);
             updateCounters(normalized);
+            updateStateCounters(normalized);
         })
         .catch(err => {
             showMessage('Error al cargar colaboradores del servidor.', 'error');
@@ -1081,16 +986,59 @@ document.getElementById('clearDatabaseButton').addEventListener('click', functio
             .then(res => res.json())
             .then(() => {
                 showMessage('Base de datos limpiada correctamente.', 'success');
-                fetchColaboradores();
-                // Habilita input y deshabilita botón importar
-                document.getElementById('fileInput').disabled = false;
-                document.getElementById('importButton').disabled = true;
+                fetchColaboradores();                
             })
             .catch(err => {
                 showMessage('Error al limpiar la base de datos.', 'error');
-                console.error(err);
-                // Solo habilita el input si hubo error
-                document.getElementById('fileInput').disabled = false;
+                console.error(err);                
             });
     }
 });
+
+document.getElementById('addCollaboratorForm').addEventListener('submit', function(event) {
+    event.preventDefault();
+
+    // Obtén los valores del formulario
+    const nombre = document.getElementById('nombreInput').value.trim();
+    const estado = document.getElementById('estadoInput').value.trim();
+    const fechaSalida = document.getElementById('fechaSalidaInput').value;
+    const fechaEntrada = document.getElementById('fechaEntradaInput').value;
+
+    if (!nombre || !estado) {
+        alert('Por favor, complete al menos el nombre y la ubicación.');
+        return;
+    }
+
+    // Construye el objeto colaborador
+    const nuevoColaborador = {
+        'Nombre y Apellidos': nombre,
+        Estado: estado,
+        'Fecha de Salida': fechaSalida,
+        'Fecha de Entrada': fechaEntrada,
+        'Fin de Misión': 'No',
+        Estimulacion: 'Si',
+        Vacaciones: 'No'
+    };
+
+    // Envía al backend
+    fetch('http://localhost:3001/api/colaboradores', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(mapFrontendToBackend(nuevoColaborador))
+    })
+    .then(res => res.json())
+    .then(() => {
+        // Limpia el formulario
+        document.getElementById('addCollaboratorForm').reset();
+        // Recarga la tabla
+        fetchColaboradores();
+    })
+    .catch(err => {
+        alert('Error al agregar colaborador.');
+        console.error(err);
+    });
+});
+
+// document.getElementById('fileInput').addEventListener('change', ...);
+// document.getElementById('importButton').addEventListener('click', ...);
+// Funciones de FileReader, XLSX, etc.

@@ -137,32 +137,28 @@ input[type="file"]:disabled {
 
 /* Estilos para los botones de estados */
 .location-buttons {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .location-button {
-    padding: 10px 15px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+  padding: 10px 15px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fff;
 }
 
-.location-button:hover {
-    background-color: #f5f5f5;
-    border-color: #007bff;
-}
-
+.location-button:hover,
 .location-button.active {
-    background-color: #007bff;
-    color: white;
-    border-color: #0056b3;
+  background-color: #007bff;
+  color: white;
+  border-color: #0056b3;
 }
 
 .location-button .state-total {
@@ -299,32 +295,22 @@ th {
 
 /* Estilos para los contadores */
 .counters {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    margin-top: 15px;
-    gap: 20px;
-    flex-wrap: wrap;
+  display: flex;
+  justify-content: flex-start; /* Alinea a la izquierda */
+  align-items: center;         /* Centra verticalmente */
+  gap: 32px;                   /* Espacio entre contadores */
+  margin-bottom: 24px;
 }
 
 .counter {
-    background: #f8f9fa;
-    padding: 15px;
-    border-radius: 5px;
-    text-align: center;
-}
-
-.counter-label {
-    color: #666;
-    font-size: 0.9em;
-    display: block;
-    margin-bottom: 5px;
-}
-
-.counter-value {
-    font-size: 1.5em;
-    font-weight: bold;
-    color: #333;
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Centra el texto dentro de cada contador */
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 12px 20px;
+  min-width: 120px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
 
 /* Estilos para los contadores por ubicación */
@@ -348,4 +334,96 @@ th {
         flex-direction: column;
         gap: 20px;
     }
+}
+
+/* Estilos para el modal */
+.modal { display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; overflow:auto; background:rgba(0,0,0,0.4);}
+.modal-content { background:#fff; margin:10% auto; padding:20px; border:1px solid #888; width:300px; border-radius:8px;}
+.close { color:#aaa; float:right; font-size:28px; font-weight:bold; cursor:pointer;}
+.close:hover { color:#000; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.main-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #f5f6fa;
+}
+
+.header-card {
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  border-radius: 10px;
+  padding: 24px 32px 16px 32px;
+  margin: 24px 24px 0 24px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.table-card {
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  border-radius: 10px;
+  margin: 16px 24px 24px 24px;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#collaboratorsTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table-card {
+  /* Altura máxima para la tabla, ajusta según tu preferencia */
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 0;
+}
+
+#collaboratorsTable thead th, #collaboratorsTable td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #e0e0e0;
+  text-align: left;
+  background: #fff;
+}
+
+#collaboratorsTable thead th {
+  position: sticky;
+  top: 0;
+  background: #f8f8f8;
+  z-index: 2;
+}
+
+.header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 32px;
+}
+
+.header-main {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* Ajusta la tarjeta de contadores por estado para que no sea muy ancha */
+.state-counters-card {
+  min-width: 220px;
+  max-width: 300px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  padding: 16px;
+  margin-top: 0;
+  margin-bottom: 0;
 }
