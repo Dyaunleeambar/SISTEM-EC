@@ -21,14 +21,14 @@
 
 - Los criterios son claros y prácticos, permitiendo una gestión transparente y flexible de los estados de los colaboradores.
 - Recomiendo mostrar en la tabla el número de días de permanencia para mayor transparencia en la estimulación.
-- Considera agregar mensajes o tooltips explicativos en la interfaz para que los usuarios comprendan los criterios.
+- **Considera agregar mensajes o tooltips explicativos en la interfaz para que los usuarios comprendan los criterios.**
 - Valida en el frontend que las fechas sean coherentes (por ejemplo, la fecha de entrada no puede ser posterior a la fecha de salida).
 
 ---
 
 ## Funcionalidades principales
 
-- **Importar colaboradores** desde un archivo Excel (.xlsx, .xls).
+- **Agregar colaboradores** manualmente mediante un formulario.
 - **Visualizar y editar** fechas de salida y entrada directamente en la tabla.
 - **Cálculo automático** de estimulación, vacaciones y fin de misión según las reglas de negocio.
 - **Filtrado y contadores** por ubicación y estado.
@@ -39,10 +39,9 @@
 
 ## Flujo de uso
 
-1. **Importar archivo**
-   - Selecciona un archivo Excel válido.
-   - El botón "Importar" se habilita.
-   - Al importar, tanto el input de archivo como el botón quedan deshabilitados hasta limpiar la base de datos.
+1. **Agregar colaborador**
+   - Completa el formulario con los datos requeridos.
+   - Haz clic en "Agregar" para guardar el colaborador.
 
 2. **Visualización y edición**
    - Los colaboradores se muestran en una tabla editable.
@@ -57,15 +56,14 @@
    - Haz clic en "Exportar a Excel" para descargar los datos actuales.
 
 5. **Limpiar base de datos**
-   - Haz clic en "Limpiar Base de Datos" para borrar todos los colaboradores y volver a habilitar la importación.
+   - Haz clic en "Limpiar Base de Datos" para borrar todos los colaboradores y volver a habilitar la carga manual.
 
 ## Consideraciones técnicas
 
-- El input de archivo y el botón de importar solo se habilitan/deshabilitan en los siguientes casos:
-  - **Se habilitan** al limpiar la base de datos.
-  - **Se deshabilitan** inmediatamente después de importar.
-- No se reactivan tras editar la tabla ni tras otros eventos.
 - El backend debe estar corriendo en `http://localhost:3001`.
+- Los datos se sincronizan automáticamente tras cada cambio.
+- El sistema valida que la fecha de entrada no sea anterior a la fecha de salida y muestra mensajes de error en caso de incoherencias.
+- **Los campos de edición y los botones de la tabla están deshabilitados hasta que se seleccione el mes de conciliación.**
 
 ## Estructura de archivos relevante
 
@@ -88,7 +86,6 @@
 
 ## Notas
 
-- El input de archivo puede parecer habilitado visualmente en algunos navegadores, pero estará realmente deshabilitado y no permitirá seleccionar archivos hasta limpiar la base de datos.
 - Si ves algún error en consola, revisa que los IDs en el HTML coincidan con los usados en el JS y que el backend esté activo.
 
 ---

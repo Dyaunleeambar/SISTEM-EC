@@ -265,6 +265,7 @@ function updateTable(data) {
             }
         });
     });
+    checkConciliationMonth();
 }
 
 // Mostrar el modal y rellenar los datos
@@ -1317,3 +1318,23 @@ document.getElementById('editCollaboratorForm').addEventListener('submit', funct
     }
     // ...resto del código de edición...
 });
+
+// Función para habilitar/deshabilitar campos de edición según el mes de conciliación
+function toggleEditFields(enabled) {
+    document.querySelectorAll('.date-input, .edit-btn, .delete-btn').forEach(el => {
+        el.disabled = !enabled;
+        el.style.cursor = enabled ? 'pointer' : 'not-allowed';
+    });
+}
+
+function checkConciliationMonth() {
+    const enabled = isConciliationMonthSelected();
+    toggleEditFields(enabled);
+}
+
+// Ejecutar al cargar la página y cuando cambie el input de mes
+window.addEventListener('DOMContentLoaded', checkConciliationMonth);
+const conciliationInput = document.getElementById('conciliationMonth');
+if (conciliationInput) {
+    conciliationInput.addEventListener('change', checkConciliationMonth);
+}
