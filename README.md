@@ -2,18 +2,24 @@
 
 ## Criterios de Validación
 
-**Estimulación**
-- Un colaborador tiene derecho a estimulación si ha permanecido al menos 15 días del mes de conciliación en el país donde realiza su misión.
-- Si no tiene fecha de salida ni de entrada, se considera que permanece en el país y tiene derecho a estimulación.
-- Si no tiene fecha de salida, se considera presente hasta el final del mes y se calcula la permanencia desde la fecha de entrada (si existe) o desde el inicio del mes (si tampoco tiene fecha de entrada).
-- Si tiene ambas fechas, se calcula la cantidad de días dentro del mes de conciliación.
+**Días de Presencia**
 
-**Vacaciones**
-- Un colaborador está de vacaciones si tiene fecha de salida pero no tiene fecha de entrada. Esto indica que salió del país y aún no ha regresado.
+Directivas para el cálculo del campo (Días de Presencia):
 
-**Fin de Misión**
-- Se determina mediante un checkbox en el modal de edición (al presionar "Editar" en la columna Acciones).
-- Si el checkbox está marcado, se considera que el colaborador no regresa y está en Fin de Misión.
+1. **Sin fechas de salida ni entrada:**
+   - Presente todo el mes → días = total del mes.
+2. **Solo fecha de salida:**
+   - Presente desde el primer día del mes hasta la fecha de salida (inclusive). Si la salida es antes del mes, días = '-'. Si la salida es después del mes, días = total del mes.
+   - Si la fecha de salida es el primer día del mes, días = 1.
+3. **Solo fecha de entrada:**
+   - Presente desde la fecha de entrada (inclusive) hasta el último día del mes. Si la entrada es después del mes, días = '-'. Si la entrada es antes del mes, días = total del mes.
+4. **Ambas fechas:**
+   - Presente desde el inicio del mes hasta la fecha de salida (inclusive) más presente desde la fecha de entrada (inclusive) hasta el último día del mes. Si ninguna fecha cae dentro del mes, días = '-'.
+   - Si la fecha de salida es el primer día del mes, ese día cuenta como 1.
+5. **Fechas fuera del mes:**
+   - Si ninguna fecha cae dentro del mes, días = '-'.
+
+> **Nota:** El cálculo es robusto ante formatos y zonas horarias, y siempre refleja fielmente los días reales de presencia en el país durante el mes de conciliación.
 
 ---
 

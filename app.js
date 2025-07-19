@@ -166,14 +166,11 @@ function updateTable(data) {
     }
 
     data.forEach(row => {
-        // Calcular días de permanencia
-        let diasPermanencia = '-';
-        if (row['Fecha de Entrada'] && row['Fecha de Salida']) {
-            diasPermanencia = calcularDiasPermanencia({
-                fecha_entrada: row['Fecha de Entrada'],
-                fecha_salida: row['Fecha de Salida']
-            }, mesConciliacion);
-        }
+        // Calcular días de presencia
+        let diasPresencia = calcularDiasPresencia({
+            'Fecha de Entrada': row['Fecha de Entrada'],
+            'Fecha de Salida': row['Fecha de Salida']
+        }, mesConciliacion);
 
         // Calcular estimulación y vacaciones
         const estimulacion = evaluateStimulation(row, getConciliationMonth());
@@ -197,7 +194,7 @@ function updateTable(data) {
             <td data-field="estimulacion">${estimulacion}</td>
             <td data-field="vacaciones">${vacaciones}</td>
             <td data-field="Fin de Misión">${row['Fin de Misión'] || ''}</td>
-            <td data-field="diasPermanencia">${diasPermanencia}</td>
+            <td data-field="diasPresencia">${diasPresencia}</td>
             <td>
                 <button class="edit-btn" data-id="${row.id}">Editar</button>
                 <button class="delete-btn" data-id="${row.id}">Eliminar</button>
@@ -1255,67 +1252,143 @@ function calcularDiasPermanencia(colaborador, mesConciliacion) {
     const [year, month] = mesConciliacion.split('-').map(Number);
     const firstDay = new Date(year, month - 1, 1);
     const lastDay = new Date(year, month, 0); // último día del mes
+    const prevMonthLastDay = new Date(year, month - 1, 0); // último día del mes anterior
 
-    // Si no hay fechas, estuvo todo el mes
-    if (!colaborador['Fecha de Salida'] && !colaborador['Fecha de Entrada']) {
-        return lastDay.getDate();
+    const fechaSalida = colaborador['Fecha de Salida'] ? new Date(colaborador['Fecha de Salida']) : null;
+    const fechaEntrada = colaborador['Fecha de Entrada'] ? new Date(colaborador['Fecha de Entrada']) : null;
+
+    // 1. Sin fechas de salida ni entrada
+    if (!fechaSalida && !fechaEntrada) {
+        return '-'; // Mostrar '-' si no hay fechas
     }
 
-    let dias = 0;
-
-    // Si solo tiene fecha de salida
-    if (colaborador['Fecha de Salida'] && !colaborador['Fecha de Entrada']) {
-        const salida = new Date(colaborador['Fecha de Salida']);
-        // Si la salida está dentro del mes
-        if (salida >= firstDay && salida <= lastDay) {
-            dias = (salida - firstDay) / (1000 * 60 * 60 * 24) + 1;
-            return Math.floor(dias);
+    // 2. Solo fecha de salida
+    if (fechaSalida && !fechaEntrada) {
+        // a. Salida dentro del mes de conciliación
+        if (fechaSalida >= firstDay && fechaSalida <= lastDay) {
+            const dias = Math.floor((fechaSalida - firstDay) / (1000 * 60 * 60 * 24)) + 1;
+            return dias > 0 ? dias : '-';
         }
-        // Si la salida es antes del mes, no estuvo en el mes
-        if (salida < firstDay) return 0;
-        // Si la salida es después del mes, estuvo todo el mes
-        return lastDay.getDate();
+        // b. Salida antes del mes de conciliación
+        if (fechaSalida < firstDay) {
+            const diasAcumulados = Math.floor((prevMonthLastDay - fechaSalida) / (1000 * 60 * 60 * 24)) + 1;
+            const total = diasAcumulados + 15;
+            return total > 0 ? total : '-';
+        }
+        // c. Salida después del mes de conciliación
+        if (fechaSalida > lastDay) {
+            return '-';
+        }
     }
 
-    // Si tiene fecha de salida y de entrada
-    if (colaborador['Fecha de Salida'] && colaborador['Fecha de Entrada']) {
-        const salida = new Date(colaborador['Fecha de Salida']);
-        const entrada = new Date(colaborador['Fecha de Entrada']);
-
-        // Días desde el inicio del mes hasta la salida (si la salida está en el mes)
-        if (salida >= firstDay && salida <= lastDay) {
-            dias += (salida - firstDay) / (1000 * 60 * 60 * 24) + 1;
-        } else if (salida < firstDay) {
-            // Si la salida es antes del mes, no suma días
-        } else {
-            // Si la salida es después del mes, suma todo el mes
-            dias += lastDay.getDate();
-        }
-
-        // Días desde la entrada hasta el fin del mes (si la entrada está en el mes)
-        if (entrada >= firstDay && entrada <= lastDay) {
-            dias += (lastDay - entrada) / (1000 * 60 * 60 * 24) + 1;
-        } else if (entrada > lastDay) {
-            // Si la entrada es después del mes, no suma días
-        } else if (entrada < firstDay) {
-            // Si la entrada es antes del mes, suma desde el inicio del mes
-            dias += (lastDay - firstDay) / (1000 * 60 * 60 * 24) + 1;
-        }
-
-        return Math.floor(dias);
+    // 3. Solo fecha de entrada en el mes de conciliación (por validación previa, siempre hay salida)
+    if (fechaSalida && fechaEntrada && !isNaN(fechaEntrada) && !isNaN(fechaSalida) && fechaEntrada >= firstDay && fechaEntrada <= lastDay && fechaSalida < fechaEntrada) {
+        const dias = Math.floor((fechaEntrada - fechaSalida) / (1000 * 60 * 60 * 24)) + 1;
+        return dias > 0 ? dias : '-';
     }
 
-    // Si solo tiene fecha de entrada (sin salida)
-    if (!colaborador['Fecha de Salida'] && colaborador['Fecha de Entrada']) {
-        const entrada = new Date(colaborador['Fecha de Entrada']);
-        if (entrada >= firstDay && entrada <= lastDay) {
-            dias = (lastDay - entrada) / (1000 * 60 * 60 * 24) + 1;
-            return Math.floor(dias);
+    // 4. Ambas fechas
+    if (fechaSalida && fechaEntrada) {
+        // a. Entrada después del mes de conciliación
+        if (fechaEntrada > lastDay) {
+            if (fechaSalida <= lastDay) {
+                const dias = Math.floor((lastDay - fechaSalida) / (1000 * 60 * 60 * 24)) + 1;
+                return dias > 0 ? dias : '-';
+            } else {
+                return '-';
+            }
         }
-        if (entrada > lastDay) return 0;
-        return lastDay.getDate();
+        // b. Entrada antes del mes de conciliación
+        if (fechaEntrada < firstDay) {
+            return '-';
+        }
+        // c. Ambas fechas dentro del mes de conciliación
+        if (fechaSalida >= firstDay && fechaSalida <= lastDay && fechaEntrada >= firstDay && fechaEntrada <= lastDay) {
+            const diasHastaSalida = Math.floor((fechaSalida - firstDay) / (1000 * 60 * 60 * 24)) + 1;
+            const diasDesdeEntrada = Math.floor((lastDay - fechaEntrada) / (1000 * 60 * 60 * 24)) + 1;
+            const total = diasHastaSalida + diasDesdeEntrada;
+            return total > 0 ? total : '-';
+        }
     }
 
+    // 5. Ningún caso
+    return '-';
+}
+
+// Función robusta para parsear fechas en formato YYYY-MM-DD
+function parseDateYMD(fechaString) {
+    if (!fechaString) return null;
+    const [year, month, day] = fechaString.split('-').map(Number);
+    return new Date(year, month - 1, day);
+}
+
+function calcularDiasPresencia(colaborador, mesConciliacion) {
+    console.log('DEBUG calcularDiasPresencia:', colaborador, mesConciliacion);
+    const [year, month] = mesConciliacion.split('-').map(Number);
+    const firstDay = new Date(year, month - 1, 1);
+    const lastDay = new Date(year, month, 0);
+    const totalDiasMes = lastDay.getDate();
+
+    // Usar parseDateYMD para evitar problemas de zona horaria
+    const fechaSalida = colaborador['Fecha de Salida'] ? parseDateYMD(colaborador['Fecha de Salida']) : null;
+    const fechaEntrada = colaborador['Fecha de Entrada'] ? parseDateYMD(colaborador['Fecha de Entrada']) : null;
+
+    // Caso 1: Sin fechas
+    if (!fechaSalida && !fechaEntrada) {
+        console.log('Caso: Sin fechas');
+        return totalDiasMes;
+    }
+
+    // Caso 2: Solo salida
+    if (fechaSalida && !fechaEntrada) {
+        console.log('Caso: Solo salida', fechaSalida, firstDay);
+        if (fechaSalida < firstDay) return '-';
+        if (fechaSalida > lastDay) return totalDiasMes;
+        if (
+            fechaSalida.getFullYear() === firstDay.getFullYear() &&
+            fechaSalida.getMonth() === firstDay.getMonth() &&
+            fechaSalida.getDate() === firstDay.getDate()
+        ) return 1;
+        const dias = Math.floor((fechaSalida - firstDay) / (1000 * 60 * 60 * 24)) + 1;
+        return dias > 0 ? dias : '-';
+    }
+
+    // Caso 3: Solo entrada
+    if (!fechaSalida && fechaEntrada) {
+        console.log('Caso: Solo entrada', fechaEntrada, firstDay);
+        if (fechaEntrada > lastDay) return '-';
+        if (fechaEntrada < firstDay) return totalDiasMes;
+        return Math.floor((lastDay - fechaEntrada) / (1000 * 60 * 60 * 24)) + 1;
+    }
+
+    // Caso 4: Ambas fechas
+    if (fechaSalida && fechaEntrada) {
+        console.log('Caso: Ambas fechas', fechaSalida, fechaEntrada, firstDay);
+        let dias = 0;
+        if (fechaSalida >= firstDay && fechaSalida <= lastDay) {
+            if (
+                fechaSalida.getFullYear() === firstDay.getFullYear() &&
+                fechaSalida.getMonth() === firstDay.getMonth() &&
+                fechaSalida.getDate() === firstDay.getDate()
+            ) {
+                dias += 1;
+            } else {
+                dias += Math.floor((fechaSalida - firstDay) / (1000 * 60 * 60 * 24)) + 1;
+            }
+        } else if (fechaSalida > lastDay) {
+            dias += totalDiasMes;
+        }
+        if (fechaEntrada >= firstDay && fechaEntrada <= lastDay) {
+            dias += Math.floor((lastDay - fechaEntrada) / (1000 * 60 * 60 * 24)) + 1;
+        } else if (fechaEntrada < firstDay) {
+            dias += totalDiasMes;
+        }
+        if (dias === 0) return '-';
+        return dias;
+    }
+
+    // Caso 5: Fechas fuera del mes
+    console.log('Caso: Fechas fuera del mes');
     return '-';
 }
 
