@@ -240,7 +240,13 @@ function updateTable(data) {
                 colaborador[field] = value;
                 // Validar fechas antes de actualizar
                 if (!validarFechas(colaborador['Fecha de Entrada'], colaborador['Fecha de Salida'])) {
-                    alert('La fecha de entrada no puede ser posterior a la fecha de salida.');
+                    showMessage('La fecha de entrada no puede ser anterior a la fecha de salida.', 'error');
+                    // Limpia el campo de fecha de entrada en el DOM
+                    const entradaInput = document.querySelector(
+                        `.data-row[data-id="${colaborador.id}"] input[data-field="Fecha de Entrada"]`
+                    );
+                    if (entradaInput) entradaInput.value = '';
+                    colaborador['Fecha de Entrada'] = '';
                     return;
                 }
                 // Actualizar en backend
@@ -292,7 +298,7 @@ document.getElementById('editCollaboratorForm').addEventListener('submit', funct
         'Fecha de Salida': fechaSalida,
         'Fecha de Entrada': fechaEntrada,
         'Fin de Misión': 'No', // Puedes ajustar según tu lógica
-        Estimulacion: 'No',
+        Estimulacion: 'Sí',
         Vacaciones: 'No'
     };
 
@@ -629,7 +635,7 @@ function validateDates(row) {
     const salida = parseDate(row['Fecha de Salida']);
     const entrada = parseDate(row['Fecha de Entrada']);
     if (salida && entrada && entrada < salida) {
-        showMessage('La fecha de entrada no puede ser anterior a la de salida.', 'error');
+        showMessage('La fecha de entrada no puede ser anterior a la fecha de salida.', 'error');
         return false;
     }
     return true;
@@ -643,17 +649,17 @@ function updateCounters(data) {
     const endOfMission = data.filter(row => row['Fin de Misión'] === 'Sí').length;
 
     // Actualizar cada contador
-    Object.entries({
-        totalCollaborators,
-        withStimulation,
-        onVacation,
-        endOfMission
-    }).forEach(([id, value]) => {
-        const element = document.getElementById(id);
-        if (element) {
-            element.textContent = value;
-        }
-    });
+    const totalElement = document.getElementById('totalCollaborators');
+    if (totalElement) totalElement.textContent = totalCollaborators;
+
+    const stimElement = document.getElementById('withStimulation');
+    if (stimElement) stimElement.textContent = withStimulation;
+
+    const vacElement = document.getElementById('onVacation');
+    if (vacElement) vacElement.textContent = onVacation;
+
+    const endElement = document.getElementById('endOfMission');
+    if (endElement) endElement.textContent = endOfMission;
 }
 
 function updateLocationCounters(data) {
@@ -842,7 +848,7 @@ function updateLocationCounters(data) {
             btn.classList.add('active');
             filterTableByLocation(prevLocation);
             restored = true;
-            // ...después de btn.classList.add('active'); filterTableByLocation(prevLocation); restored = true;
+            // ...después de btn.classList.add('active'); filterTableByLocation(prevLocation); restored = true
 
             // Actualizar los contadores de la tarjeta de detalles en tiempo real
             const details = document.querySelector('.location-details');
@@ -970,13 +976,10 @@ function updateStateCounters(data) {
 
 // Marca el botón activo
 function setActiveButton(activeBtn) {
-    document.querySelectorAll('.location-button').forEach(btn => {
-        btn.classList.remove('active');
-    });
+    document.querySelectorAll('.location-button').forEach(btn => btn.classList.remove('active'));
     activeBtn.classList.add('active');
 }
 
-// Modifica fetchColaboradores para guardar todos los colaboradores y actualizar los contadores por estado
 function fetchColaboradores() {
     fetch('http://localhost:3001/api/colaboradores')
         .then(res => res.json())
@@ -1023,14 +1026,33 @@ function updateColaboradorInBackend(colaborador) {
 }
 
 function normalizeBackendRow(row) {
+    // Normaliza Fin de Misión
+    let finMision = 'No';
+    if (row.fin_mision === 1 || row.fin_mision === 'Sí' || row.fin_mision === true) {
+        finMision = 'Sí';
+    }
+
+    // Calcula estimulación y vacaciones usando tus funciones
+    const conciliationMonth = getConciliationMonth();
+    const estimulacion = evaluateStimulation({
+        'Fecha de Salida': row.fecha_salida,
+        'Fecha de Entrada': row.fecha_entrada
+    }, conciliationMonth);
+
+    const vacaciones = evaluateVacaciones({
+        'Fecha de Salida': row.fecha_salida,
+        'Fecha de Entrada': row.fecha_entrada,
+        'Fin de Misión': finMision
+    });
+
     return {
         'Nombre y Apellidos': row.nombre || '',
         Estado: row.estado || '',
         'Fecha de Salida': row.fecha_salida || '',
         'Fecha de Entrada': row.fecha_entrada || '',
-        'Fin de Misión': row.fin_mision === 1 || row.fin_mision === 'Sí' ? 'Sí' : 'No',
-        Estimulacion: row.Estimulacion || 'No',
-        Vacaciones: row.Vacaciones || 'No',
+        'Fin de Misión': finMision,
+        Estimulacion: estimulacion,
+        Vacaciones: vacaciones,
         id: row.id
     };
 }
@@ -1061,7 +1083,7 @@ document.getElementById('addCollaboratorForm').addEventListener('submit', functi
     const fechaEntrada = document.getElementById('fechaEntradaInput').value;
 
     if (!nombre || !estado) {
-        alert('Por favor, complete al menos el nombre y la ubicación.');
+        showMessage('Por favor, complete al menos el nombre y la ubicación.', 'error');
         return;
     }
 
@@ -1072,7 +1094,7 @@ document.getElementById('addCollaboratorForm').addEventListener('submit', functi
         'Fecha de Salida': fechaSalida,
         'Fecha de Entrada': fechaEntrada,
         'Fin de Misión': 'No',
-        Estimulacion: 'Si',
+        Estimulacion: 'Sí',
         Vacaciones: 'No'
     };
 
@@ -1095,32 +1117,54 @@ document.getElementById('addCollaboratorForm').addEventListener('submit', functi
     });
 });
 
-// document.getElementById('fileInput').addEventListener('change', ...);
-// document.getElementById('importButton').addEventListener('click', ...);
-// Funciones de FileReader, XLSX, etc.
+// Mensajes para el usuario
+function showMessage(msg, type = 'info') {
+    const box = document.getElementById('messageBox');
+    if (!box) return;
+    box.textContent = msg;
+    box.className = 'message-box ' + type;
+    // Opcional: limpiar el mensaje después de unos segundos
+    setTimeout(() => { box.textContent = ''; box.className = 'message-box'; }, 4000);
+}
 
-
+// Validación de fechas
+function validarFechas(fechaEntrada, fechaSalida) {
+    if (!fechaEntrada || !fechaSalida) return true;
+    const entrada = new Date(fechaEntrada);
+    const salida = new Date(fechaSalida);
+    // La entrada debe ser igual o posterior a la salida
+    return entrada >= salida;
+}
 
 // Cambios para manejar la actualización de fechas
 document.addEventListener('change', function(e) {
-  if (e.target.classList.contains('date-input')) {
-    const id = e.target.dataset.id;
-    const field = e.target.dataset.field;
-    const value = e.target.value;
-    // Obtén el colaborador actual y actualiza el campo
-    const colaborador = allCollaborators.find(c => c.id == id);
-    if (colaborador) {
-      colaborador[field] = value;
-      // Envía la actualización al backend
-      fetch(`http://localhost:3001/api/colaboradores/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(colaborador)
-      })
-      .then(res => res.json())
-      .then(() => fetchColaboradores());
+    if (e.target.classList.contains('date-input')) {
+        const id = e.target.dataset.id;
+        const field = e.target.dataset.field;
+        const value = e.target.value;
+        // Obtén el colaborador actual y actualiza el campo
+        const colaborador = allCollaborators.find(c => c.id == id);
+        if (colaborador) {
+            colaborador[field] = value;
+            // Validar fechas antes de actualizar
+            if (fechaEntrada && fechaSalida && !validarFechas(fechaEntrada, fechaSalida)) {
+                showMessage('La fecha de entrada no puede ser anterior a la fecha de salida.', 'error');
+                return;
+            }
+            // Envía la actualización al backend
+            fetch(`http://localhost:3001/api/colaboradores/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(mapFrontendToBackend(colaborador))
+            })
+            .then(res => res.json())
+            .then(() => fetchColaboradores())
+            .catch(err => {
+                showMessage('Error al actualizar colaborador.', 'error');
+                console.error(err);
+            });
+        }
     }
-  }
 });
 
 function calcularDiasPermanencia(colaborador, mesConciliacion) {
