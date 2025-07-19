@@ -235,11 +235,12 @@ function updateTable(data) {
             const id = this.dataset.id;
             const field = this.dataset.field;
             const value = this.value;
-            const colaborador = data.find(c => c.id == id);
+            const colaborador = allCollaborators.find(c => c.id == id);
             if (colaborador) {
                 colaborador[field] = value;
                 // Validar fechas antes de actualizar
-                if (!validarFechas(colaborador['Fecha de Entrada'], colaborador['Fecha de Salida'])) {
+                if (colaborador['Fecha de Entrada'] && colaborador['Fecha de Salida'] &&
+                    !validarFechas(colaborador['Fecha de Entrada'], colaborador['Fecha de Salida'])) {
                     showMessage('La fecha de entrada no puede ser anterior a la fecha de salida.', 'error');
                     // Limpia el campo de fecha de entrada en el DOM
                     const entradaInput = document.querySelector(
@@ -256,7 +257,11 @@ function updateTable(data) {
                     body: JSON.stringify(mapFrontendToBackend(colaborador))
                 })
                 .then(res => res.json())
-                .then(() => fetchColaboradores());
+                .then(() => fetchColaboradores())
+                .catch(err => {
+                    showMessage('Error al actualizar colaborador.', 'error');
+                    console.error(err);
+                });
             }
         });
     });
@@ -378,7 +383,7 @@ function getData() {
                 const vacacionesElement = row.querySelector('[data-field="vacaciones"]');
                 if (vacacionesElement && vacacionesElement.textContent !== vacacionesValue) {
                     vacacionesElement.textContent = vacacionesValue;
-            }
+        }
     } else {
                 // Para otros campos, usar value si existe, sino textContent
                 rowData[field] = element.value || element.textContent || '';
@@ -485,7 +490,7 @@ function handleCheckboxChange(event) {
         // Obtener los datos actualizados
         const updatedData = getData();
         
-        // Recalcular la estimulación y vacaciones para todas las filas
+        // Recalcular la estimulación y vacaciones para todas las
         updatedData.forEach(row => {
             const conciliationMonth = getConciliationMonth();
             row.Estimulacion = evaluateStimulation(row, conciliationMonth);
@@ -569,7 +574,7 @@ function handleDateChange(event) {
             if (finMisionCheckbox) {
                 const finMisionField = rowElement.querySelector('[data-field="fin_mision"]');
                 if (finMisionField) {
-                    finMisionField.textContent = row
+                finMisionField.textContent = row
                 }
             }
         }
@@ -797,7 +802,7 @@ function updateLocationCounters(data) {
             button.classList.add('active');
             
             // Mostrar detalles
-           
+            const details = document.querySelector('.location-details');
             if (details) {
                 details.style.display = 'block';
                 const counterElements = details.querySelectorAll('.counter-value');
@@ -1073,10 +1078,10 @@ document.getElementById('clearDatabaseButton').addEventListener('click', functio
     }
 });
 
+// Submit del formulario para agregar colaborador
 document.getElementById('addCollaboratorForm').addEventListener('submit', function(event) {
     event.preventDefault();
 
-    // Obtén los valores del formulario
     const nombre = document.getElementById('nombreInput').value.trim();
     const estado = document.getElementById('estadoInput').value.trim();
     const fechaSalida = document.getElementById('fechaSalidaInput').value;
@@ -1084,6 +1089,13 @@ document.getElementById('addCollaboratorForm').addEventListener('submit', functi
 
     if (!nombre || !estado) {
         showMessage('Por favor, complete al menos el nombre y la ubicación.', 'error');
+        return;
+    }
+
+    // Validación de fechas antes de enviar
+    if (fechaEntrada && fechaSalida && !validarFechas(fechaEntrada, fechaSalida)) {
+        showMessage('La fecha de entrada no puede ser anterior a la fecha de salida.', 'error');
+        document.getElementById('fechaEntradaInput').value = '';
         return;
     }
 
@@ -1106,52 +1118,66 @@ document.getElementById('addCollaboratorForm').addEventListener('submit', functi
     })
     .then(res => res.json())
     .then(() => {
-        // Limpia el formulario
         document.getElementById('addCollaboratorForm').reset();
-        // Recarga la tabla
         fetchColaboradores();
     })
     .catch(err => {
-        alert('Error al agregar colaborador.');
+        showMessage('Error al agregar colaborador.', 'error');
         console.error(err);
     });
 });
 
-// Mensajes para el usuario
-function showMessage(msg, type = 'info') {
-    const box = document.getElementById('messageBox');
-    if (!box) return;
-    box.textContent = msg;
-    box.className = 'message-box ' + type;
-    // Opcional: limpiar el mensaje después de unos segundos
-    setTimeout(() => { box.textContent = ''; box.className = 'message-box'; }, 4000);
+// Guarda el estado activo antes de actualizar
+let activeState = 'Todos';
+const activeBtn = document.querySelector('.location-button.active');
+if (activeBtn) {
+    // Si usas botones tipo <button> o <div> con <span>, ajusta el selector:
+    const span = activeBtn.querySelector('span:first-child');
+    activeState = span ? span.textContent : activeBtn.textContent.split(' ')[0];
 }
 
-// Validación de fechas
-function validarFechas(fechaEntrada, fechaSalida) {
-    if (!fechaEntrada || !fechaSalida) return true;
-    const entrada = new Date(fechaEntrada);
-    const salida = new Date(fechaSalida);
-    // La entrada debe ser igual o posterior a la salida
-    return entrada >= salida;
-}
+// Cuando termines la actualización, restaura el filtro
+fetchColaboradores();
+// Espera a que la tabla se actualice (puedes usar setTimeout o mejor, una promesa si fetchColaboradores la devuelve)
+setTimeout(() => {
+    if (activeState && activeState !== 'Todos') {
+        // Filtra los colaboradores por el estado activo
+        const filtrados = allCollaborators.filter(c => (c.Estado || 'Sin Ubicación') === activeState);
+        updateTable(filtrados);
 
-// Cambios para manejar la actualización de fechas
-document.addEventListener('change', function(e) {
-    if (e.target.classList.contains('date-input')) {
-        const id = e.target.dataset.id;
-        const field = e.target.dataset.field;
-        const value = e.target.value;
-        // Obtén el colaborador actual y actualiza el campo
+        // Vuelve a activar el botón visualmente
+        const buttons = document.querySelectorAll('.location-button');
+        buttons.forEach(btn => {
+            const span = btn.querySelector('span:first-child');
+            const btnState = span ? span.textContent : btn.textContent.split(' ')[0];
+            if (btnState === activeState) btn.classList.add('active');
+            else btn.classList.remove('active');
+        });
+    }
+}, 300); // Ajusta el tiempo si es necesario
+
+// Evento para actualizar fechas directamente en la tabla
+document.querySelectorAll('.date-input').forEach(input => {
+    input.addEventListener('change', function(e) {
+        const id = this.dataset.id;
+        const field = this.dataset.field;
+        const value = this.value;
         const colaborador = allCollaborators.find(c => c.id == id);
         if (colaborador) {
             colaborador[field] = value;
             // Validar fechas antes de actualizar
-            if (fechaEntrada && fechaSalida && !validarFechas(fechaEntrada, fechaSalida)) {
+            if (colaborador['Fecha de Entrada'] && colaborador['Fecha de Salida'] &&
+                !validarFechas(colaborador['Fecha de Entrada'], colaborador['Fecha de Salida'])) {
                 showMessage('La fecha de entrada no puede ser anterior a la fecha de salida.', 'error');
+                // Limpia el campo de fecha de entrada en el DOM
+                const entradaInput = document.querySelector(
+                    `.data-row[data-id="${colaborador.id}"] input[data-field="Fecha de Entrada"]`
+                );
+                if (entradaInput) entradaInput.value = '';
+                colaborador['Fecha de Entrada'] = '';
                 return;
             }
-            // Envía la actualización al backend
+            // Actualizar en backend
             fetch(`http://localhost:3001/api/colaboradores/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
@@ -1164,27 +1190,23 @@ document.addEventListener('change', function(e) {
                 console.error(err);
             });
         }
-    }
+    });
 });
 
-function calcularDiasPermanencia(colaborador, mesConciliacion) {
-    // Lógica similar a la función de estimulación
-    const [year, month] = mesConciliacion.split('-');
-    const inicioMes = new Date(year, month - 1, 1);
-    const finMes = new Date(year, month, 0);
-
-    if (!colaborador.fecha_salida && !colaborador.fecha_entrada) {
-        // Todo el mes
-        return (finMes - inicioMes) / (1000 * 60 * 60 * 24) + 1;
-    }
-
-    const entrada = colaborador.fecha_entrada ? new Date(colaborador.fecha_entrada) : inicioMes;
-    const salida = colaborador.fecha_salida ? new Date(colaborador.fecha_salida) : finMes;
-
-    const desde = entrada > inicioMes ? entrada : inicioMes;
-    const hasta = salida < finMes ? salida : finMes;
-
-    return Math.max(0, (hasta - desde) / (1000 * 60 * 60 * 24) + 1);
+function validarFechas(fechaEntrada, fechaSalida) {
+    if (!fechaEntrada || !fechaSalida) return true;
+    const entrada = parseDate(fechaEntrada);
+    const salida = parseDate(fechaSalida);
+    return entrada >= salida;
 }
 
-
+function showMessage(msg, type = 'info') {
+    const box = document.getElementById('messageBox');
+    if (!box) return;
+    box.textContent = msg;
+    box.className = 'message-box ' + type;
+    setTimeout(() => {
+        box.textContent = '';
+        box.className = 'message-box';
+    }, 4000);
+}
