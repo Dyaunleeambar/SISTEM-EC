@@ -1064,15 +1064,15 @@ function normalizeBackendRow(row) {
 
 // Evento para limpiar la base de datos
 document.getElementById('clearDatabaseButton').addEventListener('click', function() {
-    if (confirm('¿Estás seguro de que deseas eliminar todos los colaboradores? Esta acción no se puede deshacer.')) {
-        fetch('http://localhost:3001/api/colaboradores', { method: 'DELETE' })
+    if (confirm('¿Estás seguro de que deseas limpiar los datos de colaboradores? Se conservarán solo Ubicación/Estado y Nombre y Apellidos.')) {
+        fetch('http://localhost:3001/api/colaboradores/limpiar', { method: 'PUT' })
             .then(res => res.json())
             .then(() => {
-                showMessage('Base de datos limpiada correctamente.', 'success');
+                showMessage('Datos limpiados correctamente. Se conservaron Ubicación/Estado y Nombre y Apellidos.', 'success');
                 fetchColaboradores();                
             })
             .catch(err => {
-                showMessage('Error al limpiar la base de datos.', 'error');
+                showMessage('Error al limpiar los datos.', 'error');
                 console.error(err);                
             });
     }
@@ -1114,7 +1114,14 @@ document.getElementById('addCollaboratorForm').addEventListener('submit', functi
     fetch('http://localhost:3001/api/colaboradores', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(mapFrontendToBackend(nuevoColaborador))
+        body: JSON.stringify({
+            nombre: nombre,
+            estado: estado,
+            fecha_salida: fechaSalida,
+            fecha_entrada: fechaEntrada,
+            fin_mision: finMision,
+            ubicacion: estado
+        })
     })
     .then(res => res.json())
     .then(() => {
@@ -1210,3 +1217,103 @@ function showMessage(msg, type = 'info') {
         box.className = 'message-box';
     }, 4000);
 }
+
+function calcularDiasPermanencia(colaborador, mesConciliacion) {
+    // mesConciliacion formato 'YYYY-MM'
+    const [year, month] = mesConciliacion.split('-').map(Number);
+    const firstDay = new Date(year, month - 1, 1);
+    const lastDay = new Date(year, month, 0); // último día del mes
+
+    // Si no hay fechas, estuvo todo el mes
+    if (!colaborador['Fecha de Salida'] && !colaborador['Fecha de Entrada']) {
+        return lastDay.getDate();
+    }
+
+    let dias = 0;
+
+    // Si solo tiene fecha de salida
+    if (colaborador['Fecha de Salida'] && !colaborador['Fecha de Entrada']) {
+        const salida = new Date(colaborador['Fecha de Salida']);
+        // Si la salida está dentro del mes
+        if (salida >= firstDay && salida <= lastDay) {
+            dias = (salida - firstDay) / (1000 * 60 * 60 * 24) + 1;
+            return Math.floor(dias);
+        }
+        // Si la salida es antes del mes, no estuvo en el mes
+        if (salida < firstDay) return 0;
+        // Si la salida es después del mes, estuvo todo el mes
+        return lastDay.getDate();
+    }
+
+    // Si tiene fecha de salida y de entrada
+    if (colaborador['Fecha de Salida'] && colaborador['Fecha de Entrada']) {
+        const salida = new Date(colaborador['Fecha de Salida']);
+        const entrada = new Date(colaborador['Fecha de Entrada']);
+
+        // Días desde el inicio del mes hasta la salida (si la salida está en el mes)
+        if (salida >= firstDay && salida <= lastDay) {
+            dias += (salida - firstDay) / (1000 * 60 * 60 * 24) + 1;
+        } else if (salida < firstDay) {
+            // Si la salida es antes del mes, no suma días
+        } else {
+            // Si la salida es después del mes, suma todo el mes
+            dias += lastDay.getDate();
+        }
+
+        // Días desde la entrada hasta el fin del mes (si la entrada está en el mes)
+        if (entrada >= firstDay && entrada <= lastDay) {
+            dias += (lastDay - entrada) / (1000 * 60 * 60 * 24) + 1;
+        } else if (entrada > lastDay) {
+            // Si la entrada es después del mes, no suma días
+        } else if (entrada < firstDay) {
+            // Si la entrada es antes del mes, suma desde el inicio del mes
+            dias += (lastDay - firstDay) / (1000 * 60 * 60 * 24) + 1;
+        }
+
+        return Math.floor(dias);
+    }
+
+    // Si solo tiene fecha de entrada (sin salida)
+    if (!colaborador['Fecha de Salida'] && colaborador['Fecha de Entrada']) {
+        const entrada = new Date(colaborador['Fecha de Entrada']);
+        if (entrada >= firstDay && entrada <= lastDay) {
+            dias = (lastDay - entrada) / (1000 * 60 * 60 * 24) + 1;
+            return Math.floor(dias);
+        }
+        if (entrada > lastDay) return 0;
+        return lastDay.getDate();
+    }
+
+    return '-';
+}
+
+// Validación de mes de conciliación antes de editar o cambiar fechas
+function isConciliationMonthSelected() {
+    const conciliationInput = document.getElementById('conciliationMonth');
+    return conciliationInput && conciliationInput.value && conciliationInput.value.trim() !== '';
+}
+
+// Ejemplo para el evento de cambio de fechas en la tabla
+const tbody = document.querySelector('#collaboratorsTable tbody');
+if (tbody) {
+    tbody.querySelectorAll('.date-input').forEach(input => {
+        input.addEventListener('change', function(e) {
+            if (!isConciliationMonthSelected()) {
+                showMessage('Debe seleccionar el mes de conciliación antes de editar cualquier campo.', 'error');
+                this.value = '';
+                return;
+            }
+            // ...resto del código de edición...
+        });
+    });
+}
+
+// Ejemplo para el submit del formulario de edición
+document.getElementById('editCollaboratorForm').addEventListener('submit', function(event) {
+    if (!isConciliationMonthSelected()) {
+        showMessage('Debe seleccionar el mes de conciliación antes de editar cualquier campo.', 'error');
+        event.preventDefault();
+        return;
+    }
+    // ...resto del código de edición...
+});

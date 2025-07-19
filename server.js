@@ -48,7 +48,10 @@ dbInit.query(`CREATE DATABASE IF NOT EXISTS colaboradores_db`, (err) => {
 
     // Agregar un colaborador
     app.post('/api/colaboradores', (req, res) => {
-        const { nombre, estado, fecha_salida, fecha_entrada, fin_mision, ubicacion } = req.body;
+        const { nombre, estado, fecha_salida, fecha_entrada, fin_mision, ubicacion } = req.body || {};
+        if (!req.body || !req.body.nombre || !req.body.estado) {
+            return res.status(400).json({ error: 'Faltan datos obligatorios' });
+        }
         db.query(
             `INSERT INTO colaboradores (nombre, estado, fecha_salida, fecha_entrada, fin_mision, ubicacion)
              VALUES (?, ?, ?, ?, ?, ?)`,
@@ -63,7 +66,10 @@ dbInit.query(`CREATE DATABASE IF NOT EXISTS colaboradores_db`, (err) => {
     // Actualizar un colaborador
     app.put('/api/colaboradores/:id', (req, res) => {
         const id = parseInt(req.params.id);
-        const { nombre, estado, fecha_salida, fecha_entrada, fin_mision, ubicacion } = req.body;
+        const { nombre, estado, fecha_salida, fecha_entrada, fin_mision, ubicacion } = req.body || {};
+        if (!nombre || !estado) {
+            return res.status(400).json({ error: 'Faltan datos obligatorios para actualizar' });
+        }
         db.query(
             `UPDATE colaboradores SET nombre=?, estado=?, fecha_salida=?, fecha_entrada=?, fin_mision=?, ubicacion=?
              WHERE id=?`,
@@ -94,6 +100,21 @@ dbInit.query(`CREATE DATABASE IF NOT EXISTS colaboradores_db`, (err) => {
             db.query('ALTER TABLE colaboradores AUTO_INCREMENT = 1');
             res.json({ message: 'Base de datos limpiada' });
         });
+    });
+
+    // Limpiar todos los colaboradores excepto nombre y estado
+    app.put('/api/colaboradores/limpiar', (req, res) => {
+        db.query(
+            `UPDATE colaboradores 
+             SET fecha_salida=NULL, fecha_entrada=NULL, fin_mision=NULL, ubicacion=NULL`,
+            (err, result) => {
+                if (err) {
+                    console.error('Error al limpiar la base de datos:', err);
+                    return res.status(500).json({ error: 'Error al limpiar la base de datos' });
+                }
+                res.json({ success: true, message: 'Datos limpiados correctamente.' });
+            }
+        );
     });
 
     const PORT = 3001;
