@@ -39,23 +39,28 @@
 
 ## Flujo de uso
 
-1. **Agregar colaborador**
+1. **Seleccionar mes de conciliación**
+   - El input de mes de conciliación es obligatorio para habilitar la edición de la tabla y los formularios.
+   - Al seleccionar o cambiar el mes, la tabla se regenera automáticamente y los campos de edición y botones se habilitan según las reglas.
+
+2. **Agregar colaborador**
    - Completa el formulario con los datos requeridos.
    - Haz clic en "Agregar" para guardar el colaborador.
 
-2. **Visualización y edición**
+3. **Visualización y edición**
    - Los colaboradores se muestran en una tabla editable.
    - Puedes modificar fechas de salida y entrada.
+   - **El campo de fecha de entrada está deshabilitado hasta que se establezca la fecha de salida para cada colaborador.**
    - Los campos de estimulación, vacaciones y fin de misión se recalculan automáticamente.
 
-3. **Filtrado y contadores**
+4. **Filtrado y contadores**
    - Puedes filtrar por ubicación usando los botones generados.
    - Los contadores se actualizan en tiempo real.
 
-4. **Exportar a Excel**
+5. **Exportar a Excel**
    - Haz clic en "Exportar a Excel" para descargar los datos actuales.
 
-5. **Limpiar base de datos**
+6. **Limpiar base de datos**
    - Haz clic en "Limpiar Base de Datos" para borrar todos los colaboradores y volver a habilitar la carga manual.
 
 ## Consideraciones técnicas
@@ -63,7 +68,9 @@
 - El backend debe estar corriendo en `http://localhost:3001`.
 - Los datos se sincronizan automáticamente tras cada cambio.
 - El sistema valida que la fecha de entrada no sea anterior a la fecha de salida y muestra mensajes de error en caso de incoherencias.
-- **Los campos de edición y los botones de la tabla están deshabilitados hasta que se seleccione el mes de conciliación.**
+- **Los campos de edición y los botones de la tabla solo se habilitan cuando se selecciona el mes de conciliación.**
+- **El campo de fecha de entrada está deshabilitado hasta que se establezca la fecha de salida para cada colaborador.**
+- Al cambiar el mes de conciliación, la tabla se regenera automáticamente para reflejar el estado correcto de los campos.
 
 ## Estructura de archivos relevante
 

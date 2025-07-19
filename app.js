@@ -204,6 +204,36 @@ function updateTable(data) {
             </td>
         `;
         tbody.appendChild(tr);
+
+        // Deshabilitar input de fecha de entrada si la fecha de salida está vacía o si el mes de conciliación no está seleccionado
+        setTimeout(() => {
+            const entradaInput = tr.querySelector('input[data-field="Fecha de Entrada"]');
+            const salidaInput = tr.querySelector('input[data-field="Fecha de Salida"]');
+            const mesSeleccionado = isConciliationMonthSelected();
+            if (entradaInput) {
+                if (!mesSeleccionado || !row['Fecha de Salida'] || row['Fecha de Salida'].trim() === '') {
+                    entradaInput.disabled = true;
+                    entradaInput.style.cursor = 'not-allowed';
+                } else {
+                    entradaInput.disabled = false;
+                    entradaInput.style.cursor = 'pointer';
+                }
+            }
+            // Al cambiar la fecha de salida, habilitar/deshabilitar la de entrada según el mes
+            if (salidaInput && entradaInput) {
+                salidaInput.addEventListener('change', function() {
+                    const mesSeleccionado = isConciliationMonthSelected();
+                    if (!mesSeleccionado || !this.value || this.value.trim() === '') {
+                        entradaInput.disabled = true;
+                        entradaInput.value = '';
+                        entradaInput.style.cursor = 'not-allowed';
+                    } else {
+                        entradaInput.disabled = false;
+                        entradaInput.style.cursor = 'pointer';
+                    }
+                });
+            }
+        }, 0);
     });
 
     // Evento eliminar
@@ -996,6 +1026,7 @@ function fetchColaboradores() {
             updateTable(normalized);
             updateCounters(normalized);
             updateStateCounters(normalized);
+            checkConciliationMonth(); // <-- Asegura el deshabilitado tras actualizar la tabla
         })
         .catch(err => {
             showMessage('Error al cargar colaboradores del servidor.', 'error');
@@ -1330,11 +1361,23 @@ function toggleEditFields(enabled) {
 function checkConciliationMonth() {
     const enabled = isConciliationMonthSelected();
     toggleEditFields(enabled);
+
+    // Resalta el input si no está seleccionado
+    const conciliationInput = document.getElementById('conciliationMonth');
+    if (conciliationInput) {
+        if (!enabled) {
+            conciliationInput.classList.add('highlight');
+        } else {
+            conciliationInput.classList.remove('highlight');
+        }
+    }
 }
 
 // Ejecutar al cargar la página y cuando cambie el input de mes
 window.addEventListener('DOMContentLoaded', checkConciliationMonth);
 const conciliationInput = document.getElementById('conciliationMonth');
 if (conciliationInput) {
-    conciliationInput.addEventListener('change', checkConciliationMonth);
+    conciliationInput.addEventListener('change', () => {
+        fetchColaboradores();
+    });
 }

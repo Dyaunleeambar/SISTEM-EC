@@ -483,6 +483,20 @@ html, body {
   box-sizing: border-box;
 }
 
+/* Resalta el input de mes de conciliación cuando no está seleccionado */
+#conciliationMonth.highlight {
+    border: 2px solid #e74c3c !important;
+    box-shadow: 0 0 8px #e74c3c;
+    animation: shake 0.3s;
+}
+@keyframes shake {
+    0% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    50% { transform: translateX(4px); }
+    75% { transform: translateX(-4px); }
+    100% { transform: translateX(0); }
+}
+
 /* Estilos para los mensajes */
 .message-box {
     margin: 10px 0;
