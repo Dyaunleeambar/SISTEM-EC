@@ -2,22 +2,11 @@
 
 ## Criterios de Validación
 
-**Días de Presencia**
+**Estimulación**
 
-Directivas para el cálculo del campo (Días de Presencia):
-
-1. **Sin fechas de salida ni entrada:**
-   - Presente todo el mes → días = total del mes.
-2. **Solo fecha de salida:**
-   - Presente desde el primer día del mes hasta la fecha de salida (inclusive). Si la salida es antes del mes, días = '-'. Si la salida es después del mes, días = total del mes.
-   - Si la fecha de salida es el primer día del mes, días = 1.
-3. **Solo fecha de entrada:**
-   - Presente desde la fecha de entrada (inclusive) hasta el último día del mes. Si la entrada es después del mes, días = '-'. Si la entrada es antes del mes, días = total del mes.
-4. **Ambas fechas:**
-   - Presente desde el inicio del mes hasta la fecha de salida (inclusive) más presente desde la fecha de entrada (inclusive) hasta el último día del mes. Si ninguna fecha cae dentro del mes, días = '-'.
-   - Si la fecha de salida es el primer día del mes, ese día cuenta como 1.
-5. **Fechas fuera del mes:**
-   - Si ninguna fecha cae dentro del mes, días = '-'.
+- Un colaborador tiene derecho a estimulación si el campo "Días de Presencia" es mayor o igual a 15 en el mes de conciliación.
+- Si los días de presencia son menores a 15, no tiene derecho a estimulación.
+- Si el campo de días de presencia es '-' o no es un número, no tiene derecho a estimulación.
 
 > **Nota:** El cálculo es robusto ante formatos y zonas horarias, y siempre refleja fielmente los días reales de presencia en el país durante el mes de conciliación.
 
@@ -77,6 +66,8 @@ Directivas para el cálculo del campo (Días de Presencia):
 - **Los campos de edición y los botones de la tabla solo se habilitan cuando se selecciona el mes de conciliación.**
 - **El campo de fecha de entrada está deshabilitado hasta que se establezca la fecha de salida para cada colaborador.**
 - Al cambiar el mes de conciliación, la tabla se regenera automáticamente para reflejar el estado correcto de los campos.
+- El mes de conciliación no puede ser mayor al mes actual. Si el usuario intenta seleccionar un mes futuro, el sistema muestra un mensaje de error y no permite la selección.
+- **No se puede marcar 'Fin de Misión' si existe una fecha de entrada para el colaborador, ya que esto contradice el concepto de fin de misión. El sistema muestra un mensaje de error y no permite marcar el checkbox en ese caso.**
 
 ## Estructura de archivos relevante
 

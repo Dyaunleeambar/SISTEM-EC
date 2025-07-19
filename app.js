@@ -124,6 +124,13 @@ function evaluateStimulation(row, conciliationMonth) {
     return daysPresent >= 15 ? 'Sí' : 'No';
 }
 
+function evaluarEstimulaciónPorDiasPresencia(diasPresencia) {
+    if (typeof diasPresencia === 'number' && diasPresencia >= 15) {
+        return 'Sí';
+    }
+    return 'No';
+}
+
 function getConciliationMonth() {
     const input = document.getElementById('conciliationMonth');
     let date = new Date();
@@ -166,6 +173,20 @@ function updateTable(data) {
     }
 
     data.forEach(row => {
+        // Antes de renderizar la fila, forzar coherencia de Fin de Misión
+        if (!row['Fecha de Salida'] || row['Fecha de Salida'].trim() === '') {
+            if (row['Fin de Misión'] === 'Sí') {
+                row['Fin de Misión'] = 'No';
+                // Actualizar en backend si era 'Sí'
+                fetch(`http://localhost:3001/api/colaboradores/${row.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(mapFrontendToBackend(row))
+                });
+            } else {
+                row['Fin de Misión'] = 'No';
+            }
+        }
         // Calcular días de presencia
         let diasPresencia = calcularDiasPresencia({
             'Fecha de Entrada': row['Fecha de Entrada'],
@@ -173,7 +194,7 @@ function updateTable(data) {
         }, mesConciliacion);
 
         // Calcular estimulación y vacaciones
-        const estimulacion = evaluateStimulation(row, getConciliationMonth());
+        const estimulacion = evaluarEstimulaciónPorDiasPresencia(diasPresencia);
         const vacaciones = evaluateVacaciones(row);
 
         const tr = document.createElement('tr');
@@ -193,7 +214,10 @@ function updateTable(data) {
             </td>
             <td data-field="estimulacion">${estimulacion}</td>
             <td data-field="vacaciones">${vacaciones}</td>
-            <td data-field="Fin de Misión">${row['Fin de Misión'] || ''}</td>
+            <td data-field="Fin de Misión">
+                <span class="fin-mision-label">${row['Fin de Misión'] === 'Sí' ? 'Sí' : 'No'}</span>
+                <input type="checkbox" class="fin-mision-checkbox" data-id="${row.id}" ${row['Fin de Misión'] === 'Sí' ? 'checked' : ''}>
+            </td>
             <td data-field="diasPresencia">${diasPresencia}</td>
             <td>
                 <button class="edit-btn" data-id="${row.id}">Editar</button>
@@ -201,6 +225,52 @@ function updateTable(data) {
             </td>
         `;
         tbody.appendChild(tr);
+
+        // Evento para el checkbox de Fin de Misión
+        const finMisionCheckbox = tr.querySelector('.fin-mision-checkbox');
+        const finMisionLabel = tr.querySelector('.fin-mision-label');
+        if (finMisionCheckbox) {
+            finMisionCheckbox.addEventListener('change', function() {
+                const id = this.dataset.id;
+                const checked = this.checked;
+                const colaborador = allCollaborators.find(c => c.id == id);
+                if (!colaborador) return;
+                // Validar que haya fecha de salida
+                if (!colaborador['Fecha de Salida'] || colaborador['Fecha de Salida'].trim() === '') {
+                    showMessage('No se puede marcar Fin de Misión: La fecha de salida está vacía', 'error');
+                    this.checked = false;
+                    return;
+                }
+                // Validar que la fecha de salida no sea futura
+                const salidaDate = parseDateYMD(colaborador['Fecha de Salida']);
+                const today = new Date();
+                if (salidaDate > today) {
+                    showMessage('No se puede marcar Fin de Misión: La fecha de salida es futura', 'error');
+                    this.checked = false;
+                    return;
+                }
+                // Nueva validación: no se puede marcar si hay fecha de entrada
+                if (colaborador['Fecha de Entrada'] && colaborador['Fecha de Entrada'].trim() !== '') {
+                    showMessage('No se puede marcar Fin de Misión: Existe una fecha de entrada, lo que contradice el fin de misión.', 'error');
+                    this.checked = false;
+                    return;
+                }
+                colaborador['Fin de Misión'] = checked ? 'Sí' : 'No';
+                if (finMisionLabel) finMisionLabel.textContent = checked ? 'Sí' : 'No';
+                // Actualizar en backend
+                fetch(`http://localhost:3001/api/colaboradores/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(mapFrontendToBackend(colaborador))
+                })
+                .then(res => res.json())
+                .then(() => fetchColaboradores())
+                .catch(err => {
+                    showMessage('Error al actualizar colaborador.', 'error');
+                    console.error(err);
+                });
+            });
+        }
 
         // Deshabilitar input de fecha de entrada si la fecha de salida está vacía o si el mes de conciliación no está seleccionado
         setTimeout(() => {
@@ -276,6 +346,16 @@ function updateTable(data) {
                     if (entradaInput) entradaInput.value = '';
                     colaborador['Fecha de Entrada'] = '';
                     return;
+                }
+                // Si la fecha de salida queda vacía, forzar Fin de Misión a 'No'
+                if (field === 'Fecha de Salida' && (!value || value.trim() === '')) {
+                    colaborador['Fin de Misión'] = 'No';
+                    // Actualizar en backend
+                    fetch(`http://localhost:3001/api/colaboradores/${id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(mapFrontendToBackend(colaborador))
+                    });
                 }
                 // Actualizar en backend
                 fetch(`http://localhost:3001/api/colaboradores/${id}`, {
@@ -389,10 +469,7 @@ function getData() {
                 const estado = estadoElement.textContent || '';
                 const fechaSalida = fechaSalidaElement.value || '';
                 
-                rowData[field] = evaluateStimulation({
-                    Estado: estado,
-                    'Fecha de Salida': fechaSalida
-                }, getConciliationMonth());
+                rowData[field] = evaluarEstimulaciónPorDiasPresencia(diasPresencia);
             } else if (field === 'vacaciones') {
                 // Construir el objeto row para evaluar correctamente
                 const fechaSalida = row.querySelector('[data-field="Fecha de Salida"]')?.value || '';
@@ -1213,6 +1290,16 @@ document.querySelectorAll('.date-input').forEach(input => {
                 colaborador['Fecha de Entrada'] = '';
                 return;
             }
+            // Si la fecha de salida queda vacía, forzar Fin de Misión a 'No'
+            if (field === 'Fecha de Salida' && (!value || value.trim() === '')) {
+                colaborador['Fin de Misión'] = 'No';
+                // Actualizar en backend
+                fetch(`http://localhost:3001/api/colaboradores/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(mapFrontendToBackend(colaborador))
+                });
+            }
             // Actualizar en backend
             fetch(`http://localhost:3001/api/colaboradores/${id}`, {
                 method: 'PUT',
@@ -1251,7 +1338,7 @@ function calcularDiasPermanencia(colaborador, mesConciliacion) {
     // mesConciliacion formato 'YYYY-MM'
     const [year, month] = mesConciliacion.split('-').map(Number);
     const firstDay = new Date(year, month - 1, 1);
-    const lastDay = new Date(year, month, 0); // último día del mes
+    const lastDay = new Date(year, month, 0);
     const prevMonthLastDay = new Date(year, month - 1, 0); // último día del mes anterior
 
     const fechaSalida = colaborador['Fecha de Salida'] ? new Date(colaborador['Fecha de Salida']) : null;
@@ -1451,6 +1538,18 @@ window.addEventListener('DOMContentLoaded', checkConciliationMonth);
 const conciliationInput = document.getElementById('conciliationMonth');
 if (conciliationInput) {
     conciliationInput.addEventListener('change', () => {
+        const selected = conciliationInput.value;
+        if (selected) {
+            const [year, month] = selected.split('-').map(Number);
+            const now = new Date();
+            const currentYear = now.getFullYear();
+            const currentMonth = now.getMonth() + 1;
+            if (year > currentYear || (year === currentYear && month > currentMonth)) {
+                showMessage('No se puede seleccionar un mes de conciliación mayor al actual.', 'error');
+                conciliationInput.value = '';
+                return;
+            }
+        }
         fetchColaboradores();
     });
 }
