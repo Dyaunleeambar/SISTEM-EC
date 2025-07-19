@@ -1,12 +1,36 @@
 # Sistema de Estimulación de Colaboradores
 
-Este sistema permite importar, visualizar, editar y exportar datos de colaboradores desde un archivo Excel, así como limpiar la base de datos para reiniciar el proceso.
+## Criterios de Validación
+
+**Estimulación**
+- Un colaborador tiene derecho a estimulación si ha permanecido al menos 15 días del mes de conciliación en el país donde realiza su misión.
+- Si no tiene fecha de salida ni de entrada, se considera que permanece en el país y tiene derecho a estimulación.
+- Si no tiene fecha de salida, se considera presente hasta el final del mes y se calcula la permanencia desde la fecha de entrada (si existe) o desde el inicio del mes (si tampoco tiene fecha de entrada).
+- Si tiene ambas fechas, se calcula la cantidad de días dentro del mes de conciliación.
+
+**Vacaciones**
+- Un colaborador está de vacaciones si tiene fecha de salida pero no tiene fecha de entrada. Esto indica que salió del país y aún no ha regresado.
+
+**Fin de Misión**
+- Se determina mediante un checkbox en el modal de edición (al presionar "Editar" en la columna Acciones).
+- Si el checkbox está marcado, se considera que el colaborador no regresa y está en Fin de Misión.
+
+---
+
+## Opinión y Sugerencias
+
+- Los criterios son claros y prácticos, permitiendo una gestión transparente y flexible de los estados de los colaboradores.
+- Recomiendo mostrar en la tabla el número de días de permanencia para mayor transparencia en la estimulación.
+- Considera agregar mensajes o tooltips explicativos en la interfaz para que los usuarios comprendan los criterios.
+- Valida en el frontend que las fechas sean coherentes (por ejemplo, la fecha de entrada no puede ser posterior a la fecha de salida).
+
+---
 
 ## Funcionalidades principales
 
 - **Importar colaboradores** desde un archivo Excel (.xlsx, .xls).
 - **Visualizar y editar** fechas de salida y entrada directamente en la tabla.
-- **Cálculo automático** de estimulación y vacaciones según las reglas de negocio.
+- **Cálculo automático** de estimulación, vacaciones y fin de misión según las reglas de negocio.
 - **Filtrado y contadores** por ubicación y estado.
 - **Exportar datos** a Excel.
 - **Limpiar la base de datos** para reiniciar la carga de colaboradores.
@@ -23,7 +47,7 @@ Este sistema permite importar, visualizar, editar y exportar datos de colaborado
 2. **Visualización y edición**
    - Los colaboradores se muestran en una tabla editable.
    - Puedes modificar fechas de salida y entrada.
-   - Los campos de estimulación y vacaciones se recalculan automáticamente.
+   - Los campos de estimulación, vacaciones y fin de misión se recalculan automáticamente.
 
 3. **Filtrado y contadores**
    - Puedes filtrar por ubicación usando los botones generados.
@@ -46,8 +70,9 @@ Este sistema permite importar, visualizar, editar y exportar datos de colaborado
 ## Estructura de archivos relevante
 
 - `index.html`: Contiene la estructura de la interfaz y los elementos con los IDs requeridos.
-- `app.js`: Lógica principal del frontend, control de importación, edición, exportación y sincronización.
-- `server.js` (o similar): Backend para almacenar y servir los datos de colaboradores.
+- `styles.css`: Estilos visuales de la aplicación.
+- `app.js`: Lógica principal del frontend.
+- `server.js`: Backend para almacenar y servir los datos de colaboradores.
 
 ## Requisitos
 

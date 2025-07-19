@@ -155,28 +155,58 @@ function updateTable(data) {
     if (!tbody) return;
     tbody.innerHTML = '';
 
+    // Obtener el mes de conciliación actual
+    const conciliationInput = document.getElementById('conciliationMonth');
+    let mesConciliacion = '';
+    if (conciliationInput && conciliationInput.value) {
+        mesConciliacion = conciliationInput.value; // formato 'YYYY-MM'
+    } else {
+        const now = new Date();
+        mesConciliacion = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    }
+
     data.forEach(row => {
+        // Calcular días de permanencia
+        let diasPermanencia = '-';
+        if (row['Fecha de Entrada'] && row['Fecha de Salida']) {
+            diasPermanencia = calcularDiasPermanencia({
+                fecha_entrada: row['Fecha de Entrada'],
+                fecha_salida: row['Fecha de Salida']
+            }, mesConciliacion);
+        }
+
+        // Calcular estimulación y vacaciones
+        const estimulacion = evaluateStimulation(row, getConciliationMonth());
+        const vacaciones = evaluateVacaciones(row);
+
         const tr = document.createElement('tr');
         tr.className = 'data-row';
+        tr.setAttribute('data-id', row.id);
+
         tr.innerHTML = `
-            <td>${row.Estado}</td>
-            <td>${row['Nombre y Apellidos']}</td>
-            <td>${row['Fecha de Salida'] || ''}</td>
-            <td>${row['Fecha de Entrada'] || ''}</td>
-            <td>${row['Fin de Misión'] || ''}</td>
-            <td>${row.Estimulacion || ''}</td>
-            <td>${row.Vacaciones || ''}</td>
+            <td data-field="estado">${row.Estado}</td>
+            <td data-field="nombre">${row['Nombre y Apellidos']}</td>
+            <td>
+                <input type="date" value="${row['Fecha de Salida'] || ''}" 
+                       data-id="${row.id}" data-field="Fecha de Salida" class="date-input">
+            </td>
+            <td>
+                <input type="date" value="${row['Fecha de Entrada'] || ''}" 
+                       data-id="${row.id}" data-field="Fecha de Entrada" class="date-input">
+            </td>
+            <td data-field="estimulacion">${estimulacion}</td>
+            <td data-field="vacaciones">${vacaciones}</td>
+            <td data-field="Fin de Misión">${row['Fin de Misión'] || ''}</td>
+            <td data-field="diasPermanencia">${diasPermanencia}</td>
             <td>
                 <button class="edit-btn" data-id="${row.id}">Editar</button>
                 <button class="delete-btn" data-id="${row.id}">Eliminar</button>
             </td>
         `;
-        
-        // Primero agregar la fila al DOM
         tbody.appendChild(tr);
     });
 
-    // Asigna eventos a los botones de eliminar
+    // Evento eliminar
     document.querySelectorAll('.delete-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             const id = this.dataset.id;
@@ -190,12 +220,38 @@ function updateTable(data) {
         });
     });
 
-    // Asigna eventos a los botones de editar
+    // Evento editar (abre el modal)
     document.querySelectorAll('.edit-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             const id = this.dataset.id;
             const colaborador = data.find(c => c.id == id);
             openEditModal(colaborador);
+        });
+    });
+
+    // Evento para actualizar fechas directamente en la tabla
+    tbody.querySelectorAll('.date-input').forEach(input => {
+        input.addEventListener('change', function(e) {
+            const id = this.dataset.id;
+            const field = this.dataset.field;
+            const value = this.value;
+            const colaborador = data.find(c => c.id == id);
+            if (colaborador) {
+                colaborador[field] = value;
+                // Validar fechas antes de actualizar
+                if (!validarFechas(colaborador['Fecha de Entrada'], colaborador['Fecha de Salida'])) {
+                    alert('La fecha de entrada no puede ser posterior a la fecha de salida.');
+                    return;
+                }
+                // Actualizar en backend
+                fetch(`http://localhost:3001/api/colaboradores/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(mapFrontendToBackend(colaborador))
+                })
+                .then(res => res.json())
+                .then(() => fetchColaboradores());
+            }
         });
     });
 }
@@ -507,7 +563,7 @@ function handleDateChange(event) {
             if (finMisionCheckbox) {
                 const finMisionField = rowElement.querySelector('[data-field="fin_mision"]');
                 if (finMisionField) {
-                    finMisionField.textContent = row['Fin de Misión'];
+                    finMisionField.textContent = row
                 }
             }
         }
@@ -735,7 +791,7 @@ function updateLocationCounters(data) {
             button.classList.add('active');
             
             // Mostrar detalles
-            const details = document.querySelector('.location-details');
+           
             if (details) {
                 details.style.display = 'block';
                 const counterElements = details.querySelectorAll('.counter-value');
@@ -1043,19 +1099,48 @@ document.getElementById('addCollaboratorForm').addEventListener('submit', functi
 // document.getElementById('importButton').addEventListener('click', ...);
 // Funciones de FileReader, XLSX, etc.
 
-app.post('/api/colaboradores', (req, res) => {
-    const { nombre, estado, fecha_salida, fecha_entrada, fin_mision, ubicacion } = req.body;
-    console.log('Nuevo colaborador:', req.body); // <-- Agrega esto
-    db.query(
-        `INSERT INTO colaboradores (nombre, estado, fecha_salida, fecha_entrada, fin_mision, ubicacion)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [nombre, estado, fecha_salida, fecha_entrada, fin_mision, ubicacion],
-        (err, result) => {
-            if (err) {
-                console.error('Error SQL:', err); // <-- Agrega esto
-                return res.status(500).json({ error: err.message });
-            }
-            res.json({ id: result.insertId, nombre, estado, fecha_salida, fecha_entrada, fin_mision, ubicacion });
-        }
-    );
+
+
+// Cambios para manejar la actualización de fechas
+document.addEventListener('change', function(e) {
+  if (e.target.classList.contains('date-input')) {
+    const id = e.target.dataset.id;
+    const field = e.target.dataset.field;
+    const value = e.target.value;
+    // Obtén el colaborador actual y actualiza el campo
+    const colaborador = allCollaborators.find(c => c.id == id);
+    if (colaborador) {
+      colaborador[field] = value;
+      // Envía la actualización al backend
+      fetch(`http://localhost:3001/api/colaboradores/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(colaborador)
+      })
+      .then(res => res.json())
+      .then(() => fetchColaboradores());
+    }
+  }
 });
+
+function calcularDiasPermanencia(colaborador, mesConciliacion) {
+    // Lógica similar a la función de estimulación
+    const [year, month] = mesConciliacion.split('-');
+    const inicioMes = new Date(year, month - 1, 1);
+    const finMes = new Date(year, month, 0);
+
+    if (!colaborador.fecha_salida && !colaborador.fecha_entrada) {
+        // Todo el mes
+        return (finMes - inicioMes) / (1000 * 60 * 60 * 24) + 1;
+    }
+
+    const entrada = colaborador.fecha_entrada ? new Date(colaborador.fecha_entrada) : inicioMes;
+    const salida = colaborador.fecha_salida ? new Date(colaborador.fecha_salida) : finMes;
+
+    const desde = entrada > inicioMes ? entrada : inicioMes;
+    const hasta = salida < finMes ? salida : finMes;
+
+    return Math.max(0, (hasta - desde) / (1000 * 60 * 60 * 24) + 1);
+}
+
+

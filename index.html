@@ -12,18 +12,18 @@
     <div class="header-card">
       <div class="header-flex">
         <div class="header-main">
-          <h1>Sistema de Estimulación Colaboradores</h1>
+          <h1 class="header-title">Sistema de Estimulación para los Colaboradores</h1>
           <div class="counters">
             <div class="counter">
               <span class="counter-label">Total Colaboradores</span>
               <span id="totalCollaborators" class="counter-value">0</span>
             </div>
             <div class="counter">
-              <span class="counter-label">Con Estímulo</span>
+              <span class="counter-label">Estimulación</span>
               <span id="withStimulation" class="counter-value">0</span>
             </div>
             <div class="counter">
-              <span class="counter-label">En Vacaciones</span>
+              <span class="counter-label">Vacaciones</span>
               <span id="onVacation" class="counter-value">0</span>
             </div>
             <div class="counter">
@@ -33,23 +33,20 @@
           </div>
           <div class="import-section">
             <h2>Gestión de Datos</h2>                 
-            <div class="add-collaborator-section">
-              <h3>Agregar Colaborador</h3>
+            <div class="add-collaborator-section">              
               <form id="addCollaboratorForm">
                   <input type="text" id="estadoInput" placeholder="Ubicación/Estado" required>
-                  <input type="text" id="nombreInput" placeholder="Nombre y Apellidos" required>                        
-                  <input type="date" id="fechaSalidaInput" placeholder="Fecha de Salida">
-                  <input type="date" id="fechaEntradaInput" placeholder="Fecha de Entrada">
+                  <input type="text" id="nombreInput" placeholder="Nombre y Apellidos" required>                  
                   <button type="submit">Agregar</button>
+                  <button id="exportButton">Exportar a Excel</button>
+                  <div class="conciliation-section">
+                    <label for="conciliationMonth">Mes de Conciliación:</label>
+                    <input type="month" id="conciliationMonth">
+                    <button id="clearDatabaseButton">Limpiar Base de Datos</button> 
+                  </div>                  
               </form>
-            </div>               
-            <button id="exportButton">Exportar a Excel</button>
-            <button id="clearDatabaseButton">Limpiar Base de Datos</button>                
-          </div>            
-          <div class="conciliation-section">
-            <label for="conciliationMonth">Mes de Conciliación:</label>
-            <input type="month" id="conciliationMonth">
-          </div>
+            </div>                           
+          </div>          
         </div>
         <div class="state-counters-card">
           <h3>Contadores por Estado</h3>
@@ -66,14 +63,15 @@
       <table id="collaboratorsTable">
           <thead>
               <tr>
-                  <th>Estado</th>
-                  <th>Nombre del Colaborador</th>
-                  <th>Fecha de Salida</th>
-                  <th>Estimulación</th>
-                  <th>Fecha de Entrada</th>
-                  <th>Vacaciones</th>
-                  <th>Fin de Misión</th>
-                  <th>Acciones</th>
+                <th>Estado</th>
+                <th>Nombre del Colaborador</th>
+                <th>Fecha de Salida</th>
+                <th>Fecha de Entrada</th>
+                <th title="Derecho a estimulación si permanece al menos 15 días en el país">Estimulación</th>
+                <th title="Vacaciones si tiene fecha de salida y no de entrada">Vacaciones</th>
+                <th title="Fin de Misión si el checkbox está marcado en edición">Fin de Misión</th>
+                <th title="Días que el colaborador estuvo en el país durante el mes de conciliación">Días de Permanencia</th>
+                <th>Acciones</th>
               </tr>
           </thead>
           <tbody>

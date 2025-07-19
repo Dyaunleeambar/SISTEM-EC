@@ -143,22 +143,33 @@ input[type="file"]:disabled {
 }
 
 .location-button {
-  padding: 10px 15px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.3s ease;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 10px 18px;
+  margin-bottom: 8px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
   background: #fff;
+  color: #222;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
 }
 
 .location-button:hover,
 .location-button.active {
-  background-color: #007bff;
-  color: white;
-  border-color: #0056b3;
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0,123,255,0.12);
+}
+
+.location-button.active {
+  background: #45a049;
+  color: #fff;
+  border-color: #45a049;
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0,123,255,0.12);
 }
 
 .location-button .state-total {
@@ -251,11 +262,11 @@ th, td {
 }
 
 .date-input {
-    flex: 1;
-    padding: 8px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 14px;
+  font-size: 1rem;
+  padding: 6px 10px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  width: 140px;
 }
 
 .date-input:focus {
@@ -296,7 +307,7 @@ th {
 /* Estilos para los contadores */
 .counters {
   display: flex;
-  justify-content: flex-start; /* Alinea a la izquierda */
+  justify-content: center; /* Alinea a la izquierda */
   align-items: center;         /* Centra verticalmente */
   gap: 32px;                   /* Espacio entre contadores */
   margin-bottom: 24px;
@@ -306,14 +317,21 @@ th {
   display: flex;
   flex-direction: column;
   align-items: center; /* Centra el texto dentro de cada contador */
-  background: #f8f9fa;
+  background: #e7f5e5;
+  font-size: 1.5rem;
   border-radius: 8px;
   padding: 12px 20px;
   min-width: 120px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  box-shadow: 0 10px 4px rgba(0,0,0,0.06);
 }
 
 /* Estilos para los contadores por ubicación */
+.state-counters-card .location-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 18px;
+}
+
 .location {
     margin-bottom: 20px;
 }
@@ -404,6 +422,20 @@ html, body {
   z-index: 2;
 }
 
+.header-title {
+  text-align: center;
+  font-size: 2rem;
+  font-weight: bold;
+  margin-bottom: 18px;
+}
+
+.import-section {
+  text-align: center;
+  font-size: 1rem;
+  font-weight: bold;
+  margin-bottom: 18px;
+}
+
 .header-flex {
   display: flex;
   justify-content: space-between;
@@ -418,12 +450,35 @@ html, body {
 
 /* Ajusta la tarjeta de contadores por estado para que no sea muy ancha */
 .state-counters-card {
-  min-width: 220px;
+  min-width: 420px;
   max-width: 300px;
-  background: #f8f9fa;
+  background: #e7f5e5;
   border-radius: 8px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  box-shadow: 0 10px 4px rgba(0,0,0,0.06);
   padding: 16px;
   margin-top: 0;
   margin-bottom: 0;
+}
+
+/* Inputs de Gestión de Datos */
+#importButton,
+#clearDatabaseButton,
+#addCollaboratorForm input[type="text"] {
+  font-size: 1.15rem;
+  padding: 12px 16px;
+  margin-bottom: 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  width: 30%;
+  box-sizing: border-box;
+}
+
+/* Input de Mes de Conciliación */
+#conciliationMonth {
+  font-size: 1.15rem;
+  padding: 12px 16px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  width: 220px;
+  box-sizing: border-box;
 }
