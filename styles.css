@@ -204,9 +204,9 @@ button {
   background-color: #007bff;
   color: #ffffff;
   padding: 10px 20px;
-  border: none;
+    border: none;
   border-radius: 4px;
-  cursor: pointer;
+    cursor: pointer;
   font-size: 14px;
 }
 
@@ -270,8 +270,8 @@ th, td {
 }
 
 .date-input:focus {
-  outline: none;
-  border-color: #007bff;
+    outline: none;
+    border-color: #007bff;
   box-shadow: 0 0 5px rgba(0,123,255,0.3);
   color: #000000;
 }
@@ -510,7 +510,7 @@ html, body {
   min-width: 420px;
   max-width: 300px;
   background: #e8e8e8;
-  border-radius: 8px;  
+  border-radius: 8px;
   padding: 16px;
   margin-top: 0;
   margin-bottom: 0;
@@ -1289,6 +1289,18 @@ input[type="month"] {
 
 .delete-btn:hover {
   background-color: #ff713d;
+}
+
+.edit-btn:disabled,
+.edit-btn:disabled:hover,
+.delete-btn:disabled,
+.delete-btn:disabled:hover {
+  background-color: #cccccc !important;
+  color: #888888 !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+  border: none !important;
+  transform: none !important;
 }
 
 #collaboratorsTable thead th i.fas {
