@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Evaluación de Colaboradores</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
   <div class="main-container">
@@ -15,19 +16,19 @@
           <h1 class="header-title">Sistema de Estimulación para los Colaboradores</h1>
           <div class="counters">
             <div class="counter">
-              <span class="counter-label">Total Colaboradores</span>
+              <i class="fas fa-users counter-icon"></i>
               <span id="totalCollaborators" class="counter-value">0</span>
             </div>
             <div class="counter">
-              <span class="counter-label">Estimulación</span>
+              <i class="fas fa-star counter-icon"></i>
               <span id="withStimulation" class="counter-value">0</span>
             </div>
             <div class="counter">
-              <span class="counter-label">Vacaciones</span>
+              <i class="fas fa-umbrella-beach counter-icon"></i>
               <span id="onVacation" class="counter-value">0</span>
             </div>
             <div class="counter">
-              <span class="counter-label">Fin de Misión</span>
+              <i class="fas fa-flag-checkered counter-icon"></i>
               <span id="endOfMission" class="counter-value">0</span>
             </div>            
           </div>
@@ -68,11 +69,11 @@
                 <th>Nombre del Colaborador</th>
                 <th>Fecha de Salida</th>
                 <th>Fecha de Entrada</th>
-                <th title="Derecho a estimulación si permanece al menos 15 días en el país">Estimulación</th>
-                <th title="Vacaciones si tiene fecha de salida y no de entrada">Vacaciones</th>
-                <th title="Fin de Misión si el checkbox está marcado en edición">Fin de Misión</th>
-                <th title="Días que el colaborador estuvo en el país durante el mes de conciliación">Días de Presencia</th>
-                <th>Acciones</th>
+                <th title="Derecho a estimulación si permanece al menos 15 días en el país"><i class="fas fa-star"></i></th>
+                <th title="Vacaciones si tiene fecha de salida y no de entrada"><i class="fas fa-umbrella-beach"></i></th>
+                <th title="Fin de Misión si el checkbox está marcado en edición"><i class="fas fa-flag-checkered"></i></th>
+                <th title="Días que el colaborador estuvo en el país durante el mes de conciliación"><i class="fas fa-calendar-day"></i></th>
+                <th><i class="fas fa-tools"></i></th>
               </tr>
           </thead>
           <tbody>

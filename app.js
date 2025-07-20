@@ -221,7 +221,7 @@ function updateTable(data) {
             <td data-field="diasPresencia">${diasPresencia}</td>
             <td>
                 <button class="edit-btn" data-id="${row.id}">Editar</button>
-                <button class="delete-btn" data-id="${row.id}">Eliminar</button>
+                <button class="delete-btn" data-id="${row.id}"><i class="fas fa-times"></i></button>
             </td>
         `;
         tbody.appendChild(tr);
@@ -231,6 +231,12 @@ function updateTable(data) {
         const finMisionLabel = tr.querySelector('.fin-mision-label');
         if (finMisionCheckbox) {
             finMisionCheckbox.addEventListener('change', function() {
+                // Nueva validación: no se puede marcar si no hay mes de conciliación seleccionado
+                if (!isConciliationMonthSelected()) {
+                    showMessage('Debe seleccionar el mes de conciliación antes de marcar Fin de Misión.', 'error');
+                    this.checked = false;
+                    return;
+                }
                 const id = this.dataset.id;
                 const checked = this.checked;
                 const colaborador = allCollaborators.find(c => c.id == id);
@@ -249,7 +255,7 @@ function updateTable(data) {
                     this.checked = false;
                     return;
                 }
-                // Nueva validación: no se puede marcar si hay fecha de entrada
+                // No se puede marcar si hay fecha de entrada
                 if (colaborador['Fecha de Entrada'] && colaborador['Fecha de Entrada'].trim() !== '') {
                     showMessage('No se puede marcar Fin de Misión: Existe una fecha de entrada, lo que contradice el fin de misión.', 'error');
                     this.checked = false;
@@ -372,7 +378,33 @@ function updateTable(data) {
             }
         });
     });
+    
+    // Aplicar estilos a celdas con valor "Si"
+    applySiCellStyles();
+    
     checkConciliationMonth();
+}
+
+// Función para aplicar estilos a celdas con valor "Si" y "No"
+function applySiCellStyles() {
+    const tableCells = document.querySelectorAll('#collaboratorsTable tbody td');
+    tableCells.forEach(cell => {
+        // Limpiar clases anteriores
+        cell.classList.remove('cell-si', 'cell-no');
+        
+        // Verificar si el contenido es "Si" o "No" (ignorando espacios y mayúsculas/minúsculas)
+        const cellText = cell.textContent.trim();
+        if (cellText === 'Si' || cellText === 'Sí' || cellText === 'SI' || cellText === 'sí') {
+            cell.classList.add('cell-si');
+        } else if (cellText === 'No' || cellText === 'NO' || cellText === 'no') {
+            cell.classList.add('cell-no');
+        }
+    });
+    
+    // Debug: mostrar cuántas celdas se encontraron y se aplicó el estilo
+    const siCells = document.querySelectorAll('#collaboratorsTable tbody td.cell-si');
+    const noCells = document.querySelectorAll('#collaboratorsTable tbody td.cell-no');
+    console.log(`Se aplicó estilo a ${siCells.length} celdas con valor "Si" y ${noCells.length} celdas con valor "No"`);
 }
 
 // Mostrar el modal y rellenar los datos
@@ -1048,6 +1080,7 @@ function exportarDatos() {
 }
 
 let allCollaborators = []; // Guarda todos los colaboradores para filtrar
+let activeFilter = 'Todos'; // Variable global para mantener el filtro activo
 
 function updateStateCounters(data) {
     // Agrupa por Estado/Ubiación
@@ -1065,6 +1098,7 @@ function updateStateCounters(data) {
     allBtn.className = 'location-button';
     allBtn.textContent = `Todos (${data.length})`;
     allBtn.onclick = () => {
+        activeFilter = 'Todos';
         updateTable(allCollaborators);
         setActiveButton(allBtn);
     };
@@ -1076,12 +1110,20 @@ function updateStateCounters(data) {
         btn.className = 'location-button';
         btn.textContent = `${estado} (${count})`;
         btn.onclick = () => {
+            activeFilter = estado;
             const filtrados = allCollaborators.filter(c => (c.Estado || 'Sin Ubicación') === estado);
             updateTable(filtrados);
             setActiveButton(btn);
+            // Aplicar estilos después de filtrar
+            setTimeout(() => {
+                applySiCellStyles();
+            }, 100);
         };
         container.appendChild(btn);
     });
+    
+    // Restaurar el botón activo después de regenerar los botones
+    restoreActiveButton();
 }
 
 // Marca el botón activo
@@ -1097,15 +1139,53 @@ function fetchColaboradores() {
             // Normaliza los datos antes de pasarlos a la UI
             const normalized = data.map(normalizeBackendRow);
             allCollaborators = normalized;
-            updateTable(normalized);
+            
+            // Aplicar el filtro activo después de actualizar los datos
+            applyActiveFilter();
+            
             updateCounters(normalized);
             updateStateCounters(normalized);
             checkConciliationMonth(); // <-- Asegura el deshabilitado tras actualizar la tabla
+            
+            // Aplicar estilos después de que la tabla se haya actualizado completamente
+            setTimeout(() => {
+                applySiCellStyles();
+            }, 100);
         })
         .catch(err => {
             showMessage('Error al cargar colaboradores del servidor.', 'error');
             console.error(err);
         });
+}
+
+// Función para aplicar el filtro activo
+function applyActiveFilter() {
+    console.log('Aplicando filtro activo:', activeFilter);
+    
+    if (activeFilter === 'Todos') {
+        updateTable(allCollaborators);
+    } else {
+        const filtrados = allCollaborators.filter(c => (c.Estado || 'Sin Ubicación') === activeFilter);
+        updateTable(filtrados);
+    }
+    
+    // Restaurar el botón activo visualmente
+    restoreActiveButton();
+}
+
+// Función para restaurar el botón activo visualmente
+function restoreActiveButton() {
+    const buttons = document.querySelectorAll('.location-button');
+    buttons.forEach(btn => {
+        btn.classList.remove('active');
+        const btnText = btn.textContent;
+        
+        if (activeFilter === 'Todos' && btnText.includes('Todos')) {
+            btn.classList.add('active');
+        } else if (btnText.includes(activeFilter)) {
+            btn.classList.add('active');
+        }
+    });
 }
 
 // Llama a esta función al cargar la página
@@ -1410,7 +1490,6 @@ function parseDateYMD(fechaString) {
 }
 
 function calcularDiasPresencia(colaborador, mesConciliacion) {
-    console.log('DEBUG calcularDiasPresencia:', colaborador, mesConciliacion);
     const [year, month] = mesConciliacion.split('-').map(Number);
     const firstDay = new Date(year, month - 1, 1);
     const lastDay = new Date(year, month, 0);
@@ -1422,13 +1501,11 @@ function calcularDiasPresencia(colaborador, mesConciliacion) {
 
     // Caso 1: Sin fechas
     if (!fechaSalida && !fechaEntrada) {
-        console.log('Caso: Sin fechas');
         return totalDiasMes;
     }
 
     // Caso 2: Solo salida
     if (fechaSalida && !fechaEntrada) {
-        console.log('Caso: Solo salida', fechaSalida, firstDay);
         if (fechaSalida < firstDay) return '-';
         if (fechaSalida > lastDay) return totalDiasMes;
         if (
@@ -1442,7 +1519,6 @@ function calcularDiasPresencia(colaborador, mesConciliacion) {
 
     // Caso 3: Solo entrada
     if (!fechaSalida && fechaEntrada) {
-        console.log('Caso: Solo entrada', fechaEntrada, firstDay);
         if (fechaEntrada > lastDay) return '-';
         if (fechaEntrada < firstDay) return totalDiasMes;
         return Math.floor((lastDay - fechaEntrada) / (1000 * 60 * 60 * 24)) + 1;
@@ -1450,7 +1526,6 @@ function calcularDiasPresencia(colaborador, mesConciliacion) {
 
     // Caso 4: Ambas fechas
     if (fechaSalida && fechaEntrada) {
-        console.log('Caso: Ambas fechas', fechaSalida, fechaEntrada, firstDay);
         let dias = 0;
         if (fechaSalida >= firstDay && fechaSalida <= lastDay) {
             if (
@@ -1475,7 +1550,6 @@ function calcularDiasPresencia(colaborador, mesConciliacion) {
     }
 
     // Caso 5: Fechas fuera del mes
-    console.log('Caso: Fechas fuera del mes');
     return '-';
 }
 

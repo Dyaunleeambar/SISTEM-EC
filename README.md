@@ -31,22 +31,27 @@
 - **Limpiar la base de datos** para reiniciar la carga de colaboradores.
 - **Sincronización automática** con el backend tras cada cambio.
 - **Mensajes de éxito y error** en la interfaz.
+- **Codificación visual por colores** en la tabla:
+  - Celdas con valor "Si": Color de fondo verde claro (#cadfcb)
+  - Celdas con valor "No": Color de fondo rojo claro (#f5b3ac)
 
 ## Flujo de uso
 
 1. **Seleccionar mes de conciliación**
    - El input de mes de conciliación es obligatorio para habilitar la edición de la tabla y los formularios.
    - Al seleccionar o cambiar el mes, la tabla se regenera automáticamente y los campos de edición y botones se habilitan según las reglas.
+   - **No se puede seleccionar un mes futuro**: El sistema valida que el mes de conciliación no sea mayor al mes actual.
 
 2. **Agregar colaborador**
    - Completa el formulario con los datos requeridos.
    - Haz clic en "Agregar" para guardar el colaborador.
 
 3. **Visualización y edición**
-   - Los colaboradores se muestran en una tabla editable.
+   - Los colaboradores se muestran en una tabla editable con codificación visual por colores.
    - Puedes modificar fechas de salida y entrada.
    - **El campo de fecha de entrada está deshabilitado hasta que se establezca la fecha de salida para cada colaborador.**
    - Los campos de estimulación, vacaciones y fin de misión se recalculan automáticamente.
+   - **No se puede marcar 'Fin de Misión' sin haber seleccionado el mes de conciliación.**
 
 4. **Filtrado y contadores**
    - Puedes filtrar por ubicación usando los botones generados.
@@ -58,22 +63,28 @@
 6. **Limpiar base de datos**
    - Haz clic en "Limpiar Base de Datos" para borrar todos los colaboradores y volver a habilitar la carga manual.
 
+## Validaciones implementadas
+
+- **Mes de conciliación**: No puede ser un mes futuro.
+- **Fecha de entrada**: No se puede establecer sin tener una fecha de salida previa.
+- **Fin de Misión**: 
+  - No se puede marcar si existe una fecha de entrada (contradicción lógica).
+  - No se puede marcar sin haber seleccionado el mes de conciliación.
+  - No se puede marcar si la fecha de salida está vacía o es futura.
+- **Fechas coherentes**: La fecha de entrada no puede ser anterior a la fecha de salida.
+
 ## Consideraciones técnicas
 
-- El backend debe estar corriendo en `http://localhost:3001`.
-- Los datos se sincronizan automáticamente tras cada cambio.
-- El sistema valida que la fecha de entrada no sea anterior a la fecha de salida y muestra mensajes de error en caso de incoherencias.
-- **Los campos de edición y los botones de la tabla solo se habilitan cuando se selecciona el mes de conciliación.**
-- **El campo de fecha de entrada está deshabilitado hasta que se establezca la fecha de salida para cada colaborador.**
-- Al cambiar el mes de conciliación, la tabla se regenera automáticamente para reflejar el estado correcto de los campos.
+- El sistema está optimizado y el código limpio, sin logs de depuración innecesarios.
+- **Codificación visual automática**: Las celdas de la tabla se colorean automáticamente según su valor ("Si" en verde, "No" en rojo).
 - El mes de conciliación no puede ser mayor al mes actual. Si el usuario intenta seleccionar un mes futuro, el sistema muestra un mensaje de error y no permite la selección.
-- **No se puede marcar 'Fin de Misión' si existe una fecha de entrada para el colaborador, ya que esto contradice el concepto de fin de misión. El sistema muestra un mensaje de error y no permite marcar el checkbox en ese caso.**
+- No se puede marcar 'Fin de Misión' si existe una fecha de entrada para el colaborador, ya que esto contradice el concepto de fin de misión. El sistema muestra un mensaje de error y no permite marcar el checkbox en ese caso.
 
 ## Estructura de archivos relevante
 
 - `index.html`: Contiene la estructura de la interfaz y los elementos con los IDs requeridos.
-- `styles.css`: Estilos visuales de la aplicación.
-- `app.js`: Lógica principal del frontend.
+- `styles.css`: Estilos visuales de la aplicación, incluyendo los colores para la codificación visual de celdas.
+- `app.js`: Lógica principal del frontend, incluyendo la función `applySiCellStyles()` para aplicar colores automáticamente.
 - `server.js`: Backend para almacenar y servir los datos de colaboradores.
 
 ## Requisitos
@@ -91,6 +102,7 @@
 ## Notas
 
 - Si ves algún error en consola, revisa que los IDs en el HTML coincidan con los usados en el JS y que el backend esté activo.
+- Los colores de las celdas se aplican automáticamente cada vez que se actualiza la tabla.
 
 ---
 

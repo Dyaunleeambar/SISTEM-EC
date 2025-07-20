@@ -14,6 +14,7 @@ body {
     display: flex;
     flex-direction: column;
     min-height: 100vh;
+    color: #000000;
 }
 
 /* Estilos generales */
@@ -151,7 +152,7 @@ input[type="file"]:disabled {
   border: 1px solid #ddd;
   border-radius: 6px;
   background: #fff;
-  color: #222;
+  color: #000000 !important;
   font-size: 1rem;
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
@@ -162,12 +163,13 @@ input[type="file"]:disabled {
 .location-button.active {
   transform: scale(1.05);
   box-shadow: 0 4px 12px rgba(0,123,255,0.12);
+  color: #000000;
 }
 
 .location-button.active {
-  background: #45a049;
-  color: #fff;
-  border-color: #45a049;
+  background: #82d885;
+  color: #000000;
+  border-color: #82d885;
   transform: scale(1.05);
   box-shadow: 0 4px 12px rgba(0,123,255,0.12);
 }
@@ -199,20 +201,18 @@ input[type="file"] {
 }
 
 button {
-    background-color: #4CAF50;
-    color: white;
-    padding: 12px 24px;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 16px;
-    font-weight: 500;
-    transition: background-color 0.3s ease;
-    margin-left: 10px;
+  background-color: #007bff;
+  color: #ffffff;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
 }
 
 button:hover {
-    background-color: #45a049;
+  background-color: #0056b3;
+  color: #ffffff;
 }
 
 button:disabled {
@@ -262,17 +262,18 @@ th, td {
 }
 
 .date-input {
-  font-size: 1rem;
-  padding: 6px 10px;
-  border-radius: 4px;
+  padding: 8px;
   border: 1px solid #ccc;
-  width: 140px;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #000000;
 }
 
 .date-input:focus {
-    outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 5px rgba(0,123,255,0.3);
+  color: #000000;
 }
 
 .disable-date {
@@ -307,22 +308,64 @@ th {
 /* Estilos para los contadores */
 .counters {
   display: flex;
-  justify-content: center; /* Alinea a la izquierda */
-  align-items: center;         /* Centra verticalmente */
-  gap: 32px;                   /* Espacio entre contadores */
-  margin-bottom: 24px;
+  gap: 40px; /* Aumentado de 30px a 40px para más separación */
+  justify-content: center;
+  flex-wrap: wrap;
+  margin: 20px 0;
 }
 
 .counter {
   display: flex;
   flex-direction: column;
   align-items: center; /* Centra el texto dentro de cada contador */
-  background: #e7f5e5;
+  justify-content: center; /* Centra verticalmente el contenido */
+  background: #ff6b35;
   font-size: 1.5rem;
-  border-radius: 8px;
-  padding: 12px 20px;
-  min-width: 120px;
-  box-shadow: 0 10px 4px rgba(0,0,0,0.06);
+  border-radius: 12px;
+  width: 140px; /* Ancho fijo para hacer cuadrado */
+  height: 140px; /* Alto fijo igual al ancho para hacer cuadrado perfecto */
+  box-shadow: 0 10px 30px rgba(255, 107, 53, 0.4);
+  color: white;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+  transform: translateY(-2px);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.counter-icon {
+  font-size: 2.5rem;
+  margin-bottom: 16px; /* Aumentado de 12px a 16px para más separación */
+  opacity: 0.9;
+  filter: drop-shadow(1px 1px 2px rgba(0,0,0,0.3));
+}
+
+.counter::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%);
+  pointer-events: none;
+}
+
+.counter:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 15px 40px rgba(255, 107, 53, 0.5);
+}
+
+.counter:hover .counter-icon {
+  transform: scale(1.1);
+  transition: transform 0.3s ease;
+}
+
+.counter-value {
+  font-size: 2.8rem; /* Aumentado de 2.2rem a 2.8rem para números más grandes */
+  font-weight: 800;
+  line-height: 1;
 }
 
 /* Estilos para los contadores por ubicación */
@@ -356,7 +399,7 @@ th {
 
 /* Estilos para el modal */
 .modal { display:none; position:fixed; z-index:1000; left:0; top:0; width:200%; height:200%; overflow:auto; background:rgba(0,0,0,0.4);}
-.modal-content { background:#fff; margin:10% auto; padding:20px; border:1px solid #888; width:300px; border-radius:8px;}
+.modal-content { background:#fff; margin:10% auto; padding:20px; border:1px solid #888; width:300px; border-radius:8px; color: #000000;}
 .close { color:#aaa; float:right; font-size:28px; font-weight:bold; cursor:pointer;}
 .close:hover { color:#000; }
 
@@ -371,6 +414,9 @@ html, body {
   flex-direction: column;
   height: 100vh;
   background: #f5f6fa;
+  max-width: 2000px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 .header-card {
@@ -399,6 +445,7 @@ html, body {
 #collaboratorsTable {
   width: 100%;
   border-collapse: collapse;
+  table-layout: auto;
 }
 
 .table-card {
@@ -409,17 +456,25 @@ html, body {
 }
 
 #collaboratorsTable thead th, #collaboratorsTable td {
-  padding: 8px 12px;
+  padding: 12px 20px;
   border-bottom: 1px solid #e0e0e0;
   text-align: left;
   background: #fff;
+  color: #000000;
 }
 
 #collaboratorsTable thead th {
   position: sticky;
   top: 0;
-  background: #f8f8f8;
+  background: #e8e8e8;
   z-index: 2;
+  color: #000000;
+  border-bottom: 2px solid #ccc;
+  border-right: 1px solid #ccc;
+}
+
+#collaboratorsTable thead th:last-child {
+  border-right: none;
 }
 
 .header-title {
@@ -427,6 +482,7 @@ html, body {
   font-size: 2rem;
   font-weight: bold;
   margin-bottom: 18px;
+  color: #000000;
 }
 
 .import-section {
@@ -434,6 +490,7 @@ html, body {
   font-size: 1rem;
   font-weight: bold;
   margin-bottom: 18px;
+  color: #000000;
 }
 
 .header-flex {
@@ -452,12 +509,12 @@ html, body {
 .state-counters-card {
   min-width: 420px;
   max-width: 300px;
-  background: #e7f5e5;
-  border-radius: 8px;
-  box-shadow: 0 10px 4px rgba(0,0,0,0.06);
+  background: #e8e8e8;
+  border-radius: 8px;  
   padding: 16px;
   margin-top: 0;
   margin-bottom: 0;
+  color: #000000;
 }
 
 /* Inputs de Gestión de Datos */
@@ -471,6 +528,7 @@ html, body {
   border: 1px solid #ccc;
   width: 30%;
   box-sizing: border-box;
+  color: #ffffff;
 }
 
 /* Input de Mes de Conciliación */
@@ -481,6 +539,7 @@ html, body {
   border: 1px solid #ccc;
   width: 220px;
   box-sizing: border-box;
+  color: #000000;
 }
 
 /* Resalta el input de mes de conciliación cuando no está seleccionado */
@@ -510,3 +569,802 @@ html, body {
 .message-box.error { background: #f44336; }
 .message-box.success { background: #4caf50; }
 .message-box.info { background: #2196f3; }
+
+/* Centrar el modal en la pantalla */
+#editModal.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0,0,0,0.3);
+    justify-content: center;
+    align-items: center;
+}
+#editModal.modal[style*="block"] {
+    display: flex !important;
+}
+.modal-content {
+    background: #fff;
+    padding: 32px 28px 24px 28px;
+    border-radius: 10px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+    min-width: 340px;
+    max-width: 95vw;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 1rem;
+}
+#editCollaboratorForm input[type="text"],
+#editCollaboratorForm input[type="date"] {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    color: #000000;
+}
+#editCollaboratorForm input[type="text"]:focus,
+#editCollaboratorForm input[type="date"]:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 5px rgba(0,123,255,0.3);
+  color: #000000;
+}
+#editCollaboratorForm button[type="submit"] {
+    background-color: #4CAF50;
+    color: white;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 500;
+    transition: background-color 0.3s ease;
+    margin-top: 8px;
+    width: 100%;
+}
+#editCollaboratorForm button[type="submit"]:hover {
+    background-color: #82d885;
+}
+.modal-content h3 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #000000;
+    text-align: center;
+}
+.close {
+    position: absolute;
+    right: 18px;
+    top: 12px;
+    font-size: 1.5rem;
+    color: #888;
+    cursor: pointer;
+    font-weight: bold;
+}
+.close:hover {
+    color: #333;
+}
+
+/* Estilo para celdas con valor "Si" */
+.cell-si {
+    background-color: #cadfcb !important;
+    color: #333 !important;
+    font-weight: 500;
+}
+
+/* Asegurar que el estilo se aplique incluso con otros estilos */
+#collaboratorsTable tbody td.cell-si {
+    background-color: #cadfcb !important;
+    color: #333 !important;
+}
+
+/* Estilo para celdas con valor "No" */
+.cell-no {
+    background-color: #f5b3ac !important;
+    color: #333 !important;
+    font-weight: 500;
+}
+
+/* Asegurar que el estilo se aplique incluso con otros estilos */
+#collaboratorsTable tbody td.cell-no {
+    background-color: #f5b3ac !important;
+    color: #333 !important;
+}
+
+/* Estilos responsivos principales */
+@media (max-width: 1200px) {
+    .main-container {
+        padding: 10px;
+        max-width: 1800px;
+    }
+    
+    .header-flex {
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .state-counters-card {
+        width: 100%;
+        max-width: none;
+    }
+    
+    .location-buttons {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    .location-button {
+        flex: 1;
+        min-width: 120px;
+        font-size: 0.9rem;
+        padding: 8px 12px;
+    }
+}
+
+@media (max-width: 768px) {
+    .main-container {
+        padding: 5px;
+    }
+    
+    .header-card {
+        padding: 15px;
+    }
+    
+    .header-title {
+        font-size: 1.5rem;
+        text-align: center;
+    }
+    
+    .counters {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .counter {
+        flex: 1;
+        min-width: auto;
+    }
+    
+    .import-section {
+        padding: 15px;
+    }
+    
+    #addCollaboratorForm {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    #addCollaboratorForm input,
+    #addCollaboratorForm button {
+        width: 100%;
+        margin: 0;
+    }
+    
+    .conciliation-section {
+        flex-direction: column;
+        gap: 10px;
+        align-items: stretch;
+    }
+    
+    .table-card {
+        padding: 10px;
+        overflow-x: auto;
+    }
+    
+    #collaboratorsTable {
+        min-width: 800px;
+        font-size: 0.85rem;
+    }
+    
+    #collaboratorsTable thead th,
+    #collaboratorsTable td {
+        padding: 8px 6px;
+        white-space: nowrap;
+    }
+    
+    .location-buttons {
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .location-button {
+        width: 100%;
+        min-width: auto;
+        font-size: 0.85rem;
+        padding: 10px;
+    }
+    
+    /* Modal responsivo */
+    .modal-content {
+        width: 95%;
+        max-width: 400px;
+        margin: 5% auto;
+        padding: 15px;
+    }
+    
+    #editCollaboratorForm {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    #editCollaboratorForm input,
+    #editCollaboratorForm button {
+        width: 100%;
+        margin: 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .main-container {
+        padding: 2px;
+    }
+    
+    .header-card {
+        padding: 10px;
+    }
+    
+    .header-title {
+        font-size: 1.2rem;
+    }
+    
+    .counter {
+        padding: 8px;
+    }
+    
+    .counter-label {
+        font-size: 0.8rem;
+    }
+    
+    .counter-value {
+        font-size: 1.2rem;
+    }
+    
+    .import-section h2 {
+        font-size: 1.1rem;
+    }
+    
+    #addCollaboratorForm {
+        gap: 8px;
+    }
+    
+    #addCollaboratorForm input,
+    #addCollaboratorForm button {
+        padding: 10px;
+        font-size: 0.9rem;
+    }
+    
+    .table-card {
+        padding: 5px;
+    }
+    
+    #collaboratorsTable {
+        min-width: 600px;
+        font-size: 0.75rem;
+    }
+    
+    #collaboratorsTable thead th,
+    #collaboratorsTable td {
+        padding: 6px 4px;
+    }
+    
+    .edit-btn,
+    .delete-btn {
+        padding: 4px 8px;
+        font-size: 0.75rem;
+    }
+    
+    .location-button {
+        font-size: 0.8rem;
+        padding: 8px;
+    }
+    
+    .modal-content {
+        width: 98%;
+        margin: 2% auto;
+        padding: 10px;
+    }
+    
+    .modal-content h3 {
+        font-size: 1.1rem;
+    }
+    
+    #editCollaboratorForm input,
+    #editCollaboratorForm button {
+        padding: 8px;
+        font-size: 0.9rem;
+    }
+}
+
+/* Estilos para tablets en modo landscape */
+@media (min-width: 769px) and (max-width: 1024px) and (orientation: landscape) {
+    .header-flex {
+        flex-direction: row;
+        align-items: flex-start;
+    }
+    
+    .state-counters-card {
+        width: 300px;
+        flex-shrink: 0;
+    }
+    
+    .location-buttons {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .location-button {
+        width: 100%;
+        min-width: auto;
+    }
+}
+
+/* Estilos para pantallas muy grandes */
+@media (min-width: 1400px) {
+    .main-container {
+        max-width: 1800px;
+        margin: 0 auto;
+    }
+    
+    .header-flex {
+        gap: 30px;
+    }
+    
+    .state-counters-card {
+        width: 350px;
+    }
+    
+    .location-button {
+        padding: 12px 20px;
+        font-size: 1.1rem;
+    }
+}
+
+/* Mejoras para accesibilidad en dispositivos táctiles */
+@media (hover: none) and (pointer: coarse) {
+    .location-button {
+        min-height: 44px;
+        padding: 12px 18px;
+    }
+    
+    .edit-btn,
+    .delete-btn {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    input[type="text"],
+    input[type="date"],
+    input[type="month"] {
+        min-height: 44px;
+        font-size: 16px; /* Previene zoom en iOS */
+    }
+    
+    button {
+        min-height: 44px;
+        font-size: 16px;
+    }
+}
+
+/* Estilos para modo oscuro (si el sistema lo soporta) */
+@media (prefers-color-scheme: dark) {
+    body {
+        background-color: #1a1a1a;
+        color: #ffffff;
+    }
+    
+    .header-card,
+    .table-card,
+    .modal-content {
+        /*background-color: #2d2d2d;*/
+
+        color: #ffffff;
+    }
+    
+    .location-button {
+        /*background-color: #3d3d3d;*/
+
+        color: #000000;
+        border-color: #555;
+    }
+    
+    .location-button:hover,
+    .location-button.active {
+        background-color: #82d885;
+        color: #000000;
+    }
+    
+    input[type="text"],
+    input[type="date"],
+    input[type="month"] {
+        /*background-color: #3d3d3d;*/
+
+        color: #ffffff;
+        border-color: #555;
+    }
+    
+    #collaboratorsTable {
+        background-color: #2d2d2d;
+        color: #ffffff;
+    }
+    
+    #collaboratorsTable th {
+        background-color: #3d3d3d;
+        color: #ffffff;
+    }
+    
+    #collaboratorsTable td {
+        border-color: #555;
+    }
+}
+
+/* Mejoras adicionales para dispositivos móviles */
+@media (max-width: 768px) {
+    /* Mejorar la experiencia de scroll horizontal en la tabla */
+    .table-card {
+        position: relative;
+    }
+    
+    .table-card::before {
+        content: "← Desliza para ver más columnas →";
+        position: absolute;
+        top: -25px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #007bff;
+        color: white;
+        padding: 5px 10px;
+        border-radius: 15px;
+        font-size: 0.75rem;
+        z-index: 10;
+        white-space: nowrap;
+    }
+    
+    /* Mejorar la legibilidad de los botones de acción */
+    .edit-btn,
+    .delete-btn {
+        display: block;
+        width: 100%;
+        margin: 2px 0;
+        text-align: center;
+    }
+    
+    /* Mejorar el espaciado de los formularios */
+    #addCollaboratorForm,
+    #editCollaboratorForm {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    /* Hacer los inputs más grandes para facilitar el toque */
+    input[type="text"],
+    input[type="date"],
+    input[type="month"] {
+        padding: 12px;
+        font-size: 16px;
+        border-radius: 8px;
+        border: 2px solid #ddd;
+    }
+    
+    input[type="text"]:focus,
+    input[type="date"]:focus,
+    input[type="month"]:focus {
+        border-color: #007bff;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    }
+    
+    /* Mejorar los botones */
+    button {
+        padding: 12px 20px;
+        font-size: 16px;
+        border-radius: 8px;
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    
+    /* Mejorar los contadores */
+    .counters {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 32px;
+        margin-bottom: 24px;
+    }
+    
+    .counter {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        background: #e5f7e6;
+        font-size: 1.5rem;
+        border-radius: 8px;
+        padding: 12px 20px;
+        min-width: 120px;
+        box-shadow: 0 10px 4px rgba(0,0,0,0.06);
+    }
+}
+
+@media (max-width: 480px) {
+    /* Ajustes específicos para pantallas muy pequeñas */
+    .counters {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .counter {
+        padding: 12px 8px;
+        min-width: auto;
+        width: 100%;
+    }
+    
+    /* Mejorar la navegación de la tabla */
+    .table-card::before {
+        font-size: 0.7rem;
+        padding: 4px 8px;
+        top: -20px;
+    }
+    
+    /* Hacer los checkboxes más grandes */
+    input[type="checkbox"] {
+        transform: scale(1.2);
+        margin: 0 5px;
+    }
+    
+    /* Mejorar el modal en pantallas pequeñas */
+    .modal-content {
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+    
+    .close {
+        position: absolute;
+        top: 10px;
+        right: 15px;
+        font-size: 24px;
+        line-height: 1;
+    }
+}
+
+/* Mejoras para tablets */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .header-flex {
+        gap: 25px;
+    }
+    
+    .state-counters-card {
+        width: 280px;
+    }
+    
+    .location-buttons {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    
+    /* Mejorar la tabla en tablets */
+    #collaboratorsTable {
+        font-size: 0.9rem;
+    }
+    
+    #collaboratorsTable thead th,
+    #collaboratorsTable td {
+        padding: 10px 8px;
+    }
+}
+
+/* Mejoras para pantallas grandes */
+@media (min-width: 1400px) {
+    .main-container {
+        padding: 20px;
+        max-width: 2200px;
+    }
+    
+    .header-card {
+        padding: 30px;
+    }
+    
+    .table-card {
+        padding: 20px;
+    }
+    
+    #collaboratorsTable {
+        font-size: 1rem;
+    }
+    
+    #collaboratorsTable thead th,
+    #collaboratorsTable td {
+        padding: 12px 10px;
+    }
+}
+
+/* Animaciones suaves para mejor UX */
+@media (prefers-reduced-motion: no-preference) {
+    .location-button,
+    .edit-btn,
+    .delete-btn,
+    button {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .modal-content {
+        animation: modalSlideIn 0.3s ease-out;
+    }
+    
+    @keyframes modalSlideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-50px) scale(0.9);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+}
+
+/* Mejoras para lectores de pantalla */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Estilos para impresión */
+@media print {
+    .header-card,
+    .state-counters-card,
+    .edit-btn,
+    .delete-btn,
+    #addCollaboratorForm,
+    .modal {
+        display: none !important;
+    }
+    
+    .table-card {
+        box-shadow: none;
+        border: 1px solid #000;
+    }
+    
+    #collaboratorsTable {
+        font-size: 10pt;
+    }
+    
+    #collaboratorsTable th,
+    #collaboratorsTable td {
+        border: 1px solid #000;
+        padding: 4px;
+    }
+}
+
+input[type="text"],
+input[type="date"],
+input[type="month"] {
+  color: #000000;
+}
+
+/* Estilos para los botones de acción en la tabla */
+.edit-btn,
+.delete-btn {
+  background-color: #82d885;
+  color: #000000;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  margin: 2px;
+  transition: all 0.2s ease;
+}
+
+.edit-btn:hover,
+.delete-btn:hover {
+  background-color: #82d885;
+  transform: scale(1.05);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.edit-btn:active,
+.delete-btn:active {
+  transform: scale(0.95);
+}
+
+/* Estilos específicos para el botón eliminar */
+.delete-btn {
+  background-color: #ff713d;
+}
+
+.delete-btn:hover {
+  background-color: #ff713d;
+}
+
+#collaboratorsTable thead th i.fas {
+  font-size: 2rem;
+  color: #ff6b35;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+#collaboratorsTable thead th:nth-child(8) i.fas,
+#collaboratorsTable thead th:nth-child(9) i.fas {
+  color: #111 !important;
+}
+
+#collaboratorsTable th:last-child,
+#collaboratorsTable td:last-child {
+  min-width: 80px;
+  max-width: 110px;
+  width: 1%;
+  text-align: center;
+  padding-left: 6px;
+  padding-right: 6px;
+}
+
+#collaboratorsTable td:last-child {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 110px;
+  padding-left: 6px;
+  padding-right: 6px;
+}
+
+.edit-btn,
+.delete-btn {
+  display: inline-block;
+  vertical-align: middle;
+  margin: 2px 2px 2px 0;
+}
+
+.edit-btn,
+.delete-btn {
+  min-width: 0;
+  max-width: 48px;
+  padding-left: 6px;
+  padding-right: 6px;
+  font-size: 0.85rem;
+  box-sizing: border-box;
+}
+
+#collaboratorsTable td[data-field="estimulacion"],
+#collaboratorsTable td[data-field="vacaciones"],
+#collaboratorsTable td[data-field="Fin de Misión"],
+#collaboratorsTable td[data-field="diasPresencia"] {
+  font-size: 1.35rem;
+  font-weight: 600;
+  text-align: center;
+  vertical-align: middle;
+  letter-spacing: 0.5px;
+}
+
+#collaboratorsTable td[data-field="Fin de Misión"] {
+  /* Centrar el contenido del checkbox y texto */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+#collaboratorsTable td:nth-child(1),
+#collaboratorsTable td:nth-child(2),
+#collaboratorsTable td:nth-child(3),
+#collaboratorsTable td:nth-child(4) {
+  font-size: 1.18rem;
+  font-weight: 500;
+}
