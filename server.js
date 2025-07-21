@@ -102,21 +102,6 @@ dbInit.query(`CREATE DATABASE IF NOT EXISTS colaboradores_db`, (err) => {
         });
     });
 
-    // Limpiar todos los colaboradores excepto nombre y estado
-    app.put('/api/colaboradores/limpiar', (req, res) => {
-        db.query(
-            `UPDATE colaboradores 
-             SET fecha_salida=NULL, fecha_entrada=NULL, fin_mision=NULL, ubicacion=NULL`,
-            (err, result) => {
-                if (err) {
-                    console.error('Error al limpiar la base de datos:', err);
-                    return res.status(500).json({ error: 'Error al limpiar la base de datos' });
-                }
-                res.json({ success: true, message: 'Datos limpiados correctamente.' });
-            }
-        );
-    });
-
     const PORT = 3001;
     app.listen(PORT, () => {
         console.log(`Servidor backend escuchando en http://localhost:${PORT}`);

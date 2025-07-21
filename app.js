@@ -1195,7 +1195,21 @@ function restoreActiveButton() {
 // Llama a esta función al cargar la página
 document.addEventListener('DOMContentLoaded', () => {
     fetchColaboradores();
-    // ...resto de tu código...
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const query = this.value.trim().toLowerCase();
+            if (!query) {
+                updateTable(allCollaborators);
+                return;
+            }
+            const filtrados = allCollaborators.filter(c =>
+                (c['Nombre y Apellidos'] && c['Nombre y Apellidos'].toLowerCase().includes(query)) ||
+                (c.Estado && c.Estado.toLowerCase().includes(query))
+            );
+            updateTable(filtrados);
+        });
+    }
 });
 
 function mapFrontendToBackend(colaborador) {
@@ -1251,22 +1265,6 @@ function normalizeBackendRow(row) {
         id: row.id
     };
 }
-
-// Evento para limpiar la base de datos
-document.getElementById('clearDatabaseButton').addEventListener('click', function() {
-    if (confirm('¿Estás seguro de que deseas limpiar los datos de colaboradores? Se conservarán solo Ubicación/Estado y Nombre y Apellidos.')) {
-        fetch('http://localhost:3001/api/colaboradores/limpiar', { method: 'PUT' })
-            .then(res => res.json())
-            .then(() => {
-                showMessage('Datos limpiados correctamente. Se conservaron Ubicación/Estado y Nombre y Apellidos.', 'success');
-                fetchColaboradores();                
-            })
-            .catch(err => {
-                showMessage('Error al limpiar los datos.', 'error');
-                console.error(err);                
-            });
-    }
-});
 
 // Submit del formulario para agregar colaborador
 // Solo Estado y Nombre y Apellidos son requeridos
@@ -1623,5 +1621,22 @@ if (conciliationInput) {
             }
         }
         fetchColaboradores();
+    });
+}
+
+// Búsqueda de colaboradores por nombre o estado
+const searchInput = document.getElementById('searchInput');
+if (searchInput) {
+    searchInput.addEventListener('input', function() {
+        const query = this.value.trim().toLowerCase();
+        if (!query) {
+            updateTable(allCollaborators);
+            return;
+        }
+        const filtrados = allCollaborators.filter(c =>
+            (c['Nombre y Apellidos'] && c['Nombre y Apellidos'].toLowerCase().includes(query)) ||
+            (c.Estado && c.Estado.toLowerCase().includes(query))
+        );
+        updateTable(filtrados);
     });
 }
