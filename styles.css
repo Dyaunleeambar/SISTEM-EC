@@ -1375,11 +1375,19 @@ input[type="month"] {
 }
 
 #collaboratorsTable td[data-field="Fin de Misión"] {
-  /* Centrar el contenido del checkbox y texto */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
+  /* display: flex; */
+  /* align-items: center; */
+  /* justify-content: center; */
+  /* gap: 8px; */
+  text-align: center;
+  vertical-align: middle;
+  padding: 0 8px;
+}
+
+#collaboratorsTable td[data-field="Fin de Misión"] > * {
+  border: none !important;
+  background: none !important;
+  box-shadow: none !important;
 }
 
 #collaboratorsTable td:nth-child(1),

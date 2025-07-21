@@ -789,6 +789,7 @@ function updateCounters(data) {
     const withStimulation = data.filter(row => row.Estimulacion === 'Sí').length;
     const onVacation = data.filter(row => row.Vacaciones === 'Sí').length;
     const endOfMission = data.filter(row => row['Fin de Misión'] === 'Sí').length;
+    const withoutStimulation = totalCollaborators - withStimulation;
 
     // Actualizar cada contador
     const totalElement = document.getElementById('totalCollaborators');
@@ -796,6 +797,9 @@ function updateCounters(data) {
 
     const stimElement = document.getElementById('withStimulation');
     if (stimElement) stimElement.textContent = withStimulation;
+
+    const withoutStimElement = document.getElementById('withoutStimulation');
+    if (withoutStimElement) withoutStimElement.textContent = withoutStimulation;
 
     const vacElement = document.getElementById('onVacation');
     if (vacElement) vacElement.textContent = onVacation;
