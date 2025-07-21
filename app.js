@@ -1265,32 +1265,26 @@ document.getElementById('clearDatabaseButton').addEventListener('click', functio
 });
 
 // Submit del formulario para agregar colaborador
+// Solo Estado y Nombre y Apellidos son requeridos
+// No se leen ni envían fechas en el alta
+
 document.getElementById('addCollaboratorForm').addEventListener('submit', function(event) {
     event.preventDefault();
 
     const nombre = document.getElementById('nombreInput').value.trim();
     const estado = document.getElementById('estadoInput').value.trim();
-    const fechaSalida = document.getElementById('fechaSalidaInput').value;
-    const fechaEntrada = document.getElementById('fechaEntradaInput').value;
 
     if (!nombre || !estado) {
         showMessage('Por favor, complete al menos el nombre y la ubicación.', 'error');
         return;
     }
 
-    // Validación de fechas antes de enviar
-    if (fechaEntrada && fechaSalida && !validarFechas(fechaEntrada, fechaSalida)) {
-        showMessage('La fecha de entrada no puede ser anterior a la fecha de salida.', 'error');
-        document.getElementById('fechaEntradaInput').value = '';
-        return;
-    }
-
-    // Construye el objeto colaborador
+    // Construye el objeto colaborador solo con los campos requeridos
     const nuevoColaborador = {
         'Nombre y Apellidos': nombre,
         Estado: estado,
-        'Fecha de Salida': fechaSalida,
-        'Fecha de Entrada': fechaEntrada,
+        'Fecha de Salida': '',
+        'Fecha de Entrada': '',
         'Fin de Misión': 'No',
         Estimulacion: 'Sí',
         Vacaciones: 'No'
@@ -1303,9 +1297,9 @@ document.getElementById('addCollaboratorForm').addEventListener('submit', functi
         body: JSON.stringify({
             nombre: nombre,
             estado: estado,
-            fecha_salida: fechaSalida,
-            fecha_entrada: fechaEntrada,
-            fin_mision: finMision,
+            fecha_salida: '',
+            fecha_entrada: '',
+            fin_mision: 0,
             ubicacion: estado
         })
     })
