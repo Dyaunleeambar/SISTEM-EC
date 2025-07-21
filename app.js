@@ -1075,29 +1075,56 @@ function filterTableByLocation(location) {
 }
 
 // Evento para exportar a Excel
-document.getElementById('exportButton').addEventListener('click', exportarDatos);
+// Reemplazar el evento del botón Exportar para mostrar el modal
+const exportButton = document.getElementById('exportButton');
+const exportModal = document.getElementById('exportModal');
+const closeExportModal = document.getElementById('closeExportModal');
+const exportAllBtn = document.getElementById('exportAllBtn');
+const exportFilteredBtn = document.getElementById('exportFilteredBtn');
 
-function exportarDatos() {
-    // Obtén los datos actuales de la tabla
-    const data = getData();
+if (exportButton && exportModal) {
+    exportButton.addEventListener('click', function(e) {
+        e.preventDefault();
+        exportModal.style.display = 'block';
+    });
+}
+if (closeExportModal && exportModal) {
+    closeExportModal.onclick = function() {
+        exportModal.style.display = 'none';
+    };
+    window.onclick = function(event) {
+        if (event.target == exportModal) {
+            exportModal.style.display = 'none';
+        }
+    };
+}
+if (exportAllBtn) {
+    exportAllBtn.onclick = function() {
+        exportarDatos('all');
+        exportModal.style.display = 'none';
+    };
+}
+if (exportFilteredBtn) {
+    exportFilteredBtn.onclick = function() {
+        exportarDatos('filtered');
+        exportModal.style.display = 'none';
+    };
+}
+
+function exportarDatos(tipo) {
+    let data;
+    if (tipo === 'all') {
+        data = allCollaborators;
+    } else {
+        data = getData();
+    }
     if (!data || data.length === 0) {
         showMessage('No hay datos para exportar.', 'error');
         return;
     }
-
-    // Opcional: puedes filtrar los datos según el botón de ubicación activo
-    // const activeBtn = document.querySelector('.location-button.active');
-    // if (activeBtn && activeBtn.querySelector('span:first-child').textContent !== 'Todos') {
-    //     const location = activeBtn.querySelector('span:first-child').textContent;
-    //     data = data.filter(row => row.Estado === location);
-    // }
-
-    // Convierte los datos a una hoja de Excel
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Colaboradores');
-
-    // Descarga el archivo
     XLSX.writeFile(wb, 'colaboradores_exportados.xlsx');
 }
 

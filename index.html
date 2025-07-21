@@ -101,6 +101,15 @@
         </form>
       </div>
     </div>
+    <!-- Modal de exportación -->
+    <div id="exportModal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <span id="closeExportModal" class="close">&times;</span>
+        <h3>¿Qué datos deseas exportar?</h3>
+        <button id="exportAllBtn"><i class="fas fa-file-excel"></i> Exportar toda la base de datos</button>
+        <button id="exportFilteredBtn" style="margin-top: 12px;"><i class="fas fa-file-excel"></i> Exportar solo lo visible en la tabla</button>
+      </div>
+    </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="app.js"></script>
 </body>
