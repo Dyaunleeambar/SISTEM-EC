@@ -156,7 +156,22 @@ function evaluateVacaciones(row) {
     return hasSalida && !isInFinMision ? 'Sí' : 'No';
 }
 
-// Función para manejar el cambio de fecha
+function filtrarColaboradoresPorFinDeMision(colaboradores, mesConciliacion) {
+    // mesConciliacion formato 'YYYY-MM'
+    const [year, month] = mesConciliacion.split('-').map(Number);
+    const primerDiaMes = new Date(year, month - 1, 1);
+    return colaboradores.filter(c => {
+        if (c['Fin de Misión'] === 'Sí' && c['Fecha de Salida']) {
+            const fechaSalida = parseDateYMD(c['Fecha de Salida']);
+            if (fechaSalida && fechaSalida < primerDiaMes) {
+                return false;
+            }
+        }
+        return true;
+    });
+}
+
+// Modificar updateTable para aplicar el filtro
 function updateTable(data) {
     const tbody = document.querySelector('#collaboratorsTable tbody');
     if (!tbody) return;
@@ -171,6 +186,9 @@ function updateTable(data) {
         const now = new Date();
         mesConciliacion = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     }
+
+    // Filtrar colaboradores según la nueva lógica de Fin de Misión
+    data = filtrarColaboradoresPorFinDeMision(data, mesConciliacion);
 
     data.forEach(row => {
         // Antes de renderizar la fila, forzar coherencia de Fin de Misión
