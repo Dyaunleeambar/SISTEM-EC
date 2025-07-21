@@ -512,13 +512,23 @@ function getData() {
             } else if (field === 'Fin de Misión') {
                 rowData[field] = element.textContent || '';
             } else if (field === 'estimulacion') {
-                // Para el campo de estimulación, calculamos el valor basado en los datos
-                const estadoElement = row.querySelector('[data-field="estado"]');
-                const fechaSalidaElement = row.querySelector('[data-field="Fecha de Salida"]');
-                
-                const estado = estadoElement.textContent || '';
-                const fechaSalida = fechaSalidaElement.value || '';
-                
+                // Calcular días de presencia para esta fila
+                const fechaSalida = row.querySelector('[data-field="Fecha de Salida"]')?.value || '';
+                const fechaEntrada = row.querySelector('[data-field="Fecha de Entrada"]')?.value || '';
+                // Necesitas el mes de conciliación actual
+                const conciliationInput = document.getElementById('conciliationMonth');
+                let mesConciliacion = '';
+                if (conciliationInput && conciliationInput.value) {
+                    mesConciliacion = conciliationInput.value; // formato 'YYYY-MM'
+                } else {
+                    const now = new Date();
+                    mesConciliacion = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                }
+                const diasPresencia = calcularDiasPresencia({
+                    'Fecha de Entrada': fechaEntrada,
+                    'Fecha de Salida': fechaSalida
+                }, mesConciliacion);
+
                 rowData[field] = evaluarEstimulaciónPorDiasPresencia(diasPresencia);
             } else if (field === 'vacaciones') {
                 // Construir el objeto row para evaluar correctamente
@@ -1117,6 +1127,7 @@ function exportarDatos(tipo) {
         data = allCollaborators;
     } else {
         data = getData();
+        console.log('Datos visibles a exportar:', data);
     }
     if (!data || data.length === 0) {
         showMessage('No hay datos para exportar.', 'error');
