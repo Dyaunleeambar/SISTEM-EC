@@ -100,8 +100,11 @@ Sistema web para la gestión y estimulación de colaboradores según su presenci
 
 1. Clona el repositorio.
 2. Instala dependencias con `npm install`.
+   - Esto generará el directorio `node_modules`, que contiene todas las dependencias necesarias para el backend. **No es necesario modificarlo manualmente.**
 3. Ejecuta el backend con `node server.js`.
 4. Abre `index.html` en tu navegador.
+
+> **Nota:** El directorio `node_modules` no se incluye en el repositorio y se genera automáticamente al instalar las dependencias.
 
 ## Notas
 
@@ -109,6 +112,13 @@ Sistema web para la gestión y estimulación de colaboradores según su presenci
 - Los colores de las celdas se aplican automáticamente cada vez que se actualiza la tabla.
 - El backend crea la base de datos y la tabla automáticamente si no existen.
 - La exportación a Excel permite elegir entre toda la base o solo los datos filtrados.
+- **Limpieza manual de Fin de Misión antiguos:**
+  - Botón "Limpiar Fin de Misión antiguos" permite eliminar colaboradores que están de Fin de Misión con fecha de salida anterior al mes de conciliación.
+  - Al hacer clic, se abre un **modal horizontal** que muestra una lista de los colaboradores propuestos para eliminar, cada uno con un **checkbox** para selección individual.
+  - El usuario puede seleccionar/desmarcar a los colaboradores que desea eliminar.
+  - Se muestra una advertencia clara de que la acción es irreversible.
+  - Al confirmar, solo se eliminan los colaboradores seleccionados y se actualiza la tabla.
+  - Si cancela o cierra el modal, no se realiza ninguna acción.
 
 ---
 

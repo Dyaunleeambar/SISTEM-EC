@@ -45,6 +45,7 @@
                   <input type="text" id="nombreInput" placeholder="Nombre y Apellidos" required>                  
                   <button type="submit">Agregar</button>
                   <button id="exportButton" type="button">Exportar a Excel</button>
+                  <button id="cleanOldEndMissionButton" type="button" style="background:#f44336;color:#fff;margin-left:8px;">Limpiar Fin de Misión antiguos</button>
                   <div class="conciliation-section">
                     <label for="conciliationMonth">Mes de Conciliación:</label>
                     <input type="month" id="conciliationMonth">
@@ -108,6 +109,19 @@
         <h3>¿Qué datos deseas exportar?</h3>
         <button id="exportAllBtn"><i class="fas fa-file-excel"></i> Exportar toda la base de datos</button>
         <button id="exportFilteredBtn" style="margin-top: 12px;"><i class="fas fa-file-excel"></i> Exportar solo lo visible en la tabla</button>
+      </div>
+    </div>
+    <!-- Modal de limpieza Fin de Misión antiguos -->
+    <div id="cleanEndMissionModal" class="modal" style="display:none;">
+      <div class="modal-content" style="width: 520px; min-width: 400px; max-width: 90vw;">
+        <span id="closeCleanEndMissionModal" class="close">&times;</span>
+        <h3>Eliminar colaboradores de Fin de Misión antiguos</h3>
+        <div id="cleanEndMissionList" style="max-height:220px;overflow-y:auto;margin-bottom:16px;"></div>
+        <div id="cleanEndMissionWarning" style="color:#f44336;margin-bottom:18px;"></div>
+        <div style="display:flex;gap:16px;justify-content:flex-end;">
+          <button id="confirmCleanEndMissionBtn" style="background:#f44336;color:#fff;">Confirmar eliminación</button>
+          <button id="cancelCleanEndMissionBtn">Cancelar</button>
+        </div>
       </div>
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>

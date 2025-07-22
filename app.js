@@ -1696,3 +1696,85 @@ if (searchInput) {
         updateTable(filtrados);
     });
 }
+
+// --- BOTÓN LIMPIAR FIN DE MISIÓN ANTIGUOS (MODAL PERSONALIZADO) ---
+const cleanOldEndMissionButton = document.getElementById('cleanOldEndMissionButton');
+const cleanEndMissionModal = document.getElementById('cleanEndMissionModal');
+const cleanEndMissionList = document.getElementById('cleanEndMissionList');
+const cleanEndMissionWarning = document.getElementById('cleanEndMissionWarning');
+const confirmCleanEndMissionBtn = document.getElementById('confirmCleanEndMissionBtn');
+const cancelCleanEndMissionBtn = document.getElementById('cancelCleanEndMissionBtn');
+const closeCleanEndMissionModal = document.getElementById('closeCleanEndMissionModal');
+
+let toDeleteEndMission = [];
+
+if (cleanOldEndMissionButton) {
+    cleanOldEndMissionButton.addEventListener('click', function() {
+        const conciliationInput = document.getElementById('conciliationMonth');
+        if (!conciliationInput || !conciliationInput.value) {
+            showMessage('Debe seleccionar el mes de conciliación antes de limpiar.', 'error');
+            return;
+        }
+        const [year, month] = conciliationInput.value.split('-').map(Number);
+        const firstDayOfMonth = new Date(year, month - 1, 1);
+        // Filtrar colaboradores a eliminar
+        toDeleteEndMission = allCollaborators.filter(c => {
+            if (c['Fin de Misión'] !== 'Sí' || !c['Fecha de Salida']) return false;
+            const salida = parseDateYMD(c['Fecha de Salida']);
+            return salida && salida < firstDayOfMonth;
+        });
+        if (toDeleteEndMission.length === 0) {
+            showMessage('No hay colaboradores para eliminar según la regla.', 'info');
+            return;
+        }
+        // Mostrar lista con checkboxes en el modal
+        cleanEndMissionList.innerHTML = `<form id='cleanEndMissionForm'><ul style='padding-left:0;list-style:none;'>` +
+            toDeleteEndMission.map((c, idx) =>
+                `<li style='margin-bottom:6px;display:flex;align-items:center;gap:8px;'>
+                    <input type='checkbox' class='clean-end-mission-checkbox' id='cemc_${idx}' data-id='${c.id}' checked>
+                    <label for='cemc_${idx}' style='cursor:pointer;'><b>${c['Nombre y Apellidos']}</b> (${c.Estado}) - Salida: ${c['Fecha de Salida']}</label>
+                </li>`
+            ).join('') +
+            `</ul></form>`;
+        cleanEndMissionWarning.textContent = `Seleccione los colaboradores a eliminar. Se eliminarán los seleccionados (${toDeleteEndMission.length} propuestos) de Fin de Misión con fecha de salida anterior a ${conciliationInput.value}. Esta acción no se puede deshacer.`;
+        cleanEndMissionModal.style.display = 'block';
+    });
+}
+
+if (cancelCleanEndMissionBtn) {
+    cancelCleanEndMissionBtn.onclick = function() {
+        cleanEndMissionModal.style.display = 'none';
+    };
+}
+if (closeCleanEndMissionModal) {
+    closeCleanEndMissionModal.onclick = function() {
+        cleanEndMissionModal.style.display = 'none';
+    };
+}
+if (confirmCleanEndMissionBtn) {
+    confirmCleanEndMissionBtn.onclick = async function() {
+        const checkboxes = document.querySelectorAll('.clean-end-mission-checkbox');
+        const idsToDelete = Array.from(checkboxes).filter(cb => cb.checked).map(cb => parseInt(cb.dataset.id));
+        if (!idsToDelete.length) {
+            showMessage('No ha seleccionado ningún colaborador para eliminar.', 'error');
+            cleanEndMissionModal.style.display = 'none';
+            return;
+        }
+        for (const id of idsToDelete) {
+            try {
+                await fetch(`http://localhost:3001/api/colaboradores/${id}`, { method: 'DELETE' });
+            } catch (err) {
+                console.error('Error eliminando colaborador:', id, err);
+            }
+        }
+        showMessage(`${idsToDelete.length} colaborador(es) eliminados.`, 'success');
+        cleanEndMissionModal.style.display = 'none';
+        fetchColaboradores();
+    };
+}
+// Cerrar modal si se hace clic fuera del contenido
+window.addEventListener('click', function(event) {
+    if (event.target === cleanEndMissionModal) {
+        cleanEndMissionModal.style.display = 'none';
+    }
+});
