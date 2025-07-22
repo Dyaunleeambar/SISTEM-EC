@@ -507,7 +507,7 @@ html, body {
 
 /* Ajusta la tarjeta de contadores por estado para que no sea muy ancha */
 .state-counters-card {
-  min-width: 420px;
+  min-width: 520px;
   max-width: 300px;
   background: #e8e8e8;
   border-radius: 8px;
@@ -1434,4 +1434,28 @@ input[type="month"] {
   display: flex;
   flex-direction: column;
   align-items: center;
+}
+
+.drag-handle {
+    width: 32px;
+    min-width: 32px;
+    max-width: 32px;
+    cursor: grab;
+    user-select: none;
+    color: #888;
+    transition: color 0.2s;
+}
+.drag-handle:hover {
+    color: #333;
+}
+
+.stim-count {
+    margin-left: 8px;
+    color: #111;
+    font-weight: bold;
+    display: inline-flex;
+    align-items: center;
+}
+.stim-count i.fas.fa-star {
+    margin-right: 2px;
 }

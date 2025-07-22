@@ -31,6 +31,10 @@ Sistema web para la gestión y estimulación de colaboradores según su presenci
 - **Codificación visual por colores** en la tabla:
   - Celdas con valor "Sí": Color de fondo verde claro (#cadfcb)
   - Celdas con valor "No": Color de fondo rojo claro (#f5b3ac)
+- **Reordenar colaboradores con drag & drop:**
+  - Puedes cambiar el orden de los colaboradores arrastrando las filas desde el handle de tres puntitos verticales (⋮) en la primera columna de la tabla.
+  - El nuevo orden se guarda automáticamente en la base de datos y se mantiene al recargar la página.
+  - El sistema usa un campo `orden` en la base de datos para garantizar la persistencia del orden personalizado.
 
 ## Flujo de uso
 

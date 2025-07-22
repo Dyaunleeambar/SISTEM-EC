@@ -190,7 +190,7 @@ function updateTable(data) {
     // Filtrar colaboradores según la nueva lógica de Fin de Misión
     data = filtrarColaboradoresPorFinDeMision(data, mesConciliacion);
 
-    data.forEach(row => {
+    data.forEach((row, rowIndex) => {
         // Antes de renderizar la fila, forzar coherencia de Fin de Misión
         if (!row['Fecha de Salida'] || row['Fecha de Salida'].trim() === '') {
             if (row['Fin de Misión'] === 'Sí') {
@@ -218,8 +218,17 @@ function updateTable(data) {
         const tr = document.createElement('tr');
         tr.className = 'data-row';
         tr.setAttribute('data-id', row.id);
+        tr.setAttribute('draggable', 'true');
 
-        tr.innerHTML = `
+        // Handle de arrastre
+        const dragHandle = document.createElement('td');
+        dragHandle.className = 'drag-handle';
+        dragHandle.style.cursor = 'grab';
+        dragHandle.style.textAlign = 'center';
+        dragHandle.innerHTML = '<span style="font-size:18px;user-select:none;">&#8942;</span>';
+        tr.appendChild(dragHandle);
+
+        tr.innerHTML += `
             <td data-field="estado">${row.Estado}</td>
             <td data-field="nombre">${row['Nombre y Apellidos']}</td>
             <td>
@@ -243,89 +252,145 @@ function updateTable(data) {
             </td>
         `;
         tbody.appendChild(tr);
+    });
 
-        // Evento para el checkbox de Fin de Misión
-        const finMisionCheckbox = tr.querySelector('.fin-mision-checkbox');
-        const finMisionLabel = tr.querySelector('.fin-mision-label');
-        if (finMisionCheckbox) {
-            finMisionCheckbox.addEventListener('change', function() {
-                // Nueva validación: no se puede marcar si no hay mes de conciliación seleccionado
-                if (!isConciliationMonthSelected()) {
-                    showMessage('Debe seleccionar el mes de conciliación antes de marcar Fin de Misión.', 'error');
-                    this.checked = false;
-                    return;
+    // Drag & Drop visual usando el handle
+    let dragSrcEl = null;
+    let dragStartIndex = null;
+    tbody.querySelectorAll('.data-row').forEach((row, idx) => {
+        const handle = row.querySelector('.drag-handle');
+        if (handle) {
+            handle.addEventListener('mousedown', (e) => {
+                row.setAttribute('draggable', 'true');
+            });
+            handle.addEventListener('mouseup', (e) => {
+                row.setAttribute('draggable', 'false');
+            });
+        }
+        row.addEventListener('dragstart', (e) => {
+            dragSrcEl = row;
+            dragStartIndex = idx;
+            row.style.opacity = '0.5';
+        });
+        row.addEventListener('dragend', (e) => {
+            row.style.opacity = '';
+            dragSrcEl = null;
+            dragStartIndex = null;
+        });
+        row.addEventListener('dragover', (e) => {
+            e.preventDefault();
+        });
+        row.addEventListener('drop', (e) => {
+            e.preventDefault();
+            if (dragSrcEl && dragSrcEl !== row) {
+                const rows = Array.from(tbody.querySelectorAll('.data-row'));
+                const from = dragStartIndex;
+                const to = idx;
+                if (from !== to) {
+                    // Reordenar en el DOM
+                    if (from < to) {
+                        tbody.insertBefore(dragSrcEl, row.nextSibling);
+                    } else {
+                        tbody.insertBefore(dragSrcEl, row);
+                    }
+                    // Reordenar en el array de datos y actualizar la tabla
+                    const moved = data.splice(from, 1)[0];
+                    data.splice(to, 0, moved);
+                    // Persistir el nuevo orden en el backend
+                    const ordenPayload = data.map((c, i) => ({ id: c.id, orden: i + 1 }));
+                    fetch('http://localhost:3001/api/colaboradores/orden', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ orden: ordenPayload })
+                    })
+                    .then(() => fetchColaboradores())
+                    .catch(err => console.error('Error actualizando orden:', err));
                 }
-                const id = this.dataset.id;
-                const checked = this.checked;
-                const colaborador = allCollaborators.find(c => c.id == id);
-                if (!colaborador) return;
-                // Validar que haya fecha de salida
-                if (!colaborador['Fecha de Salida'] || colaborador['Fecha de Salida'].trim() === '') {
-                    showMessage('No se puede marcar Fin de Misión: La fecha de salida está vacía', 'error');
-                    this.checked = false;
-                    return;
-                }
-                // Validar que la fecha de salida no sea futura
-                const salidaDate = parseDateYMD(colaborador['Fecha de Salida']);
-                const today = new Date();
-                if (salidaDate > today) {
-                    showMessage('No se puede marcar Fin de Misión: La fecha de salida es futura', 'error');
-                    this.checked = false;
-                    return;
-                }
-                // No se puede marcar si hay fecha de entrada
-                if (colaborador['Fecha de Entrada'] && colaborador['Fecha de Entrada'].trim() !== '') {
-                    showMessage('No se puede marcar Fin de Misión: Existe una fecha de entrada, lo que contradice el fin de misión.', 'error');
-                    this.checked = false;
-                    return;
-                }
-                colaborador['Fin de Misión'] = checked ? 'Sí' : 'No';
-                if (finMisionLabel) finMisionLabel.textContent = checked ? 'Sí' : 'No';
-                // Actualizar en backend
-                fetch(`http://localhost:3001/api/colaboradores/${id}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(mapFrontendToBackend(colaborador))
-                })
-                .then(res => res.json())
-                .then(() => fetchColaboradores())
-                .catch(err => {
-                    showMessage('Error al actualizar colaborador.', 'error');
-                    console.error(err);
+            }
+        });
+    });
+
+    // Evento para el checkbox de Fin de Misión
+    document.querySelectorAll('.fin-mision-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            // Nueva validación: no se puede marcar si no hay mes de conciliación seleccionado
+            if (!isConciliationMonthSelected()) {
+                showMessage('Debe seleccionar el mes de conciliación antes de marcar Fin de Misión.', 'error');
+                this.checked = false;
+                return;
+            }
+            const id = this.dataset.id;
+            const checked = this.checked;
+            const colaborador = allCollaborators.find(c => c.id == id);
+            if (!colaborador) return;
+            // Validar que haya fecha de salida
+            if (!colaborador['Fecha de Salida'] || colaborador['Fecha de Salida'].trim() === '') {
+                showMessage('No se puede marcar Fin de Misión: La fecha de salida está vacía', 'error');
+                this.checked = false;
+                return;
+            }
+            // Validar que la fecha de salida no sea futura
+            const salidaDate = parseDateYMD(colaborador['Fecha de Salida']);
+            const today = new Date();
+            if (salidaDate > today) {
+                showMessage('No se puede marcar Fin de Misión: La fecha de salida es futura', 'error');
+                this.checked = false;
+                return;
+            }
+            // No se puede marcar si hay fecha de entrada
+            if (colaborador['Fecha de Entrada'] && colaborador['Fecha de Entrada'].trim() !== '') {
+                showMessage('No se puede marcar Fin de Misión: Existe una fecha de entrada, lo que contradice el fin de misión.', 'error');
+                this.checked = false;
+                return;
+            }
+            colaborador['Fin de Misión'] = checked ? 'Sí' : 'No';
+            if (finMisionLabel) finMisionLabel.textContent = checked ? 'Sí' : 'No';
+            // Actualizar en backend
+            fetch(`http://localhost:3001/api/colaboradores/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(mapFrontendToBackend(colaborador))
+            })
+            .then(res => res.json())
+            .then(() => fetchColaboradores())
+            .catch(err => {
+                showMessage('Error al actualizar colaborador.', 'error');
+                console.error(err);
+            });
+        });
+    });
+
+    // Deshabilitar input de fecha de entrada si la fecha de salida está vacía o si el mes de conciliación no está seleccionado
+    setTimeout(() => {
+        const entradaInput = tbody.querySelectorAll('input[data-field="Fecha de Entrada"]');
+        const salidaInput = tbody.querySelectorAll('input[data-field="Fecha de Salida"]');
+        const mesSeleccionado = isConciliationMonthSelected();
+        if (entradaInput) {
+            if (!mesSeleccionado || !salidaInput.length || salidaInput.some(input => input.value.trim() === '')) {
+                entradaInput.forEach(input => input.disabled = true);
+                entradaInput.forEach(input => input.style.cursor = 'not-allowed');
+            } else {
+                entradaInput.forEach(input => input.disabled = false);
+                entradaInput.forEach(input => input.style.cursor = 'pointer');
+            }
+        }
+        // Al cambiar la fecha de salida, habilitar/deshabilitar la de entrada según el mes
+        if (salidaInput && entradaInput) {
+            salidaInput.forEach(input => {
+                input.addEventListener('change', function() {
+                    const mesSeleccionado = isConciliationMonthSelected();
+                    if (!mesSeleccionado || !this.value || this.value.trim() === '') {
+                        input.disabled = true;
+                        input.value = '';
+                        input.style.cursor = 'not-allowed';
+                    } else {
+                        input.disabled = false;
+                        input.style.cursor = 'pointer';
+                    }
                 });
             });
         }
-
-        // Deshabilitar input de fecha de entrada si la fecha de salida está vacía o si el mes de conciliación no está seleccionado
-        setTimeout(() => {
-            const entradaInput = tr.querySelector('input[data-field="Fecha de Entrada"]');
-            const salidaInput = tr.querySelector('input[data-field="Fecha de Salida"]');
-            const mesSeleccionado = isConciliationMonthSelected();
-            if (entradaInput) {
-                if (!mesSeleccionado || !row['Fecha de Salida'] || row['Fecha de Salida'].trim() === '') {
-                    entradaInput.disabled = true;
-                    entradaInput.style.cursor = 'not-allowed';
-                } else {
-                    entradaInput.disabled = false;
-                    entradaInput.style.cursor = 'pointer';
-                }
-            }
-            // Al cambiar la fecha de salida, habilitar/deshabilitar la de entrada según el mes
-            if (salidaInput && entradaInput) {
-                salidaInput.addEventListener('change', function() {
-                    const mesSeleccionado = isConciliationMonthSelected();
-                    if (!mesSeleccionado || !this.value || this.value.trim() === '') {
-                        entradaInput.disabled = true;
-                        entradaInput.value = '';
-                        entradaInput.style.cursor = 'not-allowed';
-                    } else {
-                        entradaInput.disabled = false;
-                        entradaInput.style.cursor = 'pointer';
-                    }
-                });
-            }
-        }, 0);
-    });
+    }, 0);
 
     // Evento eliminar
     document.querySelectorAll('.delete-btn').forEach(btn => {
@@ -920,13 +985,11 @@ function updateLocationCounters(data) {
     console.log('Contadores por ubicación:', countersByLocation);
 
     // Crear botón "Todos"
-    const allBtn = document.createElement('div');
+    const stimTotal = data.filter(row => row.Estimulacion === 'Sí').length;
+    const allBtn = document.createElement('button');
     allBtn.className = 'location-button';
-    allBtn.innerHTML = `
-        <span>Todos</span>
-        <span class="state-total">${data.length}</span>
-    `;
-    allBtn.addEventListener('click', () => {
+    allBtn.innerHTML = `Todos (${data.length}) <span class='stim-count'><i class='fas fa-star'></i> ${stimTotal}</span>`;
+    allBtn.onclick = () => {
     const currentActive = document.querySelector('.location-button.active');
     if (currentActive) currentActive.classList.remove('active');
     allBtn.classList.add('active');
@@ -949,7 +1012,7 @@ function updateLocationCounters(data) {
             });
         }
     }
-});
+};
     container.appendChild(allBtn);
 
     // Crear botones para cada ubicación
@@ -1166,9 +1229,11 @@ function updateStateCounters(data) {
 
     // Botones por estado
     Object.entries(stateCounts).forEach(([estado, count]) => {
+        // Calcular cantidad con estímulo en este estado
+        const stimCount = data.filter(c => (c.Estado || 'Sin Ubicación') === estado && c.Estimulacion === 'Sí').length;
         const btn = document.createElement('button');
         btn.className = 'location-button';
-        btn.textContent = `${estado} (${count})`;
+        btn.innerHTML = `${estado} (${count}) <span class='stim-count'><i class='fas fa-star'></i> ${stimCount}</span>`;
         btn.onclick = () => {
             activeFilter = estado;
             const filtrados = allCollaborators.filter(c => (c.Estado || 'Sin Ubicación') === estado);

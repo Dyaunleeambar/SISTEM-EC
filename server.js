@@ -49,9 +49,36 @@ dbInit.query(`CREATE DATABASE IF NOT EXISTS colaboradores_db`, (err) => {
         }
     );
 
+    // Agregar campo 'orden' si no existe
+    db.query(
+        `ALTER TABLE colaboradores ADD COLUMN orden INT DEFAULT 0`,
+        (err) => {
+            if (err && !/Duplicate column name|already exists/.test(err.message)) {
+                console.error('Error añadiendo columna orden:', err.message);
+            }
+        }
+    );
+
+    // Endpoint para actualizar el orden de los colaboradores
+    app.put('/api/colaboradores/orden', (req, res) => {
+        const { orden } = req.body; // [{id: 1, orden: 1}, ...]
+        if (!Array.isArray(orden)) {
+            return res.status(400).json({ error: 'Formato de orden inválido' });
+        }
+        const updates = orden.map(c => new Promise((resolve, reject) => {
+            db.query('UPDATE colaboradores SET orden=? WHERE id=?', [c.orden, c.id], (err) => {
+                if (err) reject(err);
+                else resolve();
+            });
+        }));
+        Promise.all(updates)
+            .then(() => res.json({ success: true }))
+            .catch(err => res.status(500).json({ error: err.message }));
+    });
+
     // Obtener todos los colaboradores
     app.get('/api/colaboradores', (req, res) => {
-        db.query('SELECT * FROM colaboradores', (err, results) => {
+        db.query('SELECT * FROM colaboradores ORDER BY orden ASC, id ASC', (err, results) => {
             if (err) return res.status(500).json({ error: err.message });
             res.json(results);
         });
@@ -72,16 +99,21 @@ dbInit.query(`CREATE DATABASE IF NOT EXISTS colaboradores_db`, (err) => {
                 if (results[0].count > 0) {
                     return res.status(409).json({ error: 'Ya existe un colaborador con el mismo nombre y ubicación.' });
                 }
-                // Si no existe, insertar
-                db.query(
-                    `INSERT INTO colaboradores (nombre, estado, fecha_salida, fecha_entrada, fin_mision, ubicacion)
-                     VALUES (?, ?, ?, ?, ?, ?)`,
-                    [nombre, estado, fecha_salida, fecha_entrada, fin_mision, ubicacion],
-                    (err, result) => {
-                        if (err) return res.status(500).json({ error: err.message });
-                        res.json({ id: result.insertId, nombre, estado, fecha_salida, fecha_entrada, fin_mision, ubicacion });
-                    }
-                );
+                // Obtener el siguiente valor de orden
+                db.query('SELECT MAX(orden) as maxOrden FROM colaboradores', (err, results2) => {
+                    if (err) return res.status(500).json({ error: err.message });
+                    const nextOrden = (results2[0].maxOrden || 0) + 1;
+                    // Si no existe, insertar
+                    db.query(
+                        `INSERT INTO colaboradores (nombre, estado, fecha_salida, fecha_entrada, fin_mision, ubicacion, orden)
+                         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                        [nombre, estado, fecha_salida, fecha_entrada, fin_mision, ubicacion, nextOrden],
+                        (err, result) => {
+                            if (err) return res.status(500).json({ error: err.message });
+                            res.json({ id: result.insertId, nombre, estado, fecha_salida, fecha_entrada, fin_mision, ubicacion, orden: nextOrden });
+                        }
+                    );
+                });
             }
         );
     });
