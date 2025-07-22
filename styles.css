@@ -517,6 +517,12 @@ html, body {
   color: #000000;
 }
 
+.state-counters-card h3 {
+    text-align: center;
+    margin-top: 0;
+    margin-bottom: 12px;
+}
+
 /* Inputs de Gestión de Datos */
 #clearDatabaseButton {
     font-size: 1.15rem;

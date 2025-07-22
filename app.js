@@ -1337,6 +1337,16 @@ document.getElementById('addCollaboratorForm').addEventListener('submit', functi
         return;
     }
 
+    // Validación de duplicados en frontend
+    const exists = allCollaborators.some(c =>
+        (c['Nombre y Apellidos'] || '').trim().toLowerCase() === nombre.toLowerCase() &&
+        (c.Estado || '').trim().toLowerCase() === estado.toLowerCase()
+    );
+    if (exists) {
+        showMessage('Ya existe un colaborador con el mismo nombre y ubicación.', 'error');
+        return;
+    }
+
     // Construye el objeto colaborador solo con los campos requeridos
     const nuevoColaborador = {
         'Nombre y Apellidos': nombre,

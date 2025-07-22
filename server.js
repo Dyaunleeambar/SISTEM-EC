@@ -38,6 +38,17 @@ dbInit.query(`CREATE DATABASE IF NOT EXISTS colaboradores_db`, (err) => {
         )
     `);
 
+    // Intentar agregar restricción UNIQUE a (nombre, estado) para máxima seguridad
+    db.query(
+        `ALTER TABLE colaboradores ADD CONSTRAINT unique_nombre_estado UNIQUE (nombre, estado)`,
+        (err) => {
+            if (err && err.code !== 'ER_DUP_KEYNAME' && !/Duplicate.*unique_nombre_estado/.test(err.message)) {
+                // Solo loguea si el error no es por existencia previa
+                console.error('Error añadiendo restricción UNIQUE:', err.message);
+            }
+        }
+    );
+
     // Obtener todos los colaboradores
     app.get('/api/colaboradores', (req, res) => {
         db.query('SELECT * FROM colaboradores', (err, results) => {
@@ -52,13 +63,25 @@ dbInit.query(`CREATE DATABASE IF NOT EXISTS colaboradores_db`, (err) => {
         if (!req.body || !req.body.nombre || !req.body.estado) {
             return res.status(400).json({ error: 'Faltan datos obligatorios' });
         }
+        // Validación de duplicados en backend
         db.query(
-            `INSERT INTO colaboradores (nombre, estado, fecha_salida, fecha_entrada, fin_mision, ubicacion)
-             VALUES (?, ?, ?, ?, ?, ?)`,
-            [nombre, estado, fecha_salida, fecha_entrada, fin_mision, ubicacion],
-            (err, result) => {
+            'SELECT COUNT(*) as count FROM colaboradores WHERE LOWER(TRIM(nombre)) = ? AND LOWER(TRIM(estado)) = ?',
+            [nombre.trim().toLowerCase(), estado.trim().toLowerCase()],
+            (err, results) => {
                 if (err) return res.status(500).json({ error: err.message });
-                res.json({ id: result.insertId, nombre, estado, fecha_salida, fecha_entrada, fin_mision, ubicacion });
+                if (results[0].count > 0) {
+                    return res.status(409).json({ error: 'Ya existe un colaborador con el mismo nombre y ubicación.' });
+                }
+                // Si no existe, insertar
+                db.query(
+                    `INSERT INTO colaboradores (nombre, estado, fecha_salida, fecha_entrada, fin_mision, ubicacion)
+                     VALUES (?, ?, ?, ?, ?, ?)`,
+                    [nombre, estado, fecha_salida, fecha_entrada, fin_mision, ubicacion],
+                    (err, result) => {
+                        if (err) return res.status(500).json({ error: err.message });
+                        res.json({ id: result.insertId, nombre, estado, fecha_salida, fecha_entrada, fin_mision, ubicacion });
+                    }
+                );
             }
         );
     });
