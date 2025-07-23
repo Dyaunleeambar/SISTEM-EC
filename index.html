@@ -13,46 +13,69 @@
     <div class="header-card">
       <div class="header-flex">
         <div class="header-main">
-          <h1 class="header-title">Sistema de Estimulación para los Colaboradores</h1>
+          <h1 class="header-title">Sistema de Estimulación para los Colaboradores</h1>            
           <div class="counters">
-            <div class="counter">
-              <i class="fas fa-users counter-icon"></i>
-              <span id="totalCollaborators" class="counter-value">0</span>
+            <div class="titulo-counter">
+              <h3 id="total">Total</h3>
+              <div class="counter">
+                <i class="fas fa-users counter-icon"></i>              
+                <span id="totalCollaborators" class="counter-value">0</span>
+              </div>
+            </div> 
+            <div class="titulo-counter">
+              <h3 id="cd">C/Estimulación</h3>
+              <div class="counter">
+                <i class="fas fa-star counter-icon"></i>
+                <span id="withStimulation" class="counter-value">0</span>
+              </div>
             </div>
-            <div class="counter">
-              <i class="fas fa-star counter-icon"></i>
-              <span id="withStimulation" class="counter-value">0</span>
+            <div class="titulo-counter">
+              <h3 id="sd">S/Estimulación</h3>
+              <div class="counter">
+                <i class="far fa-star counter-icon"></i>
+                <span id="withoutStimulation" class="counter-value">0</span>
+              </div>
             </div>
-            <div class="counter">
-              <i class="far fa-star counter-icon"></i>
-              <span id="withoutStimulation" class="counter-value">0</span>
-            </div>
-            <div class="counter">
-              <i class="fas fa-umbrella-beach counter-icon"></i>
-              <span id="onVacation" class="counter-value">0</span>
-            </div>
-            <div class="counter">
-              <i class="fas fa-flag-checkered counter-icon"></i>
-              <span id="endOfMission" class="counter-value">0</span>
-            </div>            
+            <div class="titulo-counter">
+              <h3 id="v">Vacaciones</h3>
+              <div class="counter">
+                <i class="fas fa-umbrella-beach counter-icon"></i>
+                <span id="onVacation" class="counter-value">0</span>
+              </div>
+            </div>  
+            <div class="titulo-counter">
+              <h3 id="fm">Fin de Misión</h3>
+              <div class="counter">
+                <i class="fas fa-flag-checkered counter-icon"></i>
+                <span id="endOfMission" class="counter-value">0</span>
+              </div> 
+            </div>                         
           </div>
           <div id="messageBox" class="message-box"></div>
           <div class="import-section">
             <h2>Gestión de Datos</h2>                 
-            <div class="add-collaborator-section">              
-              <form id="addCollaboratorForm">
-                  <input type="text" id="estadoInput" placeholder="Ubicación/Estado" required>
-                  <input type="text" id="nombreInput" placeholder="Nombre y Apellidos" required>                  
-                  <button type="submit">Agregar</button>
-                  <button id="exportButton" type="button">Exportar a Excel</button>
-                  <button id="cleanOldEndMissionButton" type="button" style="background:#f44336;color:#fff;margin-left:8px;">Limpiar Fin de Misión antiguos</button>
-                  <div class="conciliation-section">
-                    <label for="conciliationMonth">Mes de Conciliación:</label>
-                    <input type="month" id="conciliationMonth">
-                    <input type="text" id="searchInput" placeholder="Buscar colaborador...">
-                  </div>                  
-              </form>
-            </div>                           
+            <div class="collapsible-line">
+              <hr>
+              <div id="toggleFormTab" class="collapsible-tab" title="Mostrar/Ocultar">
+                <i id="toggleIcon" class="fas fa-chevron-up"></i>
+              </div>
+            </div>
+            <div id="collaboratorFormContainer">
+              <div class="add-collaborator-section">              
+                <form id="addCollaboratorForm">
+                    <input type="text" id="estadoInput" placeholder="Ubicación/Estado" required>
+                    <input type="text" id="nombreInput" placeholder="Nombre y Apellidos" required>                  
+                    <button type="submit">Agregar</button>
+                    <button id="exportButton" type="button">Exportar a Excel</button>
+                    <button id="cleanOldEndMissionButton" type="button" style="background:#f44336;color:#fff;margin-left:8px;">Limpiar Fin de Misión antiguos</button>
+                    <div class="conciliation-section">
+                      <label for="conciliationMonth">Mes de Conciliación:</label>
+                      <input type="month" id="conciliationMonth">
+                      <input type="text" id="searchInput" placeholder="Buscar colaborador...">
+                    </div>                  
+                </form>
+              </div>                           
+            </div>
           </div>          
         </div>
         <div class="state-counters-card">
@@ -127,5 +150,19 @@
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="app.js"></script>
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        const tab = document.getElementById('toggleFormTab');
+        const formContainer = document.getElementById('collaboratorFormContainer');
+        const icon = document.getElementById('toggleIcon');
+        let collapsed = false;
+
+        tab.addEventListener('click', function() {
+          collapsed = !collapsed;
+          formContainer.classList.toggle('collapsed', collapsed);
+          icon.className = collapsed ? 'fas fa-chevron-down' : 'fas fa-chevron-up';
+        });
+      });
+    </script>
 </body>
 </html>

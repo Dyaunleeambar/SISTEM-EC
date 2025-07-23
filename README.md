@@ -1,5 +1,11 @@
 # Sistema de Estimulación de Colaboradores
 
+## Novedades recientes
+
+- **Gestión de Datos plegable:** Ahora la sección de Gestión de Datos puede ocultarse o mostrarse mediante una pestaña con flecha, permitiendo un diseño más limpio y enfocado.
+- **Restauración de dimensiones originales:** Las tarjetas de los contadores generales han vuelto a su tamaño original para mejor visibilidad.
+- **Mejoras visuales menores:** Ajustes en la interfaz para una experiencia más intuitiva y moderna.
+
 ## Descripción General
 
 Sistema web para la gestión y estimulación de colaboradores según su presencia en el país durante un mes de conciliación. Permite agregar, editar, filtrar y exportar datos de colaboradores, calculando automáticamente derechos a estimulación, vacaciones y fin de misión según reglas de negocio.
@@ -20,6 +26,7 @@ Sistema web para la gestión y estimulación de colaboradores según su presenci
 ## Funcionalidades principales
 
 - **Agregar colaboradores** manualmente mediante un formulario.
+- **Gestión de Datos plegable:** La sección de gestión de datos (inputs de ubicación, nombre, y botones de acción) puede ocultarse o mostrarse haciendo clic en la pestaña con flecha ubicada debajo del título "Gestión de Datos".
 - **Visualizar y editar** fechas de salida y entrada directamente en la tabla.
 - **Cálculo automático** de estimulación, vacaciones y fin de misión según las reglas de negocio.
 - **Filtrado y contadores** por ubicación y estado, con botones dinámicos y contadores en tiempo real.
