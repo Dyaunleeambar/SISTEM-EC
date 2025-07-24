@@ -1,4 +1,15 @@
 {
+  "name": "sistema-estimulacion-colaboradores",
+  "version": "1.0.0",
+  "description": "Sistema de Estimulación para los Colaboradores",
+  "main": "app.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^6.3.4"
+  },
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^5.1.0",

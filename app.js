@@ -171,7 +171,12 @@ function filtrarColaboradoresPorFinDeMision(colaboradores, mesConciliacion) {
     });
 }
 
-// Modificar updateTable para aplicar el filtro
+/**
+ * Renderiza la tabla de colaboradores en el DOM.
+ * Aplica el filtro de Fin de Misión según el mes de conciliación.
+ * Asigna listeners a los controles de la tabla (checkboxes, fechas, editar, eliminar).
+ * Llama a callback opcional tras renderizar.
+ */
 function updateTable(data, callback) {
     const tbody = document.querySelector('#collaboratorsTable tbody');
     if (!tbody) return;
@@ -579,7 +584,11 @@ function getData() {
     return data;
 }
 
-// Función para manejar cambios en los checkboxes
+/**
+ * Maneja el cambio del checkbox de Fin de Misión.
+ * Valida reglas de negocio y sincroniza el cambio con el backend.
+ * Actualiza la UI y los contadores tras la confirmación del backend.
+ */
 function handleCheckboxChange(event) {
     const checkbox = event.target;
     const dataId = checkbox.dataset.id;
@@ -684,6 +693,11 @@ function handleCheckboxChange(event) {
     });
 }
 
+/**
+ * Maneja el cambio de fechas en la tabla (salida/entrada).
+ * Valida reglas de negocio y sincroniza el cambio con el backend.
+ * Actualiza la UI y los contadores tras la confirmación del backend.
+ */
 function handleDateChange(event) {
     const input = event.target;
     const collaboratorId = input.dataset.id;
@@ -824,6 +838,11 @@ function updateCounters(data) {
     if (endElement) endElement.textContent = endOfMission;
 }
 
+/**
+ * Actualiza los contadores por ubicación/estado en la UI.
+ * Genera los botones de filtro dinámicamente y restaura el botón activo.
+ * Usa los valores actuales del DOM para máxima precisión.
+ */
 function updateLocationCounters(data) {
     // Verificar si el contenedor existe
     const container = document.querySelector('.location-buttons');
@@ -1176,25 +1195,30 @@ function getFilteredCollaborators({ estado = null, search = '' } = {}) {
     return filtered;
 }
 
-// fetchColaboradores ahora aplica estilos y filtro tras renderizar
-function fetchColaboradores() {
-    fetch('http://localhost:3001/api/colaboradores')
-        .then(res => res.json())
-        .then(data => {
-            const normalized = data.map(normalizeBackendRow);
-            allCollaborators = normalized;
-            applyActiveFilter(); // Esto llama a updateTable con el callback
-            updateCounters(normalized);
-            updateStateCounters(normalized);
-            checkConciliationMonth();
-        })
-        .catch(err => {
-            showMessage('Error al cargar colaboradores del servidor.', 'error');
-            console.error(err);
-        });
+/**
+ * Obtiene la lista de colaboradores desde el backend y actualiza la UI.
+ * Normaliza los datos y aplica el filtro activo.
+ * Maneja errores de red o backend.
+ */
+async function fetchColaboradores() {
+    try {
+        const data = await fetchWithHandling('http://localhost:3001/api/colaboradores', {}, 'Error al cargar colaboradores del servidor.');
+        const normalized = data.map(normalizeBackendRow);
+        allCollaborators = normalized;
+        applyActiveFilter();
+        updateCounters(normalized);
+        updateStateCounters(normalized);
+        checkConciliationMonth();
+    } catch (err) {
+        showMessage(err.message, 'error');
+        console.error(err);
+    }
 }
 
-// applyActiveFilter usa la función centralizada y pasa el callback
+/**
+ * Aplica el filtro activo (por estado/ubicación) y actualiza la tabla.
+ * Restaura el botón activo visualmente tras filtrar.
+ */
 function applyActiveFilter() {
     const filtered = getFilteredCollaborators({ estado: activeFilter });
     updateTable(filtered, () => {
@@ -1214,7 +1238,10 @@ if (searchInput) {
     });
 }
 
-// Función para restaurar el botón activo visualmente
+/**
+ * Restaura el botón de filtro activo en la UI tras actualizar los botones.
+ * Busca el botón correspondiente al filtro actual y lo marca como activo.
+ */
 function restoreActiveButton() {
     const buttons = document.querySelectorAll('.location-button');
     buttons.forEach(btn => {
@@ -1261,8 +1288,8 @@ function mapFrontendToBackend(colaborador) {
     };
 }
 
-function updateColaboradorInBackend(colaborador) {
-    // Asegura que todos los campos requeridos existen y que nombre y estado no están vacíos
+// updateColaboradorInBackend usa async/await y fetchWithHandling
+async function updateColaboradorInBackend(colaborador) {
     if (!colaborador['Nombre y Apellidos'] || !colaborador.Estado) {
         showMessage('El colaborador debe tener nombre y estado para guardar cambios.', 'error');
         return;
@@ -1278,12 +1305,16 @@ function updateColaboradorInBackend(colaborador) {
         Vacaciones: colaborador.Vacaciones || 'No'
     };
     const backendColaborador = mapFrontendToBackend(safeColaborador);
-    fetch(`http://localhost:3001/api/colaboradores/${backendColaborador.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(backendColaborador)
-    })
-    .catch(err => console.error('Error al actualizar colaborador:', err));
+    try {
+        await fetchWithHandling(`http://localhost:3001/api/colaboradores/${backendColaborador.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(backendColaborador)
+        }, 'Error al actualizar colaborador.');
+    } catch (err) {
+        showMessage(err.message, 'error');
+        console.error(err);
+    }
 }
 
 function normalizeBackendRow(row) {
@@ -1340,7 +1371,7 @@ function setInlineError(inputId, errorId, message) {
 // Modificar el submit del formulario para mostrar errores inline
 const addCollaboratorForm = document.getElementById('addCollaboratorForm');
 if (addCollaboratorForm) {
-    addCollaboratorForm.addEventListener('submit', function(event) {
+    addCollaboratorForm.addEventListener('submit', async function(event) {
         event.preventDefault();
         const nombre = document.getElementById('nombreInput').value.trim();
         const estado = document.getElementById('estadoInput').value.trim();
@@ -1354,35 +1385,45 @@ if (addCollaboratorForm) {
             hasError = true;
         }
         if (hasError) return;
-        // ... resto del código de submit ...
-        // Limpiar errores inline si todo está bien
         setInlineError('estadoInput', 'estadoInputError', '');
         setInlineError('nombreInput', 'nombreInputError', '');
-        // ... existing code ...
+        // Validación de duplicados en frontend
+        const exists = allCollaborators.some(c =>
+            (c['Nombre y Apellidos'] || '').trim().toLowerCase() === nombre.toLowerCase() &&
+            (c.Estado || '').trim().toLowerCase() === estado.toLowerCase()
+        );
+        if (exists) {
+            showMessage('Ya existe un colaborador con el mismo nombre y ubicación.', 'error');
+            return;
+        }
+        // Construye el objeto colaborador solo con los campos requeridos
+        const nuevoColaborador = {
+            nombre: nombre,
+            estado: estado,
+            fecha_salida: '',
+            fecha_entrada: '',
+            fin_mision: 0,
+            ubicacion: estado
+        };
+        try {
+            await fetchWithHandling('http://localhost:3001/api/colaboradores', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(nuevoColaborador)
+            }, 'Error al agregar colaborador.');
+            addCollaboratorForm.reset();
+            await fetchColaboradores();
+        } catch (err) {
+            showMessage(err.message, 'error');
+            console.error(err);
+        }
     });
 }
 
-// --- Mensajes de error inline para el formulario de edición ---
-function setEditInlineError(inputId, errorId, message) {
-    const input = document.getElementById(inputId);
-    const errorDiv = document.getElementById(errorId);
-    if (errorDiv) errorDiv.textContent = message || '';
-    if (input && message) input.classList.add('input-error');
-    else if (input) input.classList.remove('input-error');
-}
-
-['editNombre', 'editEstado'].forEach(id => {
-    const input = document.getElementById(id);
-    if (input) {
-        input.addEventListener('input', () => {
-            setEditInlineError(id, id === 'editNombre' ? 'editNombreError' : 'editEstadoError', '');
-        });
-    }
-});
-
+// Modificar el submit del formulario de edición
 const editCollaboratorForm = document.getElementById('editCollaboratorForm');
 if (editCollaboratorForm) {
-    editCollaboratorForm.addEventListener('submit', function(event) {
+    editCollaboratorForm.addEventListener('submit', async function(event) {
         event.preventDefault();
         const nombre = document.getElementById('editNombre').value.trim();
         const estado = document.getElementById('editEstado').value.trim();
@@ -1396,11 +1437,8 @@ if (editCollaboratorForm) {
             hasError = true;
         }
         if (hasError) return;
-        // Limpiar errores inline si todo está bien
         setEditInlineError('editNombre', 'editNombreError', '');
         setEditInlineError('editEstado', 'editEstadoError', '');
-        // ... resto del código de submit ...
-        // Aquí puedes dejar el fetch y el cierre del modal como ya estaba
         const id = document.getElementById('editId').value;
         const fechaSalida = document.getElementById('editFechaSalida').value;
         const fechaEntrada = document.getElementById('editFechaEntrada').value;
@@ -1414,28 +1452,25 @@ if (editCollaboratorForm) {
             Estimulacion: 'Sí',
             Vacaciones: 'No'
         };
-        fetch(`http://localhost:3001/api/colaboradores/${id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(mapFrontendToBackend(colaboradorEditado))
-        })
-        .then(res => res.json())
-        .then(() => {
+        try {
+            await fetchWithHandling(`http://localhost:3001/api/colaboradores/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(mapFrontendToBackend(colaboradorEditado))
+            }, 'Error al actualizar colaborador.');
             document.getElementById('editModal').style.display = 'none';
-            fetchColaboradores();
-        })
-        .catch(err => {
-            showMessage('Error al actualizar colaborador.', 'error');
+            await fetchColaboradores();
+        } catch (err) {
+            showMessage(err.message, 'error');
             console.error(err);
-        });
+        }
     });
 }
 
-function validarFechas(fechaEntrada, fechaSalida) {
-    if (!fechaEntrada || !fechaSalida) return true;
-    const entrada = parseDate(fechaEntrada);
-    const salida = parseDate(fechaSalida);
-    if (entrada < salida) {
+function validarFechas(row) {
+    const salida = parseDate(row['Fecha de Salida']);
+    const entrada = parseDate(row['Fecha de Entrada']);
+    if (salida && entrada && entrada < salida) {
         showMessage('La fecha de entrada no puede ser anterior a la fecha de salida.', 'error');
         return false;
     }
@@ -1680,3 +1715,33 @@ window.addEventListener('click', function(event) {
         cleanEndMissionModal.style.display = 'none';
     }
 });
+
+// Exportar funciones puras para testing
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    calcularDiasPresencia,
+    evaluateStimulation,
+    evaluateVacaciones
+  };
+}
+
+/**
+ * Utilidad para fetch con manejo de errores centralizado
+ */
+async function fetchWithHandling(url, options = {}, errorMsg = 'Error de red') {
+    try {
+        const res = await fetch(url, options);
+        if (!res.ok) {
+            let msg = errorMsg;
+            try {
+                const data = await res.json();
+                if (data && data.error) msg = data.error;
+            } catch {}
+            throw new Error(msg);
+        }
+        if (options.method && options.method.toUpperCase() === 'DELETE') return true;
+        return await res.json();
+    } catch (err) {
+        throw new Error(err.message || errorMsg);
+    }
+}

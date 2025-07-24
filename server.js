@@ -7,17 +7,22 @@ app.use(express.json());
 app.use(express.static(__dirname));
 
 // Conexión inicial SIN database
+// Se conecta solo al servidor MySQL para crear la base de datos si no existe
 const dbInit = mysql.createConnection({
     host: 'localhost',
     user: 'root',
     password: 'Cuba123456'
 });
 
-// Crea la base de datos si no existe
+// Crea la base de datos si no existe y luego la tabla y restricciones necesarias
+// Toda la inicialización de la base de datos y la tabla ocurre aquí
+// Esto permite que el backend sea plug-and-play en un entorno limpio
+// También agrega restricciones de unicidad y el campo de orden personalizado
+
 dbInit.query(`CREATE DATABASE IF NOT EXISTS colaboradores_db`, (err) => {
     if (err) throw err;
 
-    // Ahora conecta a la base de datos
+    // Ahora conecta a la base de datos específica
     const db = mysql.createConnection({
         host: 'localhost',
         user: 'root',
@@ -34,11 +39,12 @@ dbInit.query(`CREATE DATABASE IF NOT EXISTS colaboradores_db`, (err) => {
             fecha_salida VARCHAR(20),
             fecha_entrada VARCHAR(20),
             fin_mision TINYINT,
-            ubicacion VARCHAR(255)
+            ubicacion VARCHAR(255),
+            orden INT DEFAULT 0
         )
     `);
 
-    // Intentar agregar restricción UNIQUE a (nombre, estado) para máxima seguridad
+    // Agrega restricción UNIQUE a (nombre, estado) para evitar duplicados
     db.query(
         `ALTER TABLE colaboradores ADD CONSTRAINT unique_nombre_estado UNIQUE (nombre, estado)`,
         (err) => {
@@ -49,34 +55,8 @@ dbInit.query(`CREATE DATABASE IF NOT EXISTS colaboradores_db`, (err) => {
         }
     );
 
-    // Agregar campo 'orden' si no existe
-    db.query(
-        `ALTER TABLE colaboradores ADD COLUMN orden INT DEFAULT 0`,
-        (err) => {
-            if (err && !/Duplicate column name|already exists/.test(err.message)) {
-                console.error('Error añadiendo columna orden:', err.message);
-            }
-        }
-    );
-
-    // Endpoint para actualizar el orden de los colaboradores
-    app.put('/api/colaboradores/orden', (req, res) => {
-        const { orden } = req.body; // [{id: 1, orden: 1}, ...]
-        if (!Array.isArray(orden)) {
-            return res.status(400).json({ error: 'Formato de orden inválido' });
-        }
-        const updates = orden.map(c => new Promise((resolve, reject) => {
-            db.query('UPDATE colaboradores SET orden=? WHERE id=?', [c.orden, c.id], (err) => {
-                if (err) reject(err);
-                else resolve();
-            });
-        }));
-        Promise.all(updates)
-            .then(() => res.json({ success: true }))
-            .catch(err => res.status(500).json({ error: err.message }));
-    });
-
-    // Obtener todos los colaboradores
+    // Endpoint: Obtener todos los colaboradores ordenados
+    // Devuelve la lista completa de colaboradores, ordenados por el campo personalizado 'orden' y luego por id
     app.get('/api/colaboradores', (req, res) => {
         db.query('SELECT * FROM colaboradores ORDER BY orden ASC, id ASC', (err, results) => {
             if (err) return res.status(500).json({ error: err.message });
@@ -84,7 +64,8 @@ dbInit.query(`CREATE DATABASE IF NOT EXISTS colaboradores_db`, (err) => {
         });
     });
 
-    // Middleware para validar que req.body existe y es un objeto
+    // Middleware: Valida que req.body exista y sea un objeto
+    // Se usa en los endpoints POST y PUT para evitar peticiones malformadas
     function validateBody(req, res, next) {
         if (!req.body || typeof req.body !== 'object') {
             return res.status(400).json({ error: 'Cuerpo de la petición vacío o inválido' });
@@ -92,7 +73,8 @@ dbInit.query(`CREATE DATABASE IF NOT EXISTS colaboradores_db`, (err) => {
         next();
     }
 
-    // Agregar un colaborador
+    // Endpoint: Agregar un colaborador
+    // Valida campos obligatorios y unicidad antes de insertar
     app.post('/api/colaboradores', validateBody, (req, res) => {
         const { nombre, estado, fecha_salida, fecha_entrada, fin_mision, ubicacion } = req.body;
         if (!nombre || !estado) {
@@ -126,7 +108,8 @@ dbInit.query(`CREATE DATABASE IF NOT EXISTS colaboradores_db`, (err) => {
         );
     });
 
-    // Actualizar un colaborador
+    // Endpoint: Actualizar un colaborador existente
+    // Valida campos obligatorios antes de actualizar
     app.put('/api/colaboradores/:id', validateBody, (req, res) => {
         const id = parseInt(req.params.id);
         const { nombre, estado, fecha_salida, fecha_entrada, fin_mision, ubicacion } = req.body;
@@ -144,7 +127,8 @@ dbInit.query(`CREATE DATABASE IF NOT EXISTS colaboradores_db`, (err) => {
         );
     });
 
-    // Eliminar un colaborador individual
+    // Endpoint: Eliminar un colaborador individual por id
+    // Devuelve 404 si el colaborador no existe
     app.delete('/api/colaboradores/:id', (req, res) => {
         const id = parseInt(req.params.id);
         db.query('DELETE FROM colaboradores WHERE id=?', [id], (err, result) => {
@@ -156,7 +140,7 @@ dbInit.query(`CREATE DATABASE IF NOT EXISTS colaboradores_db`, (err) => {
         });
     });
 
-    // Eliminar todos los colaboradores (limpieza total)
+    // Endpoint: Eliminar todos los colaboradores (limpieza total)
     // Seguridad: solo borra filas completas, nunca actualiza nombre/estado a NULL o vacío
     app.delete('/api/colaboradores', (req, res) => {
         db.query('DELETE FROM colaboradores', (err, result) => {
@@ -166,6 +150,8 @@ dbInit.query(`CREATE DATABASE IF NOT EXISTS colaboradores_db`, (err) => {
         });
     });
 
+    // Inicia el servidor en el puerto 3001
+    // El backend queda escuchando para peticiones del frontend y de los tests
     const PORT = 3001;
     app.listen(PORT, () => {
         console.log(`Servidor backend escuchando en http://localhost:${PORT}`);

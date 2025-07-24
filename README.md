@@ -9,6 +9,8 @@
 - **Código limpio:** No hay funciones duplicadas ni variables globales innecesarias. Los listeners de eventos están centralizados en `updateTable`.
 - **Validaciones claras:** El mensaje de validación de fechas es consistente y claro en todos los flujos.
 - **Cálculo único de días de presencia:** Solo se usa una función robusta para el cálculo de días de presencia.
+- **Tests automáticos:** El sistema cuenta con tests unitarios (frontend) y de integración (backend) usando Jest y Supertest.
+- **CI/CD:** El proyecto ejecuta los tests automáticamente en cada push/pull request usando GitHub Actions.
 
 ## Descripción General
 
@@ -46,6 +48,11 @@ Sistema web para la gestión y estimulación de colaboradores según su presenci
   - Puedes cambiar el orden de los colaboradores arrastrando las filas desde el handle de tres puntitos verticales (⋮) en la primera columna de la tabla.
   - El nuevo orden se guarda automáticamente en la base de datos y se mantiene al recargar la página.
   - El sistema usa un campo `orden` en la base de datos para garantizar la persistencia del orden personalizado.
+- **Tests automáticos:**
+  - Tests unitarios para la lógica de negocio (frontend) con Jest (`logic.js`).
+  - Tests de integración para la API backend con Jest + Supertest (`server.test.js`).
+- **CI/CD:**
+  - GitHub Actions ejecuta los tests automáticamente en cada push/pull request.
 
 ## Flujo de uso
 
@@ -95,49 +102,111 @@ Sistema web para la gestión y estimulación de colaboradores según su presenci
 - No se puede marcar 'Fin de Misión' si existe una fecha de entrada para el colaborador, ya que esto contradice el concepto de fin de misión. El sistema muestra un mensaje de error y no permite marcar el checkbox en ese caso.
 - **Contadores y filtros dinámicos:** El sistema muestra contadores generales y por estado/ubicación, y permite filtrar la tabla dinámicamente.
 - **Exportación avanzada:** El usuario puede elegir exportar toda la base de datos o solo los datos filtrados/visibles mediante un modal.
-- **Backend Express + MySQL o SQLite3:** El backend crea automáticamente la base de datos y la tabla si no existen, y expone endpoints REST para CRUD de colaboradores. Puede funcionar con MySQL o SQLite3 según configuración.
+- **Backend Express + MySQL:** El backend crea automáticamente la base de datos y la tabla si no existen, y expone endpoints REST para CRUD de colaboradores.
 - **Favicon:** El sistema usa una estrella SVG como favicon.
 - **Listeners centralizados:** Todos los listeners de eventos de la tabla están centralizados en `updateTable` para evitar duplicados y fugas de memoria.
-- **No hay loader visual actualmente.**
+- **Tests automáticos:**
+  - Tests unitarios en `logic.js` (ver sección de testing).
+  - Tests de integración en `server.test.js`.
+- **CI/CD:**
+  - Workflow de GitHub Actions en `.github/workflows/nodejs.yml`.
 
 ## Estructura de archivos relevante
 
 - `index.html`: Estructura de la interfaz y elementos con los IDs requeridos.
 - `styles.css`: Estilos visuales de la aplicación, incluyendo los colores para la codificación visual de celdas.
 - `app.js`: Lógica principal del frontend, manejo de eventos, validaciones, filtros, exportación, etc.
+- `logic.js`: Funciones puras de lógica de negocio, testeables de forma aislada.
 - `server.js`: Backend Express para almacenar y servir los datos de colaboradores, con creación automática de la base de datos y tabla.
+- `app.test.js`: Tests unitarios para la lógica de negocio (frontend).
+- `server.test.js`: Tests de integración para la API backend.
+- `.github/workflows/nodejs.yml`: Workflow de GitHub Actions para CI.
 
 ## Requisitos
 
 - Node.js y npm instalados.
 - Backend corriendo (`node server.js`).
 - Navegador moderno.
-- MySQL corriendo en localhost (usuario: root, password: Cuba123456, base: colaboradores_db) o SQLite3 según configuración.
+- MySQL corriendo en localhost (usuario: root, password: Cuba123456, base: colaboradores_db).
 
 ## Instalación y ejecución
 
 1. Clona el repositorio.
 2. Instala dependencias con `npm install`.
-   - Esto generará el directorio `node_modules`, que contiene todas las dependencias necesarias para el backend. **No es necesario modificarlo manualmente.**
+   - Esto generará el directorio `node_modules`, que contiene todas las dependencias necesarias para el backend y los tests.
 3. Ejecuta el backend con `node server.js`.
 4. Abre `index.html` en tu navegador.
 
 > **Nota:** El directorio `node_modules` no se incluye en el repositorio y se genera automáticamente al instalar las dependencias.
 
-## Notas
+## Testing
 
-- Si ves algún error en consola, revisa que los IDs en el HTML coincidan con los usados en el JS y que el backend esté activo.
-- Los colores de las celdas se aplican automáticamente cada vez que se actualiza la tabla.
-- El backend crea la base de datos y la tabla automáticamente si no existen.
-- La exportación a Excel permite elegir entre toda la base o solo los datos filtrados.
-- **Limpieza manual de Fin de Misión antiguos:**
-  - Botón "Limpiar Fin de Misión antiguos" permite eliminar colaboradores que están de Fin de Misión con fecha de salida anterior al mes de conciliación.
-  - Al hacer clic, se abre un **modal horizontal** que muestra una lista de los colaboradores propuestos para eliminar, cada uno con un **checkbox** para selección individual.
-  - El usuario puede seleccionar/desmarcar a los colaboradores que desea eliminar.
-  - Se muestra una advertencia clara de que la acción es irreversible.
-  - Al confirmar, solo se eliminan los colaboradores seleccionados y se actualiza la tabla.
-  - Si cancela o cierra el modal, no se realiza ninguna acción.
+### Tests unitarios (frontend)
+
+- Las funciones de lógica de negocio están en `logic.js` y se testean con Jest en `app.test.js`.
+- Para correr los tests unitarios:
+  ```bash
+  npm test
+  # o
+  npx jest app.test.js
+  ```
+
+### Tests de integración (backend)
+
+- Los endpoints principales de la API se testean con Jest + Supertest en `server.test.js`.
+- Para correr los tests de integración:
+  ```bash
+  npx jest server.test.js
+  ```
+
+### CI/CD con GitHub Actions
+
+- El workflow `.github/workflows/nodejs.yml` ejecuta automáticamente todos los tests en cada push o pull request a la rama `main`.
+- Puedes ver los resultados en la pestaña "Actions" de tu repositorio en GitHub.
+
+## Estructura de la base de datos
+
+La tabla principal es `colaboradores`:
+
+| Campo         | Tipo         | Descripción                                 |
+|-------------- |------------- |---------------------------------------------|
+| id            | INT          | Identificador autoincremental (PK)          |
+| nombre        | VARCHAR(255) | Nombre y apellidos del colaborador          |
+| estado        | VARCHAR(255) | Ubicación/estado actual                     |
+| fecha_salida  | VARCHAR(20)  | Fecha de salida (YYYY-MM-DD)                |
+| fecha_entrada | VARCHAR(20)  | Fecha de entrada (YYYY-MM-DD)               |
+| fin_mision    | TINYINT      | 1 = Sí, 0 = No                              |
+| ubicacion     | VARCHAR(255) | Ubicación (igual a estado)                  |
+| orden         | INT          | Orden personalizado para drag & drop        |
+
+- La base de datos y la tabla se crean automáticamente al iniciar el backend.
+- El campo `orden` permite reordenar los colaboradores en la tabla.
+- Hay una restricción UNIQUE en (nombre, estado) para evitar duplicados.
+
+## Restauración de backups
+
+- Puedes hacer un backup de la base de datos MySQL usando:
+  ```bash
+  mysqldump -u root -p colaboradores_db > backup.sql
+  ```
+- Para restaurar:
+  ```bash
+  mysql -u root -p colaboradores_db < backup.sql
+  ```
+- Si usas SQLite3, puedes copiar el archivo `.db` directamente.
 
 ---
 
-**¡Listo para usar!**
+**¡Listo para usar y mantener!**
+
+---
+
+## Tareas pendientes / Futuras mejoras
+
+- Migrar a un ORM como Sequelize para mayor flexibilidad y mantenibilidad si la lógica de base de datos crece.
+- Implementar autenticación y control de acceso si el sistema se expone a internet.
+- Agregar paginación y/o virtualización en la tabla y endpoints si el volumen de datos crece.
+- Preparar el frontend para internacionalización (i18n) si se usará en otros países.
+- Automatizar backups de la base de datos.
+- Mejorar el cierre del servidor en los tests de integración para evitar mensajes de Jest sobre handles abiertos.
+- Agregar más tests de validación y casos de error en frontend y backend.
