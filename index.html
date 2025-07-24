@@ -64,11 +64,15 @@
             <div id="collaboratorFormContainer">
               <div class="add-collaborator-section">              
                 <form id="addCollaboratorForm">
-                    <input type="text" id="estadoInput" placeholder="Ubicación/Estado" required>
-                    <input type="text" id="nombreInput" placeholder="Nombre y Apellidos" required>                  
-                    <button type="submit">Agregar</button>
-                    <button id="exportButton" type="button">Exportar a Excel</button>
-                    <button id="cleanOldEndMissionButton" type="button" style="background:#f44336;color:#fff;margin-left:8px;">Limpiar Fin de Misión antiguos</button>
+                    <div class="form-row">
+                      <input type="text" id="estadoInput" placeholder="Ubicación/Estado" required>
+                      <div class="error-inline" id="estadoInputError"></div>
+                      <input type="text" id="nombreInput" placeholder="Nombre y Apellidos" required>
+                      <div class="error-inline" id="nombreInputError"></div>
+                      <button type="submit">Agregar</button>
+                      <button id="exportButton" type="button">Exportar a Excel</button>
+                      <button id="cleanOldEndMissionButton" type="button" style="background:#f44336;color:#fff;margin-left:8px;">Limpiar Fin de Misión antiguos</button>
+                    </div>
                     <div class="conciliation-section">
                       <label for="conciliationMonth">Mes de Conciliación:</label>
                       <input type="month" id="conciliationMonth">
@@ -120,7 +124,9 @@
         <form id="editCollaboratorForm">
           <input type="hidden" id="editId">
           <input type="text" id="editNombre" placeholder="Nombre y Apellidos" required>
+          <div class="error-inline" id="editNombreError"></div>
           <input type="text" id="editEstado" placeholder="Ubicación/Estado" required>
+          <div class="error-inline" id="editEstadoError"></div>
           <input type="date" id="editFechaSalida" placeholder="Fecha de Salida">
           <input type="date" id="editFechaEntrada" placeholder="Fecha de Entrada">
           <button type="submit">Guardar Cambios</button>

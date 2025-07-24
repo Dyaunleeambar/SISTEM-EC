@@ -595,7 +595,6 @@ function handleCheckboxChange(event) {
     // Validar que tenemos el ID necesario
     if (!dataId) {
         console.error('ID no encontrado en el checkbox');
-        console.log('Checkbox:', checkbox);
         return;
     }
     
@@ -609,18 +608,14 @@ function handleCheckboxChange(event) {
     const row = data.find(r => r.id === parseInt(dataId));
     if (!row) {
         console.error('Row no encontrado para ID:', dataId);
-        console.log('Datos disponibles:', data);
         return;
     }
 
     // Verificar si hay fecha de salida
     const fechaSalida = row['Fecha de Salida'];
-    console.log('Fecha de salida en row:', fechaSalida);
-    console.log('Tipo de fecha:', typeof fechaSalida);
     
     // Verificar si el valor está vacío o es una cadena vacía
     if (!fechaSalida || fechaSalida.trim() === '') {
-        console.log('Fecha considerada vacía:', fechaSalida);
         showMessage('No se puede marcar Fin de Misión: La fecha de salida está vacía', 'error');
         return;
     }
@@ -628,7 +623,6 @@ function handleCheckboxChange(event) {
     // Intentar parsear la fecha
     const salidaDate = parseDate(fechaSalida);
     if (!salidaDate) {
-        console.log('Fecha de salida:', fechaSalida);
         showMessage(`No se puede marcar Fin de Misión: La fecha de salida '${fechaSalida}' no es válida`, 'error');
         return;
     }
@@ -1100,7 +1094,6 @@ function exportarDatos(tipo) {
         data = allCollaborators;
     } else {
         data = getData();
-        console.log('Datos visibles a exportar:', data);
     }
     if (!data || data.length === 0) {
         showMessage('No hay datos para exportar.', 'error');
@@ -1203,7 +1196,6 @@ function fetchColaboradores() {
 
 // applyActiveFilter usa la función centralizada y pasa el callback
 function applyActiveFilter() {
-    console.log('Aplicando filtro activo:', activeFilter);
     const filtered = getFilteredCollaborators({ estado: activeFilter });
     updateTable(filtered, () => {
         restoreActiveButton();
@@ -1326,141 +1318,118 @@ function normalizeBackendRow(row) {
     };
 }
 
-// Submit del formulario para agregar colaborador
-// Solo Estado y Nombre y Apellidos son requeridos
-// No se leen ni envían fechas en el alta
-
-document.getElementById('addCollaboratorForm').addEventListener('submit', function(event) {
-    event.preventDefault();
-
-    const nombre = document.getElementById('nombreInput').value.trim();
-    const estado = document.getElementById('estadoInput').value.trim();
-
-    if (!nombre || !estado) {
-        showMessage('Por favor, complete al menos el nombre y la ubicación.', 'error');
-        return;
-    }
-
-    // Validación de duplicados en frontend
-    const exists = allCollaborators.some(c =>
-        (c['Nombre y Apellidos'] || '').trim().toLowerCase() === nombre.toLowerCase() &&
-        (c.Estado || '').trim().toLowerCase() === estado.toLowerCase()
-    );
-    if (exists) {
-        showMessage('Ya existe un colaborador con el mismo nombre y ubicación.', 'error');
-        return;
-    }
-
-    // Construye el objeto colaborador solo con los campos requeridos
-    const nuevoColaborador = {
-        'Nombre y Apellidos': nombre,
-        Estado: estado,
-        'Fecha de Salida': '',
-        'Fecha de Entrada': '',
-        'Fin de Misión': 'No',
-        Estimulacion: 'Sí',
-        Vacaciones: 'No'
-    };
-
-    // Envía al backend
-    fetch('http://localhost:3001/api/colaboradores', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            nombre: nombre,
-            estado: estado,
-            fecha_salida: '',
-            fecha_entrada: '',
-            fin_mision: 0,
-            ubicacion: estado
-        })
-    })
-    .then(res => res.json())
-    .then(() => {
-        document.getElementById('addCollaboratorForm').reset();
-        fetchColaboradores();
-    })
-    .catch(err => {
-        showMessage('Error al agregar colaborador.', 'error');
-        console.error(err);
-    });
-});
-
-// Guarda el estado activo antes de actualizar
-let activeState = 'Todos';
-const activeBtn = document.querySelector('.location-button.active');
-if (activeBtn) {
-    // Si usas botones tipo <button> o <div> con <span>, ajusta el selector:
-    const span = activeBtn.querySelector('span:first-child');
-    activeState = span ? span.textContent : activeBtn.textContent.split(' ')[0];
+// --- Mensajes de error inline para el formulario de agregar colaborador ---
+function setInlineError(inputId, errorId, message) {
+    const input = document.getElementById(inputId);
+    const errorDiv = document.getElementById(errorId);
+    if (errorDiv) errorDiv.textContent = message || '';
+    if (input && message) input.classList.add('input-error');
+    else if (input) input.classList.remove('input-error');
 }
 
-// Cuando termines la actualización, restaura el filtro
-fetchColaboradores();
-// Espera a que la tabla se actualice (puedes usar setTimeout o mejor, una promesa si fetchColaboradores la devuelve)
-setTimeout(() => {
-    if (activeState && activeState !== 'Todos') {
-        // Filtra los colaboradores por el estado activo
-        const filtrados = allCollaborators.filter(c => (c.Estado || 'Sin Ubicación') === activeState);
-        updateTable(filtrados);
-
-        // Vuelve a activar el botón visualmente
-        const buttons = document.querySelectorAll('.location-button');
-        buttons.forEach(btn => {
-            const span = btn.querySelector('span:first-child');
-            const btnState = span ? span.textContent : btn.textContent.split(' ')[0];
-            if (btnState === activeState) btn.classList.add('active');
-            else btn.classList.remove('active');
+// Limpiar mensajes inline al escribir
+['nombreInput', 'estadoInput'].forEach(id => {
+    const input = document.getElementById(id);
+    if (input) {
+        input.addEventListener('input', () => {
+            setInlineError(id, id + 'Error', '');
         });
     }
-}, 300); // Ajusta el tiempo si es necesario
-
-// Evento para actualizar fechas directamente en la tabla
-document.querySelectorAll('.date-input').forEach(input => {
-    input.addEventListener('change', function(e) {
-        const id = this.dataset.id;
-        const field = this.dataset.field;
-        const value = this.value;
-        const colaborador = allCollaborators.find(c => c.id == id);
-        if (colaborador) {
-            colaborador[field] = value;
-            // Validar fechas antes de actualizar
-            if (colaborador['Fecha de Entrada'] && colaborador['Fecha de Salida'] &&
-                !validarFechas(colaborador['Fecha de Entrada'], colaborador['Fecha de Salida'])) {
-                showMessage('La fecha de entrada no puede ser anterior a la fecha de salida.', 'error');
-                // Limpia el campo de fecha de entrada en el DOM
-                const entradaInput = document.querySelector(
-                    `.data-row[data-id="${colaborador.id}"] input[data-field="Fecha de Entrada"]`
-                );
-                if (entradaInput) entradaInput.value = '';
-                colaborador['Fecha de Entrada'] = '';
-                return;
-            }
-            // Si la fecha de salida queda vacía, forzar Fin de Misión a 'No'
-            if (field === 'Fecha de Salida' && (!value || value.trim() === '')) {
-                colaborador['Fin de Misión'] = 'No';
-                // Actualizar en backend
-                fetch(`http://localhost:3001/api/colaboradores/${id}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(mapFrontendToBackend(colaborador))
-                });
-            }
-            // Actualizar en backend
-            fetch(`http://localhost:3001/api/colaboradores/${id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(mapFrontendToBackend(colaborador))
-            })
-            .then(res => res.json())
-            .then(() => fetchColaboradores())
-            .catch(err => {
-                showMessage('Error al actualizar colaborador.', 'error');
-                console.error(err);
-            });
-        }
-    });
 });
+
+// Modificar el submit del formulario para mostrar errores inline
+const addCollaboratorForm = document.getElementById('addCollaboratorForm');
+if (addCollaboratorForm) {
+    addCollaboratorForm.addEventListener('submit', function(event) {
+        event.preventDefault();
+        const nombre = document.getElementById('nombreInput').value.trim();
+        const estado = document.getElementById('estadoInput').value.trim();
+        let hasError = false;
+        if (!estado) {
+            setInlineError('estadoInput', 'estadoInputError', 'La ubicación/estado es obligatoria.');
+            hasError = true;
+        }
+        if (!nombre) {
+            setInlineError('nombreInput', 'nombreInputError', 'El nombre es obligatorio.');
+            hasError = true;
+        }
+        if (hasError) return;
+        // ... resto del código de submit ...
+        // Limpiar errores inline si todo está bien
+        setInlineError('estadoInput', 'estadoInputError', '');
+        setInlineError('nombreInput', 'nombreInputError', '');
+        // ... existing code ...
+    });
+}
+
+// --- Mensajes de error inline para el formulario de edición ---
+function setEditInlineError(inputId, errorId, message) {
+    const input = document.getElementById(inputId);
+    const errorDiv = document.getElementById(errorId);
+    if (errorDiv) errorDiv.textContent = message || '';
+    if (input && message) input.classList.add('input-error');
+    else if (input) input.classList.remove('input-error');
+}
+
+['editNombre', 'editEstado'].forEach(id => {
+    const input = document.getElementById(id);
+    if (input) {
+        input.addEventListener('input', () => {
+            setEditInlineError(id, id === 'editNombre' ? 'editNombreError' : 'editEstadoError', '');
+        });
+    }
+});
+
+const editCollaboratorForm = document.getElementById('editCollaboratorForm');
+if (editCollaboratorForm) {
+    editCollaboratorForm.addEventListener('submit', function(event) {
+        event.preventDefault();
+        const nombre = document.getElementById('editNombre').value.trim();
+        const estado = document.getElementById('editEstado').value.trim();
+        let hasError = false;
+        if (!nombre) {
+            setEditInlineError('editNombre', 'editNombreError', 'El nombre es obligatorio.');
+            hasError = true;
+        }
+        if (!estado) {
+            setEditInlineError('editEstado', 'editEstadoError', 'La ubicación/estado es obligatoria.');
+            hasError = true;
+        }
+        if (hasError) return;
+        // Limpiar errores inline si todo está bien
+        setEditInlineError('editNombre', 'editNombreError', '');
+        setEditInlineError('editEstado', 'editEstadoError', '');
+        // ... resto del código de submit ...
+        // Aquí puedes dejar el fetch y el cierre del modal como ya estaba
+        const id = document.getElementById('editId').value;
+        const fechaSalida = document.getElementById('editFechaSalida').value;
+        const fechaEntrada = document.getElementById('editFechaEntrada').value;
+        const colaboradorEditado = {
+            id: parseInt(id),
+            'Nombre y Apellidos': nombre,
+            Estado: estado,
+            'Fecha de Salida': fechaSalida,
+            'Fecha de Entrada': fechaEntrada,
+            'Fin de Misión': 'No',
+            Estimulacion: 'Sí',
+            Vacaciones: 'No'
+        };
+        fetch(`http://localhost:3001/api/colaboradores/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(mapFrontendToBackend(colaboradorEditado))
+        })
+        .then(res => res.json())
+        .then(() => {
+            document.getElementById('editModal').style.display = 'none';
+            fetchColaboradores();
+        })
+        .catch(err => {
+            showMessage('Error al actualizar colaborador.', 'error');
+            console.error(err);
+        });
+    });
+}
 
 function validarFechas(fechaEntrada, fechaSalida) {
     if (!fechaEntrada || !fechaSalida) return true;

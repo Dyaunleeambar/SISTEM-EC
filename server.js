@@ -84,12 +84,16 @@ dbInit.query(`CREATE DATABASE IF NOT EXISTS colaboradores_db`, (err) => {
         });
     });
 
-    // Agregar un colaborador
-    app.post('/api/colaboradores', (req, res) => {
-        // Validación robusta de cuerpo
+    // Middleware para validar que req.body existe y es un objeto
+    function validateBody(req, res, next) {
         if (!req.body || typeof req.body !== 'object') {
             return res.status(400).json({ error: 'Cuerpo de la petición vacío o inválido' });
         }
+        next();
+    }
+
+    // Agregar un colaborador
+    app.post('/api/colaboradores', validateBody, (req, res) => {
         const { nombre, estado, fecha_salida, fecha_entrada, fin_mision, ubicacion } = req.body;
         if (!nombre || !estado) {
             return res.status(400).json({ error: 'Faltan datos obligatorios' });
@@ -123,11 +127,7 @@ dbInit.query(`CREATE DATABASE IF NOT EXISTS colaboradores_db`, (err) => {
     });
 
     // Actualizar un colaborador
-    app.put('/api/colaboradores/:id', (req, res) => {
-        // Validación robusta de cuerpo
-        if (!req.body || typeof req.body !== 'object') {
-            return res.status(400).json({ error: 'Cuerpo de la petición vacío o inválido' });
-        }
+    app.put('/api/colaboradores/:id', validateBody, (req, res) => {
         const id = parseInt(req.params.id);
         const { nombre, estado, fecha_salida, fecha_entrada, fin_mision, ubicacion } = req.body;
         if (!nombre || !estado) {
