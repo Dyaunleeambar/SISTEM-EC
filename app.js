@@ -172,7 +172,7 @@ function filtrarColaboradoresPorFinDeMision(colaboradores, mesConciliacion) {
 }
 
 // Modificar updateTable para aplicar el filtro
-function updateTable(data) {
+function updateTable(data, callback) {
     const tbody = document.querySelector('#collaboratorsTable tbody');
     if (!tbody) return;
     tbody.innerHTML = '';
@@ -421,6 +421,7 @@ function updateTable(data) {
     applySiCellStyles();
     
     checkConciliationMonth();
+    if (typeof callback === 'function') callback();
 }
 
 // Función para aplicar estilos a celdas con valor "Si" y "No"
@@ -675,53 +676,18 @@ function handleCheckboxChange(event) {
         }
     }
 
-    // Actualizar los contadores después de que el DOM se haya actualizado
-    requestAnimationFrame(() => {
-        // Obtener los datos actualizados
-        const updatedData = getData();
-        
-        // Recalcular la estimulación y vacaciones para todas las
-        updatedData.forEach(row => {
-            const conciliationMonth = getConciliationMonth();
-            row.Estimulacion = evaluateStimulation(row, conciliationMonth);
-            row.Vacaciones = evaluateVacaciones(row);
-        });
-
-        // Actualizar los contadores
-        updateCounters(updatedData);
-        updateLocationCounters(updatedData);
-        
-        // Aplicar estilos de color a las celdas "Sí" y "No"
-        applySiCellStyles();
-        
-        // Mantener el estado activo del botón de ubicación
-        const activeButton = document.querySelector('.location-button.active');
-        const activeState = activeButton ? activeButton.querySelector('span:first-child').textContent : null;
-        
-        // Si había un botón activo, restaurarlo
-        if (activeState) {
-            // Encontrar el botón que tiene el mismo texto
-            const locationButtons = document.querySelectorAll('.location-button');
-            let newActiveButton = null;
-            locationButtons.forEach(button => {
-                const buttonState = button.querySelector('span:first-child').textContent;
-                if (buttonState === activeState) {
-                    newActiveButton = button;
-                }
-            });
-            
-            if (newActiveButton) {
-                newActiveButton.classList.add('active');
-                const details = document.querySelector('.location-details');
-                if (details) {
-                    details.style.display = 'block';
-                }
-            }
-        }
+    // Sincronizar con el backend y refrescar solo cuando termine
+    fetch(`http://localhost:3001/api/colaboradores/${row.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(mapFrontendToBackend(row))
+    })
+    .then(res => res.json())
+    .then(() => fetchColaboradores())
+    .catch(err => {
+        showMessage('Error al actualizar colaborador.', 'error');
+        console.error(err);
     });
-
-    // Sincronizar con el backend
-    updateColaboradorInBackend(row);
 }
 
 function handleDateChange(event) {
@@ -1201,25 +1167,33 @@ function setActiveButton(activeBtn) {
     activeBtn.classList.add('active');
 }
 
+// Centraliza la lógica de filtrado
+function getFilteredCollaborators({ estado = null, search = '' } = {}) {
+    let filtered = allCollaborators;
+    if (estado && estado !== 'Todos') {
+        filtered = filtered.filter(c => (c.Estado || 'Sin Ubicación') === estado);
+    }
+    if (search && search.trim() !== '') {
+        const q = search.trim().toLowerCase();
+        filtered = filtered.filter(c =>
+            (c['Nombre y Apellidos'] && c['Nombre y Apellidos'].toLowerCase().includes(q)) ||
+            (c.Estado && c.Estado.toLowerCase().includes(q))
+        );
+    }
+    return filtered;
+}
+
+// fetchColaboradores ahora aplica estilos y filtro tras renderizar
 function fetchColaboradores() {
     fetch('http://localhost:3001/api/colaboradores')
         .then(res => res.json())
         .then(data => {
-            // Normaliza los datos antes de pasarlos a la UI
             const normalized = data.map(normalizeBackendRow);
             allCollaborators = normalized;
-            
-            // Aplicar el filtro activo después de actualizar los datos
-            applyActiveFilter();
-            
+            applyActiveFilter(); // Esto llama a updateTable con el callback
             updateCounters(normalized);
             updateStateCounters(normalized);
-            checkConciliationMonth(); // <-- Asegura el deshabilitado tras actualizar la tabla
-            
-            // Aplicar estilos después de que la tabla se haya actualizado completamente
-            setTimeout(() => {
-                applySiCellStyles();
-            }, 100);
+            checkConciliationMonth();
         })
         .catch(err => {
             showMessage('Error al cargar colaboradores del servidor.', 'error');
@@ -1227,19 +1201,25 @@ function fetchColaboradores() {
         });
 }
 
-// Función para aplicar el filtro activo
+// applyActiveFilter usa la función centralizada y pasa el callback
 function applyActiveFilter() {
     console.log('Aplicando filtro activo:', activeFilter);
-    
-    if (activeFilter === 'Todos') {
-        updateTable(allCollaborators);
-    } else {
-        const filtrados = allCollaborators.filter(c => (c.Estado || 'Sin Ubicación') === activeFilter);
-        updateTable(filtrados);
-    }
-    
-    // Restaurar el botón activo visualmente
-    restoreActiveButton();
+    const filtered = getFilteredCollaborators({ estado: activeFilter });
+    updateTable(filtered, () => {
+        restoreActiveButton();
+    });
+}
+
+// Buscador usa la función centralizada
+const searchInput = document.getElementById('searchInput');
+if (searchInput) {
+    searchInput.addEventListener('input', function() {
+        const query = this.value.trim().toLowerCase();
+        const filtered = getFilteredCollaborators({ estado: activeFilter, search: query });
+        updateTable(filtered, () => {
+            restoreActiveButton();
+        });
+    });
 }
 
 // Función para restaurar el botón activo visualmente
@@ -1486,7 +1466,11 @@ function validarFechas(fechaEntrada, fechaSalida) {
     if (!fechaEntrada || !fechaSalida) return true;
     const entrada = parseDate(fechaEntrada);
     const salida = parseDate(fechaSalida);
-    return entrada >= salida;
+    if (entrada < salida) {
+        showMessage('La fecha de entrada no puede ser anterior a la fecha de salida.', 'error');
+        return false;
+    }
+    return true;
 }
 
 function showMessage(msg, type = 'info') {
@@ -1500,75 +1484,7 @@ function showMessage(msg, type = 'info') {
     }, 4000);
 }
 
-function calcularDiasPermanencia(colaborador, mesConciliacion) {
-    // mesConciliacion formato 'YYYY-MM'
-    const [year, month] = mesConciliacion.split('-').map(Number);
-    const firstDay = new Date(year, month - 1, 1);
-    const lastDay = new Date(year, month, 0);
-    const prevMonthLastDay = new Date(year, month - 1, 0); // último día del mes anterior
-
-    const fechaSalida = colaborador['Fecha de Salida'] ? new Date(colaborador['Fecha de Salida']) : null;
-    const fechaEntrada = colaborador['Fecha de Entrada'] ? new Date(colaborador['Fecha de Entrada']) : null;
-
-    // 1. Sin fechas de salida ni entrada
-    if (!fechaSalida && !fechaEntrada) {
-        return '-'; // Mostrar '-' si no hay fechas
-    }
-
-    // 2. Solo fecha de salida
-    if (fechaSalida && !fechaEntrada) {
-        // a. Salida dentro del mes de conciliación
-        if (fechaSalida >= firstDay && fechaSalida <= lastDay) {
-            const dias = Math.floor((fechaSalida - firstDay) / (1000 * 60 * 60 * 24)) + 1;
-            return dias > 0 ? dias : '-';
-        }
-        // b. Salida antes del mes de conciliación
-        if (fechaSalida < firstDay) {
-            const diasAcumulados = Math.floor((prevMonthLastDay - fechaSalida) / (1000 * 60 * 60 * 24)) + 1;
-            const total = diasAcumulados + 15;
-            return total > 0 ? total : '-';
-        }
-        // c. Salida después del mes de conciliación
-        if (fechaSalida > lastDay) {
-            return '-';
-        }
-    }
-
-    // 3. Solo fecha de entrada en el mes de conciliación (por validación previa, siempre hay salida)
-    if (fechaSalida && fechaEntrada && !isNaN(fechaEntrada) && !isNaN(fechaSalida) && fechaEntrada >= firstDay && fechaEntrada <= lastDay && fechaSalida < fechaEntrada) {
-        const dias = Math.floor((fechaEntrada - fechaSalida) / (1000 * 60 * 60 * 24)) + 1;
-        return dias > 0 ? dias : '-';
-    }
-
-    // 4. Ambas fechas
-    if (fechaSalida && fechaEntrada) {
-        // a. Entrada después del mes de conciliación
-        if (fechaEntrada > lastDay) {
-            if (fechaSalida <= lastDay) {
-                const dias = Math.floor((lastDay - fechaSalida) / (1000 * 60 * 60 * 24)) + 1;
-                return dias > 0 ? dias : '-';
-            } else {
-                return '-';
-            }
-        }
-        // b. Entrada antes del mes de conciliación
-        if (fechaEntrada < firstDay) {
-            return '-';
-        }
-        // c. Ambas fechas dentro del mes de conciliación
-        if (fechaSalida >= firstDay && fechaSalida <= lastDay && fechaEntrada >= firstDay && fechaEntrada <= lastDay) {
-            const diasHastaSalida = Math.floor((fechaSalida - firstDay) / (1000 * 60 * 60 * 24)) + 1;
-            const diasDesdeEntrada = Math.floor((lastDay - fechaEntrada) / (1000 * 60 * 60 * 24)) + 1;
-            const total = diasHastaSalida + diasDesdeEntrada;
-            return total > 0 ? total : '-';
-        }
-    }
-
-    // 5. Ningún caso
-    return '-';
-}
-
-// Función robusta para parsear fechas en formato YYYY-MM-DD
+// Mueve la función parseDateYMD aquí para que esté antes de calcularDiasPresencia
 function parseDateYMD(fechaString) {
     if (!fechaString) return null;
     const [year, month, day] = fechaString.split('-').map(Number);
@@ -1711,23 +1627,6 @@ if (conciliationInput) {
             }
         }
         fetchColaboradores();
-    });
-}
-
-// Búsqueda de colaboradores por nombre o estado
-const searchInput = document.getElementById('searchInput');
-if (searchInput) {
-    searchInput.addEventListener('input', function() {
-        const query = this.value.trim().toLowerCase();
-        if (!query) {
-            updateTable(allCollaborators);
-            return;
-        }
-        const filtrados = allCollaborators.filter(c =>
-            (c['Nombre y Apellidos'] && c['Nombre y Apellidos'].toLowerCase().includes(query)) ||
-            (c.Estado && c.Estado.toLowerCase().includes(query))
-        );
-        updateTable(filtrados);
     });
 }
 

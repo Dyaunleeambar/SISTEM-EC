@@ -86,8 +86,12 @@ dbInit.query(`CREATE DATABASE IF NOT EXISTS colaboradores_db`, (err) => {
 
     // Agregar un colaborador
     app.post('/api/colaboradores', (req, res) => {
-        const { nombre, estado, fecha_salida, fecha_entrada, fin_mision, ubicacion } = req.body || {};
-        if (!req.body || !req.body.nombre || !req.body.estado) {
+        // Validación robusta de cuerpo
+        if (!req.body || typeof req.body !== 'object') {
+            return res.status(400).json({ error: 'Cuerpo de la petición vacío o inválido' });
+        }
+        const { nombre, estado, fecha_salida, fecha_entrada, fin_mision, ubicacion } = req.body;
+        if (!nombre || !estado) {
             return res.status(400).json({ error: 'Faltan datos obligatorios' });
         }
         // Validación de duplicados en backend
@@ -120,8 +124,12 @@ dbInit.query(`CREATE DATABASE IF NOT EXISTS colaboradores_db`, (err) => {
 
     // Actualizar un colaborador
     app.put('/api/colaboradores/:id', (req, res) => {
+        // Validación robusta de cuerpo
+        if (!req.body || typeof req.body !== 'object') {
+            return res.status(400).json({ error: 'Cuerpo de la petición vacío o inválido' });
+        }
         const id = parseInt(req.params.id);
-        const { nombre, estado, fecha_salida, fecha_entrada, fin_mision, ubicacion } = req.body || {};
+        const { nombre, estado, fecha_salida, fecha_entrada, fin_mision, ubicacion } = req.body;
         if (!nombre || !estado) {
             return res.status(400).json({ error: 'Faltan datos obligatorios para actualizar' });
         }
@@ -148,7 +156,8 @@ dbInit.query(`CREATE DATABASE IF NOT EXISTS colaboradores_db`, (err) => {
         });
     });
 
-    // Eliminar todos los colaboradores
+    // Eliminar todos los colaboradores (limpieza total)
+    // Seguridad: solo borra filas completas, nunca actualiza nombre/estado a NULL o vacío
     app.delete('/api/colaboradores', (req, res) => {
         db.query('DELETE FROM colaboradores', (err, result) => {
             if (err) return res.status(500).json({ error: err.message });

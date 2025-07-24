@@ -2,9 +2,13 @@
 
 ## Novedades recientes
 
-- **Gestión de Datos plegable:** Ahora la sección de Gestión de Datos puede ocultarse o mostrarse mediante una pestaña con flecha, permitiendo un diseño más limpio y enfocado.
-- **Restauración de dimensiones originales:** Las tarjetas de los contadores generales han vuelto a su tamaño original para mejor visibilidad.
-- **Mejoras visuales menores:** Ajustes en la interfaz para una experiencia más intuitiva y moderna.
+- **Colores actualizados:** Las celdas con valor "No" ahora usan un naranja claro (#f7a58a) en vez de rojo, para una mejor experiencia visual.
+- **Flujo de actualización robusto:** Al marcar/desmarcar el checkbox de "Fin de Misión", el cambio se refleja inmediatamente tras la confirmación del backend, sin necesidad de recargar la página.
+- **Sin errores en consola:** El sistema no muestra errores en consola y la experiencia es fluida.
+- **Favicon personalizado:** El sistema usa una estrella SVG como favicon, representando estímulo y logro.
+- **Código limpio:** No hay funciones duplicadas ni variables globales innecesarias. Los listeners de eventos están centralizados en `updateTable`.
+- **Validaciones claras:** El mensaje de validación de fechas es consistente y claro en todos los flujos.
+- **Cálculo único de días de presencia:** Solo se usa una función robusta para el cálculo de días de presencia.
 
 ## Descripción General
 
@@ -37,7 +41,7 @@ Sistema web para la gestión y estimulación de colaboradores según su presenci
 - **Mensajes de éxito y error** en la interfaz.
 - **Codificación visual por colores** en la tabla:
   - Celdas con valor "Sí": Color de fondo verde claro (#cadfcb)
-  - Celdas con valor "No": Color de fondo rojo claro (#f5b3ac)
+  - Celdas con valor "No": Color de fondo naranja claro (#f7a58a)
 - **Reordenar colaboradores con drag & drop:**
   - Puedes cambiar el orden de los colaboradores arrastrando las filas desde el handle de tres puntitos verticales (⋮) en la primera columna de la tabla.
   - El nuevo orden se guarda automáticamente en la base de datos y se mantiene al recargar la página.
@@ -61,6 +65,7 @@ Sistema web para la gestión y estimulación de colaboradores según su presenci
    - Los campos de estimulación, vacaciones y fin de misión se recalculan automáticamente.
    - **No se puede marcar 'Fin de Misión' sin haber seleccionado el mes de conciliación.**
    - **No se puede marcar 'Fin de Misión' si existe una fecha de entrada o si la fecha de salida está vacía o es futura.**
+   - **El cambio de 'Fin de Misión' se refleja inmediatamente tras la confirmación del backend, sin necesidad de recargar.**
 
 4. **Filtrado y contadores**
    - Puedes filtrar por ubicación usando los botones generados dinámicamente.
@@ -80,18 +85,20 @@ Sistema web para la gestión y estimulación de colaboradores según su presenci
   - No se puede marcar si existe una fecha de entrada (contradicción lógica).
   - No se puede marcar sin haber seleccionado el mes de conciliación.
   - No se puede marcar si la fecha de salida está vacía o es futura.
-- **Fechas coherentes**: La fecha de entrada no puede ser anterior a la fecha de salida.
+- **Fechas coherentes**: La fecha de entrada no puede ser anterior a la fecha de salida. El mensaje de error es siempre claro y consistente.
 
 ## Consideraciones técnicas
 
-- El sistema está optimizado y el código limpio, sin logs de depuración innecesarios.
-- **Codificación visual automática**: Las celdas de la tabla se colorean automáticamente según su valor ("Sí" en verde, "No" en rojo).
+- El sistema está optimizado y el código limpio, sin logs de depuración innecesarios ni duplicados.
+- **Codificación visual automática:** Las celdas de la tabla se colorean automáticamente según su valor ("Sí" en verde, "No" en naranja).
 - El mes de conciliación no puede ser mayor al mes actual. Si el usuario intenta seleccionar un mes futuro, el sistema muestra un mensaje de error y no permite la selección.
 - No se puede marcar 'Fin de Misión' si existe una fecha de entrada para el colaborador, ya que esto contradice el concepto de fin de misión. El sistema muestra un mensaje de error y no permite marcar el checkbox en ese caso.
-- **Contadores y filtros dinámicos**: El sistema muestra contadores generales y por estado/ubicación, y permite filtrar la tabla dinámicamente.
-- **Exportación avanzada**: El usuario puede elegir exportar toda la base de datos o solo los datos filtrados/visibles mediante un modal.
-- **Backend Express + MySQL**: El backend crea automáticamente la base de datos y la tabla si no existen, y expone endpoints REST para CRUD de colaboradores.
-- **Dependencia SQLite3**: Está incluida en `package.json` pero no se utiliza actualmente.
+- **Contadores y filtros dinámicos:** El sistema muestra contadores generales y por estado/ubicación, y permite filtrar la tabla dinámicamente.
+- **Exportación avanzada:** El usuario puede elegir exportar toda la base de datos o solo los datos filtrados/visibles mediante un modal.
+- **Backend Express + MySQL o SQLite3:** El backend crea automáticamente la base de datos y la tabla si no existen, y expone endpoints REST para CRUD de colaboradores. Puede funcionar con MySQL o SQLite3 según configuración.
+- **Favicon:** El sistema usa una estrella SVG como favicon.
+- **Listeners centralizados:** Todos los listeners de eventos de la tabla están centralizados en `updateTable` para evitar duplicados y fugas de memoria.
+- **No hay loader visual actualmente.**
 
 ## Estructura de archivos relevante
 
@@ -105,7 +112,7 @@ Sistema web para la gestión y estimulación de colaboradores según su presenci
 - Node.js y npm instalados.
 - Backend corriendo (`node server.js`).
 - Navegador moderno.
-- MySQL corriendo en localhost (usuario: root, password: Cuba123456, base: colaboradores_db).
+- MySQL corriendo en localhost (usuario: root, password: Cuba123456, base: colaboradores_db) o SQLite3 según configuración.
 
 ## Instalación y ejecución
 
