@@ -1826,3 +1826,8 @@ input[type="month"] {
   min-width: 140px;
   max-width: 220px;
 }
+
+.row-edited-cells {
+  background-color: #e8e8e8 !important;
+  transition: background-color 0.5s cubic-bezier(0.4,0,0.2,1);
+}

@@ -315,26 +315,25 @@ function updateTable(data, callback) {
         checkbox.addEventListener('change', handleCheckboxChange);
     });
 
-    // Deshabilitar input de fecha de entrada si la fecha de salida está vacía o si el mes de conciliación no está seleccionado
+    // Deshabilitar input de fecha de entrada si la fecha de salida de la misma fila está vacía o si el mes de conciliación no está seleccionado
     setTimeout(() => {
-        const entradaInput = tbody.querySelectorAll('input[data-field="Fecha de Entrada"]');
-        const salidaInput = tbody.querySelectorAll('input[data-field="Fecha de Salida"]');
-        const mesSeleccionado = isConciliationMonthSelected();
-        if (entradaInput) {
-            if (!mesSeleccionado || !salidaInput.length || Array.from(salidaInput).some(input => input.value.trim() === '')) {
-                entradaInput.forEach(input => input.disabled = true);
-                entradaInput.forEach(input => input.style.cursor = 'not-allowed');
+        const entradaInputs = tbody.querySelectorAll('input[data-field="Fecha de Entrada"]');
+        entradaInputs.forEach(input => {
+            const row = input.closest('.data-row');
+            const salidaInput = row ? row.querySelector('input[data-field="Fecha de Salida"]') : null;
+            const mesSeleccionado = isConciliationMonthSelected();
+            if (!mesSeleccionado || !salidaInput || !salidaInput.value.trim()) {
+                input.disabled = true;
+                input.style.cursor = 'not-allowed';
             } else {
-                entradaInput.forEach(input => input.disabled = false);
-                entradaInput.forEach(input => input.style.cursor = 'pointer');
+                input.disabled = false;
+                input.style.cursor = 'pointer';
             }
-        }
-        // Al cambiar la fecha de salida, habilitar/deshabilitar la de entrada según el mes
-        if (salidaInput && entradaInput) {
-            salidaInput.forEach(input => {
-                input.addEventListener('change', function() {
+            // Listener para cambios en la fecha de salida de la misma fila
+            if (salidaInput) {
+                salidaInput.addEventListener('change', function() {
                     const mesSeleccionado = isConciliationMonthSelected();
-                    if (!mesSeleccionado || !this.value || this.value.trim() === '') {
+                    if (!mesSeleccionado || !this.value.trim()) {
                         input.disabled = true;
                         input.value = '';
                         input.style.cursor = 'not-allowed';
@@ -343,8 +342,8 @@ function updateTable(data, callback) {
                         input.style.cursor = 'pointer';
                     }
                 });
-            });
-        }
+            }
+        });
     }, 0);
 
     // Evento eliminar
@@ -1057,7 +1056,14 @@ async function fetchColaboradores() {
  * Restaura el botón activo visualmente tras filtrar.
  */
 function applyActiveFilter() {
-    const filtered = getFilteredCollaborators({ estado: activeFilter });
+    let filtered = getFilteredCollaborators({ estado: activeFilter });
+    // Si el filtro es 'Todos', ordenar para que Caracas vaya primero
+    if (activeFilter === 'Todos') {
+        filtered = [
+            ...filtered.filter(c => (c.Estado || '').toLowerCase() === 'caracas'),
+            ...filtered.filter(c => (c.Estado || '').toLowerCase() !== 'caracas')
+        ];
+    }
     updateTable(filtered, () => {
         restoreActiveButton();
     });
@@ -1552,6 +1558,19 @@ window.addEventListener('click', function(event) {
         cleanEndMissionModal.style.display = 'none';
     }
 });
+
+// Set para IDs de filas editadas en la sesión
+const editedRows = new Set();
+
+function highlightEditedCells(rowId) {
+    const row = document.querySelector(`.data-row[data-id="${rowId}"]`);
+    if (row) {
+        const estadoCell = row.querySelector('td[data-field="estado"]');
+        const nombreCell = row.querySelector('td[data-field="nombre"]');
+        if (estadoCell) estadoCell.classList.add('row-edited-cells');
+        if (nombreCell) nombreCell.classList.add('row-edited-cells');
+    }
+}
 
 // Exportar funciones puras para testing
 if (typeof module !== 'undefined' && module.exports) {
