@@ -1,3 +1,5 @@
+// Set global para IDs de filas editadas (persistente en localStorage)
+
 function showLoader() {
     document.getElementById('loader').style.display = 'flex';
 }
@@ -224,16 +226,9 @@ function updateTable(data, callback) {
         tr.className = 'data-row';
         tr.setAttribute('data-id', row.id);
         tr.setAttribute('draggable', 'true');
-
-        // Handle de arrastre
-        const dragHandle = document.createElement('td');
-        dragHandle.className = 'drag-handle';
-        dragHandle.style.cursor = 'grab';
-        dragHandle.style.textAlign = 'center';
-        dragHandle.innerHTML = '<span style="font-size:18px;user-select:none;">&#8942;</span>';
-        tr.appendChild(dragHandle);
-
-        tr.innerHTML += `
+        tr.innerHTML = `
+            <td class="drag-handle" style="cursor:grab;text-align:center;"><span style="font-size:18px;user-select:none;">&#8942;</span></td>
+            <td style="text-align:center;">${rowIndex + 1}</td>
             <td data-field="estado">${row.Estado}</td>
             <td data-field="nombre">${row['Nombre y Apellidos']}</td>
             <td>
@@ -799,8 +794,10 @@ function handleDateChange(event) {
         updateLocationCounters(updatedData); 
     });
 
-    // Sincronizar con el backend
-    updateColaboradorInBackend(row);
+    // Sincronizar con el backend y resaltar la fila tras éxito
+    updateColaboradorInBackend(row).then(() => {
+        // No hay resaltado de filas editadas permanentemente
+    });
 }
 
 function validateDates(row) {
@@ -844,214 +841,54 @@ function updateCounters(data) {
  * Usa los valores actuales del DOM para máxima precisión.
  */
 function updateLocationCounters(data) {
-    // Verificar si el contenedor existe
-    const container = document.querySelector('.location-buttons');
-    if (!container) {
-        console.error('Contenedor de botones de ubicación no encontrado');
-        return;
-    }
-    // --- GUARDAR el botón activo ANTES de limpiar ---
-    const prevActive = document.querySelector('.location-button.active');
-    const prevLocation = prevActive ? prevActive.querySelector('span:first-child').textContent : 'Todos';
-    // Limpiar los botones existentes
-    container.innerHTML = '';
+    // Nuevo diseño: header y grid
+    const grid = document.getElementById('stateCountersGrid');
+    const allBtn = document.getElementById('stateFilterAllBtn');
+    if (!grid || !allBtn) return;
+    grid.innerHTML = '';
 
-    // Contadores por ubicación
+    // Contadores por ubicación y por estimulación
     const countersByLocation = {};
-    
-    // Contar los datos por ubicación usando el mismo método que los contadores generales
+    const stimByLocation = {};
     if (data && Array.isArray(data)) {
-        // Obtener los valores del DOM
-        const tbody = document.querySelector('#collaboratorsTable tbody');
-        if (!tbody) {
-            console.error('No se encontró el tbody de la tabla');
-            return;
-        }
-
-        // Obtener todas las filas
-        const rows = tbody.querySelectorAll('.data-row');
-        
-        // Procesar cada fila usando los valores del DOM
-        rows.forEach(row => {
-            const locationCell = row.querySelector('[data-field="estado"]');
-            const vacacionesCell = row.querySelector('[data-field="vacaciones"]');
-            const finMisionCell = row.querySelector('[data-field="Fin de Misión"]');
-            const estimulacionCell = row.querySelector('[data-field="estimulacion"]');
-            if (!locationCell || !vacacionesCell || !finMisionCell || !estimulacionCell) {
-                console.warn('Fila con celdas faltantes:', {
-                    locationCell, vacacionesCell, finMisionCell, estimulacionCell, rowHTML: row.innerHTML
-                });
-                return;
-            }
-            // Solo aquí es seguro acceder a .textContent
-            const location = locationCell.textContent || '';
-            if (!location) return;
-            if (!countersByLocation[location]) {
-                countersByLocation[location] = {
-                    total: 0,
-                    stimulation: 0,
-                    vacation: 0,
-                    mission: 0
-                };
-            }
-            countersByLocation[location].total++;
-            const vacaciones = vacacionesCell.textContent ? vacacionesCell.textContent.trim() : 'No';
-            const finMision = finMisionCell.textContent ? finMisionCell.textContent.trim() : 'No';
-            const estimulacion = estimulacionCell.textContent ? estimulacionCell.textContent.trim() : 'No';
-            if (estimulacion === 'Sí') countersByLocation[location].stimulation++;
-            if (vacaciones === 'Sí') countersByLocation[location].vacation++;
-            if (finMision === 'Sí') countersByLocation[location].mission++;
+        data.forEach(row => {
+            const location = row.Estado || 'Sin Ubicación';
+            if (!countersByLocation[location]) countersByLocation[location] = 0;
+            countersByLocation[location]++;
+            if (!stimByLocation[location]) stimByLocation[location] = 0;
+            if (row.Estimulacion === 'Sí') stimByLocation[location]++;
         });
     }
-    
-    // Log final de contadores por ubicación
-    console.log('Contadores por ubicación:', countersByLocation);
-
-    // Crear botón "Todos"
-    const stimTotal = data.filter(row => row.Estimulacion === 'Sí').length;
-    const allBtn = document.createElement('button');
-    allBtn.className = 'location-button';
-    allBtn.innerHTML = `Todos (${data.length}) <span class='stim-count'><i class='fas fa-star'></i> ${stimTotal}</span>`;
+    // Ordenar ubicaciones por cantidad descendente y luego alfabético
+    const sortedLocations = Object.entries(countersByLocation)
+        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+        .map(([loc]) => loc);
+    // Botón Todos
+    allBtn.textContent = `Todos (${data.length})`;
     allBtn.onclick = () => {
-    const currentActive = document.querySelector('.location-button.active');
-    if (currentActive) currentActive.classList.remove('active');
-    allBtn.classList.add('active');
-    filterTableByLocation('Todos');
-
-    // Mostrar la tarjeta de detalles y poner los valores generales
-    const details = document.querySelector('.location-details');
-    if (details) {
-        details.style.display = 'block';
-        const counterElements = details.querySelectorAll('.counter-value');
-        if (counterElements.length === 4) {
-            // Obtén los valores generales
-            const total = data.length;
-            const stimulation = data.filter(row => row.Estimulacion === 'Sí').length;
-            const vacation = data.filter(row => row.Vacaciones === 'Sí').length;
-            const mission = data.filter(row => row['Fin de Misión'] === 'Sí').length;
-            const values = [total, stimulation, vacation, mission];
-            counterElements.forEach((element, idx) => {
-                element.textContent = values[idx];
-            });
-        }
-    }
-};
-    container.appendChild(allBtn);
-
-    // Crear botones para cada ubicación
-    Object.entries(countersByLocation).forEach(([location, counters]) => {
-        const button = document.createElement('div');
-        button.className = 'location-button';
-        button.innerHTML = `
-            <span>${location}</span>
-            <span class="state-total">${counters.total}</span>
-        `;
-        
-        // Agregar evento click
-        button.addEventListener('click', () => {
-            // Desactivar el botón anterior activo
-            const currentActive = document.querySelector('.location-button.active');
-            if (currentActive) currentActive.classList.remove('active');
-            
-            // Activar el nuevo botón
-            button.classList.add('active');
-            
-            // Mostrar detalles
-            const details = document.querySelector('.location-details');
-            if (details) {
-                details.style.display = 'block';
-                const counterElements = details.querySelectorAll('.counter-value');
-                if (counterElements.length === 4) {
-                    counterElements.forEach(element => {
-                        const label = element.previousElementSibling.textContent;
-                        console.log('Actualizando contador:', label);
-                        console.log('Valor actual:', element.textContent);
-
-                        const propertyMap = {
-                            'Total': 'total',
-                            'Con Estímulo': 'stimulation',
-                            'Vacaciones': 'vacation',
-                            'Fin de Misión': 'mission'
-                        };
-
-                        const propertyName = propertyMap[label];
-
-                        if (propertyName && counters.hasOwnProperty(propertyName)) {
-                            element.textContent = counters[propertyName];
-                        } else {
-                            console.warn('Propiedad no encontrada para label:', label);
-                            element.textContent = '0';
-                        }
-
-                        console.log('Valor final:', element.textContent);
-                    });
-                }
-            }
-
-            // ...
-            filterTableByLocation(location);
-        });
-        container.appendChild(button);
+        activeFilter = 'Todos';
+        updateTable(allCollaborators);
+        setActiveButton(allBtn);
+    };
+    // Generar botones de estado en el grid (máx 6, dos filas de 3)
+    sortedLocations.forEach((location, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'location-button';
+        const total = countersByLocation[location] || 0;
+        const stim = stimByLocation[location] || 0;
+        btn.innerHTML = `${location} (${total}) <span class='stim-count'><i class='fas fa-star'></i> ${stim}</span>`;
+        btn.onclick = () => {
+            activeFilter = location;
+            const filtrados = allCollaborators.filter(c => (c.Estado || 'Sin Ubicación') === location);
+            updateTable(filtrados);
+            setActiveButton(btn);
+        };
+        grid.appendChild(btn);
     });
-
-    // --- NUEVO BLOQUE PARA RESTAURAR EL BOTÓN ACTIVO ---
-    // Buscar cuál era el botón activo antes de limpiar
-    const activeButton = document.querySelector('.location-button.active');
-    const activeLocation = activeButton ? activeButton.querySelector('span:first-child').textContent : null;
-
-    // Después de crear los botones, restaurar el activo
-    const buttons = container.querySelectorAll('.location-button');
-    let restored = false;
-    buttons.forEach(btn => {
-        const btnLocation = btn.querySelector('span:first-child').textContent;
-        if (btnLocation === prevLocation) {
-            btn.classList.add('active');
-            filterTableByLocation(prevLocation);
-            restored = true;
-            // ...después de btn.classList.add('active'); filterTableByLocation(prevLocation); restored = true
-
-            // Actualizar los contadores de la tarjeta de detalles en tiempo real
-            const details = document.querySelector('.location-details');
-            if (details && countersByLocation[prevLocation]) {
-                const counterElements = details.querySelectorAll('.counter-value');
-                const counters = countersByLocation[prevLocation];
-                if (counterElements.length === 4) {
-                    const propertyMap = ['total', 'stimulation', 'vacation', 'mission'];
-                    counterElements.forEach((element, idx) => {
-                        element.textContent = counters[propertyMap[idx]] ?? '0';
-                    });
-                }
-            }
-        }
-    });
-    if (!restored) {
-        // Si no se restauró, activar "Todos"
-        const allBtn = container.querySelector('.location-button');
-        if (allBtn) {
-            allBtn.classList.add('active');
-            filterTableByLocation('Todos');
-        }
-    }
-
-    // Si el botón activo es "Todos", actualiza la tarjeta de detalles con los valores generales
-    const activeBtn = container.querySelector('.location-button.active');
-    if (activeBtn && activeBtn.querySelector('span:first-child').textContent === 'Todos') {
-        const details = document.querySelector('.location-details');
-        if (details) {
-            details.style.display = 'block';
-            const counterElements = details.querySelectorAll('.counter-value');
-            if (counterElements.length === 4) {
-                const total = data.length;
-                const stimulation = data.filter(row => row.Estimulacion === 'Sí').length;
-                const vacation = data.filter(row => row.Vacaciones === 'Sí').length;
-                const mission = data.filter(row => row['Fin de Misión'] === 'Sí').length;
-                const values = [total, stimulation, vacation, mission];
-                counterElements.forEach((element, idx) => {
-                    element.textContent = values[idx];
-                });
-            }
-        }
-    }
+    // Restaurar el botón activo
+    setTimeout(() => {
+        setActiveButton(activeFilter === 'Todos' ? allBtn : Array.from(grid.children).find(btn => btn.textContent.includes(activeFilter)));
+    }, 0);
 }
 
 // Función para filtrar la tabla por ubicación
@@ -1207,7 +1044,7 @@ async function fetchColaboradores() {
         allCollaborators = normalized;
         applyActiveFilter();
         updateCounters(normalized);
-        updateStateCounters(normalized);
+        updateLocationCounters(normalized);
         checkConciliationMonth();
     } catch (err) {
         showMessage(err.message, 'error');

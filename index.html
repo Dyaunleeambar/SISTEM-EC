@@ -16,45 +16,42 @@
         <div class="header-main">
           <h1 class="header-title">Sistema de Estimulación para los Colaboradores</h1>            
           <div class="counters">
-            <div class="titulo-counter">
-              <h3 id="total">Total</h3>
-              <div class="counter">
-                <i class="fas fa-users counter-icon"></i>              
-                <span id="totalCollaborators" class="counter-value">0</span>
-              </div>
-            </div> 
-            <div class="titulo-counter">
-              <h3 id="cd">C/Estimulación</h3>
-              <div class="counter">
-                <i class="fas fa-star counter-icon"></i>
-                <span id="withStimulation" class="counter-value">0</span>
-              </div>
+            <div class="counter-horizontal">
+              <i class="fas fa-users counter-icon"></i>
+              <span class="counter-value" id="totalCollaborators">0</span>
+              <span class="counter-label">Total</span>
             </div>
-            <div class="titulo-counter">
-              <h3 id="sd">S/Estimulación</h3>
-              <div class="counter">
-                <i class="far fa-star counter-icon"></i>
-                <span id="withoutStimulation" class="counter-value">0</span>
-              </div>
+            <div class="counter-horizontal">
+              <i class="fas fa-star counter-icon"></i>
+              <span class="counter-value" id="withStimulation">0</span>
+              <span class="counter-label">C/Estimulación</span>
             </div>
-            <div class="titulo-counter">
-              <h3 id="v">Vacaciones</h3>
-              <div class="counter">
-                <i class="fas fa-umbrella-beach counter-icon"></i>
-                <span id="onVacation" class="counter-value">0</span>
-              </div>
-            </div>  
-            <div class="titulo-counter">
-              <h3 id="fm">Fin de Misión</h3>
-              <div class="counter">
-                <i class="fas fa-flag-checkered counter-icon"></i>
-                <span id="endOfMission" class="counter-value">0</span>
-              </div> 
-            </div>                         
+            <div class="counter-horizontal">
+              <i class="far fa-star counter-icon"></i>
+              <span class="counter-value" id="withoutStimulation">0</span>
+              <span class="counter-label">S/Estimulación</span>
+            </div>
+            <div class="counter-horizontal">
+              <i class="fas fa-umbrella-beach counter-icon"></i>
+              <span class="counter-value" id="onVacation">0</span>
+              <span class="counter-label">Vacaciones</span>
+            </div>
+            <div class="counter-horizontal">
+              <i class="fas fa-flag-checkered counter-icon"></i>
+              <span class="counter-value" id="endOfMission">0</span>
+              <span class="counter-label">Fin de Misión</span>
+            </div>
           </div>
           <div id="messageBox" class="message-box"></div>
           <div class="import-section">
-            <h2>Gestión de Datos</h2>                 
+            <div class="import-header-flex">
+              <h2 class="import-title">Gestión de Datos</h2>
+              <div class="import-controls">
+                <label for="conciliationMonth">Mes de Conciliación:</label>
+                <input type="month" id="conciliationMonth">
+                <input type="text" id="searchInput" placeholder="Buscar colaborador...">
+              </div>
+            </div>
             <div class="collapsible-line">
               <hr>
               <div id="toggleFormTab" class="collapsible-tab" title="Mostrar/Ocultar">
@@ -73,19 +70,17 @@
                       <button id="exportButton" type="button">Exportar a Excel</button>
                       <button id="cleanOldEndMissionButton" type="button" style="background:#f44336;color:#fff;margin-left:8px;">Limpiar Fin de Misión antiguos</button>
                     </div>
-                    <div class="conciliation-section">
-                      <label for="conciliationMonth">Mes de Conciliación:</label>
-                      <input type="month" id="conciliationMonth">
-                      <input type="text" id="searchInput" placeholder="Buscar colaborador...">
-                    </div>                  
                 </form>
               </div>                           
             </div>
           </div>          
         </div>
         <div class="state-counters-card">
-          <h3>Contadores por Estado</h3>
-          <div id="stateCountersContent" class="location-buttons">
+          <div class="state-counters-header">
+            <h3>Contadores por Estado</h3>
+            <button id="stateFilterAllBtn" class="location-button location-button-todos">Todos (0)</button>
+          </div>
+          <div id="stateCountersGrid" class="location-buttons-grid">
             <!-- Aquí se generan los botones dinámicamente -->
           </div>
         </div>
@@ -99,6 +94,7 @@
           <thead>
               <tr>
                 <th style="width:32px;"></th>
+                <th style="width:40px;">N°</th>
                 <th>Estado</th>
                 <th>Nombre del Colaborador</th>
                 <th>Fecha de Salida</th>
