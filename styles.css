@@ -674,29 +674,31 @@ html, body {
 }
 
 /* Estilo para celdas con valor "Si" */
-.cell-si {
-    background-color: #cadfcb !important;
-    color: #333 !important;
+#collaboratorsTable td.cell-si {
+    background-color: #cadfcb;
+    color: #333;
     font-weight: 500;
 }
 
 /* Asegurar que el estilo se aplique incluso con otros estilos */
 #collaboratorsTable tbody td.cell-si {
-    background-color: #cadfcb !important;
-    color: #333 !important;
+    background-color: #cadfcb;
+    color: #333;
+    font-weight: 500;
 }
 
 /* Estilo para celdas con valor "No" */
-.cell-no {
-    background-color: #f5b3ac !important;
-    color: #333 !important;
+#collaboratorsTable td.cell-no {
+    background-color: #f7a58a;
+    color: #333;
     font-weight: 500;
 }
 
 /* Asegurar que el estilo se aplique incluso con otros estilos */
 #collaboratorsTable tbody td.cell-no {
-    background-color: #f5b3ac !important;
-    color: #333 !important;
+    background-color: #f7a58a;
+    color: #333;
+    font-weight: 500;
 }
 
 /* Estilos responsivos principales */

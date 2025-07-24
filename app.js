@@ -312,52 +312,7 @@ function updateTable(data) {
 
     // Evento para el checkbox de Fin de Misión
     document.querySelectorAll('.fin-mision-checkbox').forEach(checkbox => {
-        checkbox.addEventListener('change', function() {
-            // Nueva validación: no se puede marcar si no hay mes de conciliación seleccionado
-            if (!isConciliationMonthSelected()) {
-                showMessage('Debe seleccionar el mes de conciliación antes de marcar Fin de Misión.', 'error');
-                this.checked = false;
-                return;
-            }
-            const id = this.dataset.id;
-            const checked = this.checked;
-            const colaborador = allCollaborators.find(c => c.id == id);
-            if (!colaborador) return;
-            // Validar que haya fecha de salida
-            if (!colaborador['Fecha de Salida'] || colaborador['Fecha de Salida'].trim() === '') {
-                showMessage('No se puede marcar Fin de Misión: La fecha de salida está vacía', 'error');
-                this.checked = false;
-                return;
-            }
-            // Validar que la fecha de salida no sea futura
-            const salidaDate = parseDateYMD(colaborador['Fecha de Salida']);
-            const today = new Date();
-            if (salidaDate > today) {
-                showMessage('No se puede marcar Fin de Misión: La fecha de salida es futura', 'error');
-                this.checked = false;
-                return;
-            }
-            // No se puede marcar si hay fecha de entrada
-            if (colaborador['Fecha de Entrada'] && colaborador['Fecha de Entrada'].trim() !== '') {
-                showMessage('No se puede marcar Fin de Misión: Existe una fecha de entrada, lo que contradice el fin de misión.', 'error');
-                this.checked = false;
-                return;
-            }
-            colaborador['Fin de Misión'] = checked ? 'Sí' : 'No';
-            if (finMisionLabel) finMisionLabel.textContent = checked ? 'Sí' : 'No';
-            // Actualizar en backend
-            fetch(`http://localhost:3001/api/colaboradores/${id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(mapFrontendToBackend(colaborador))
-            })
-            .then(res => res.json())
-            .then(() => fetchColaboradores())
-            .catch(err => {
-                showMessage('Error al actualizar colaborador.', 'error');
-                console.error(err);
-            });
-        });
+        checkbox.addEventListener('change', handleCheckboxChange);
     });
 
     // Deshabilitar input de fecha de entrada si la fecha de salida está vacía o si el mes de conciliación no está seleccionado
@@ -366,7 +321,7 @@ function updateTable(data) {
         const salidaInput = tbody.querySelectorAll('input[data-field="Fecha de Salida"]');
         const mesSeleccionado = isConciliationMonthSelected();
         if (entradaInput) {
-            if (!mesSeleccionado || !salidaInput.length || salidaInput.some(input => input.value.trim() === '')) {
+            if (!mesSeleccionado || !salidaInput.length || Array.from(salidaInput).some(input => input.value.trim() === '')) {
                 entradaInput.forEach(input => input.disabled = true);
                 entradaInput.forEach(input => input.style.cursor = 'not-allowed');
             } else {
@@ -472,22 +427,16 @@ function updateTable(data) {
 function applySiCellStyles() {
     const tableCells = document.querySelectorAll('#collaboratorsTable tbody td');
     tableCells.forEach(cell => {
-        // Limpiar clases anteriores
         cell.classList.remove('cell-si', 'cell-no');
-        
-        // Verificar si el contenido es "Si" o "No" (ignorando espacios y mayúsculas/minúsculas)
-        const cellText = cell.textContent.trim();
-        if (cellText === 'Si' || cellText === 'Sí' || cellText === 'SI' || cellText === 'sí') {
+        // Buscar el texto principal de la celda (si hay span, usar su texto)
+        let cellText = cell.innerText || cell.textContent || '';
+        cellText = cellText.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, "");
+        if (cellText === 'si') {
             cell.classList.add('cell-si');
-        } else if (cellText === 'No' || cellText === 'NO' || cellText === 'no') {
+        } else if (cellText === 'no') {
             cell.classList.add('cell-no');
         }
     });
-    
-    // Debug: mostrar cuántas celdas se encontraron y se aplicó el estilo
-    const siCells = document.querySelectorAll('#collaboratorsTable tbody td.cell-si');
-    const noCells = document.querySelectorAll('#collaboratorsTable tbody td.cell-no');
-    console.log(`Se aplicó estilo a ${siCells.length} celdas con valor "Si" y ${noCells.length} celdas con valor "No"`);
 }
 
 // Mostrar el modal y rellenar los datos
@@ -614,7 +563,11 @@ function getData() {
                 if (vacacionesElement && vacacionesElement.textContent !== vacacionesValue) {
                     vacacionesElement.textContent = vacacionesValue;
         }
-    } else {
+    } else if (field === 'nombre') {
+                rowData['Nombre y Apellidos'] = element.textContent || '';
+            } else if (field === 'estado') {
+                rowData['Estado'] = element.textContent || '';
+            } else {
                 // Para otros campos, usar value si existe, sino textContent
                 rowData[field] = element.value || element.textContent || '';
             }
@@ -630,6 +583,13 @@ function handleCheckboxChange(event) {
     const checkbox = event.target;
     const dataId = checkbox.dataset.id;
     const dataField = checkbox.dataset.field;
+    
+    // Validar que se haya escogido un mes de conciliación
+    if (!isConciliationMonthSelected()) {
+        showMessage('Debe seleccionar el mes de conciliación antes de marcar Fin de Misión.', 'error');
+        checkbox.checked = false;
+        return;
+    }
     
     // Validar que tenemos el ID necesario
     if (!dataId) {
@@ -690,11 +650,11 @@ function handleCheckboxChange(event) {
     // Obtener la fila y actualizar los elementos
     const rowElement = checkbox.closest('.data-row');
     if (rowElement) {
-        // Actualizar el valor visible en la tabla
-        const finMisionCell = rowElement.querySelector('[data-field="Fin de Misión"]');
-        if (finMisionCell) {
-            finMisionCell.textContent = row['Fin de Misión'];
-        }
+        // Actualizar solo el texto del label y el estado del checkbox, sin reemplazar el innerHTML
+        const finMisionLabel = rowElement.querySelector('.fin-mision-label');
+        if (finMisionLabel) finMisionLabel.textContent = row['Fin de Misión'];
+        const finMisionCheckbox = rowElement.querySelector('.fin-mision-checkbox');
+        if (finMisionCheckbox) finMisionCheckbox.checked = row['Fin de Misión'] === 'Sí';
 
         // Deshabilitar/habilitar el input de Fecha de Entrada
         const entradaInput = rowElement.querySelector('[data-field="Fecha de Entrada"]');
@@ -730,6 +690,9 @@ function handleCheckboxChange(event) {
         // Actualizar los contadores
         updateCounters(updatedData);
         updateLocationCounters(updatedData);
+        
+        // Aplicar estilos de color a las celdas "Sí" y "No"
+        applySiCellStyles();
         
         // Mantener el estado activo del botón de ubicación
         const activeButton = document.querySelector('.location-button.active');
@@ -931,9 +894,19 @@ function updateLocationCounters(data) {
         
         // Procesar cada fila usando los valores del DOM
         rows.forEach(row => {
-            const location = row.querySelector('[data-field="estado"]')?.textContent || '';
+            const locationCell = row.querySelector('[data-field="estado"]');
+            const vacacionesCell = row.querySelector('[data-field="vacaciones"]');
+            const finMisionCell = row.querySelector('[data-field="Fin de Misión"]');
+            const estimulacionCell = row.querySelector('[data-field="estimulacion"]');
+            if (!locationCell || !vacacionesCell || !finMisionCell || !estimulacionCell) {
+                console.warn('Fila con celdas faltantes:', {
+                    locationCell, vacacionesCell, finMisionCell, estimulacionCell, rowHTML: row.innerHTML
+                });
+                return;
+            }
+            // Solo aquí es seguro acceder a .textContent
+            const location = locationCell.textContent || '';
             if (!location) return;
-
             if (!countersByLocation[location]) {
                 countersByLocation[location] = {
                     total: 0,
@@ -942,42 +915,13 @@ function updateLocationCounters(data) {
                     mission: 0
                 };
             }
-            
-            // Contar total
             countersByLocation[location].total++;
-            
-            // Obtener los valores directamente de las celdas del DOM
-            const vacacionesCell = row.querySelector('[data-field="vacaciones"]');
-            const finMisionCell = row.querySelector('[data-field="Fin de Misión"]');
-            const estimulacionCell = row.querySelector('[data-field="estimulacion"]');
-
-            // Contar con estimulación
-            const estimulacion = estimulacionCell?.textContent?.trim() || 'No';
-            if (estimulacion === 'Sí') {
-                countersByLocation[location].stimulation++;
-            }
-            
-            // Contar en vacaciones
-            const vacaciones = vacacionesCell?.textContent?.trim() || 'No';
-            if (vacaciones === 'Sí') {
-                countersByLocation[location].vacation++;
-            } else {
-                console.log('Valor de vacaciones:', vacaciones);
-            }
-            
-            // Contar fin de misión
-            const finMision = finMisionCell?.textContent?.trim() || 'No';
-            if (finMision === 'Sí') {
-                countersByLocation[location].mission++;
-            } else {
-                console.log('Valor de fin de misión:', finMision);
-            }
-            
-            // Logs para depuración
-            console.log('Procesando fila para ubicación:', location);
-            console.log('Vacaciones:', vacaciones);
-            console.log('Fin de Misión:', finMision);
-            console.log('Contadores:', countersByLocation[location]);
+            const vacaciones = vacacionesCell.textContent ? vacacionesCell.textContent.trim() : 'No';
+            const finMision = finMisionCell.textContent ? finMisionCell.textContent.trim() : 'No';
+            const estimulacion = estimulacionCell.textContent ? estimulacionCell.textContent.trim() : 'No';
+            if (estimulacion === 'Sí') countersByLocation[location].stimulation++;
+            if (vacaciones === 'Sí') countersByLocation[location].vacation++;
+            if (finMision === 'Sí') countersByLocation[location].mission++;
         });
     }
     
@@ -1346,7 +1290,22 @@ function mapFrontendToBackend(colaborador) {
 }
 
 function updateColaboradorInBackend(colaborador) {
-    const backendColaborador = mapFrontendToBackend(colaborador);
+    // Asegura que todos los campos requeridos existen y que nombre y estado no están vacíos
+    if (!colaborador['Nombre y Apellidos'] || !colaborador.Estado) {
+        showMessage('El colaborador debe tener nombre y estado para guardar cambios.', 'error');
+        return;
+    }
+    const safeColaborador = {
+        id: colaborador.id,
+        'Nombre y Apellidos': colaborador['Nombre y Apellidos'] || '',
+        Estado: colaborador.Estado || '',
+        'Fecha de Salida': colaborador['Fecha de Salida'] || '',
+        'Fecha de Entrada': colaborador['Fecha de Entrada'] || '',
+        'Fin de Misión': colaborador['Fin de Misión'] || 'No',
+        Estimulacion: colaborador.Estimulacion || 'No',
+        Vacaciones: colaborador.Vacaciones || 'No'
+    };
+    const backendColaborador = mapFrontendToBackend(safeColaborador);
     fetch(`http://localhost:3001/api/colaboradores/${backendColaborador.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
