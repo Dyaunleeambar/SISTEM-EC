@@ -380,9 +380,14 @@ function updateTable(data, callback) {
     // Evento para actualizar fechas directamente en la tabla
     tbody.querySelectorAll('.date-input').forEach(input => {
         input.addEventListener('change', function(e) {
+            const value = this.value;
+            if (isFutureDate(value)) {
+                showMessage('No se puede seleccionar una fecha futura', 'error');
+                this.value = '';
+                return;
+            }
             const id = this.dataset.id;
             const field = this.dataset.field;
-            const value = this.value;
             const colaborador = allCollaborators.find(c => c.id == id);
             if (colaborador) {
                 colaborador[field] = value;
@@ -1346,16 +1351,16 @@ if (editCollaboratorForm) {
         const estado = document.getElementById('editEstado').value.trim();
         let hasError = false;
         if (!nombre) {
-            setEditInlineError('editNombre', 'editNombreError', 'El nombre es obligatorio.');
+            setInlineError('editNombre', 'editNombreError', 'El nombre es obligatorio.');
             hasError = true;
         }
         if (!estado) {
-            setEditInlineError('editEstado', 'editEstadoError', 'La ubicación/estado es obligatoria.');
+            setInlineError('editEstado', 'editEstadoError', 'La ubicación/estado es obligatoria.');
             hasError = true;
         }
         if (hasError) return;
-        setEditInlineError('editNombre', 'editNombreError', '');
-        setEditInlineError('editEstado', 'editEstadoError', '');
+        setInlineError('editNombre', 'editNombreError', '');
+        setInlineError('editEstado', 'editEstadoError', '');
         const id = document.getElementById('editId').value;
         const fechaSalida = document.getElementById('editFechaSalida').value;
         const fechaEntrada = document.getElementById('editFechaEntrada').value;
@@ -1482,43 +1487,13 @@ function isConciliationMonthSelected() {
     return conciliationInput && conciliationInput.value && conciliationInput.value.trim() !== '';
 }
 
-// Ejemplo para el evento de cambio de fechas en la tabla
-const tbody = document.querySelector('#collaboratorsTable tbody');
-if (tbody) {
-    tbody.querySelectorAll('.date-input').forEach(input => {
-        input.addEventListener('change', function(e) {
-            if (!isConciliationMonthSelected()) {
-                showMessage('Debe seleccionar el mes de conciliación antes de editar cualquier campo.', 'error');
-                this.value = '';
-                return;
-            }
-            // ...resto del código de edición...
-        });
-    });
-}
-
-// Ejemplo para el submit del formulario de edición
-document.getElementById('editCollaboratorForm').addEventListener('submit', function(event) {
-    if (!isConciliationMonthSelected()) {
-        showMessage('Debe seleccionar el mes de conciliación antes de editar cualquier campo.', 'error');
-        event.preventDefault();
-        return;
-    }
-    // ...resto del código de edición...
-});
-
 // Función para habilitar/deshabilitar campos de edición según el mes de conciliación
-function toggleEditFields(enabled) {
+function checkConciliationMonth() {
+    const enabled = isConciliationMonthSelected();
     document.querySelectorAll('.date-input, .edit-btn, .delete-btn').forEach(el => {
         el.disabled = !enabled;
         el.style.cursor = enabled ? 'pointer' : 'not-allowed';
     });
-}
-
-function checkConciliationMonth() {
-    const enabled = isConciliationMonthSelected();
-    toggleEditFields(enabled);
-
     // Resalta el input si no está seleccionado
     const conciliationInput = document.getElementById('conciliationMonth');
     if (conciliationInput) {
@@ -1529,6 +1504,40 @@ function checkConciliationMonth() {
         }
     }
 }
+
+// --- INICIO: Validación de fechas futuras en inputs de fecha ---
+
+function isFutureDate(dateString) {
+    if (!dateString) return false;
+    const today = new Date();
+    today.setHours(0,0,0,0); // Solo comparar fecha, no hora
+    const inputDate = new Date(dateString);
+    return inputDate > today;
+}
+
+// (Elimino el listener global de 'change' para .date-input, ya no es necesario)
+
+// Unificar validación en el formulario de edición (modal)
+const editCollaboratorFormEl = document.getElementById('editCollaboratorForm');
+if (editCollaboratorFormEl) {
+    editCollaboratorFormEl.addEventListener('submit', function(event) {
+        // Validación de mes de conciliación
+        if (!isConciliationMonthSelected()) {
+            showMessage('Debe seleccionar el mes de conciliación antes de editar cualquier campo.', 'error');
+            event.preventDefault();
+            return;
+        }
+        // Validación de fechas futuras
+        const fechaSalida = document.getElementById('editFechaSalida').value;
+        const fechaEntrada = document.getElementById('editFechaEntrada').value;
+        if (isFutureDate(fechaSalida) || isFutureDate(fechaEntrada)) {
+            showMessage('No se puede seleccionar una fecha futura', 'error');
+            event.preventDefault();
+            return;
+        }
+    });
+}
+// --- FIN: Validación de fechas futuras en inputs de fecha ---
 
 // Ejecutar al cargar la página y cuando cambie el input de mes
 window.addEventListener('DOMContentLoaded', checkConciliationMonth);
