@@ -1094,9 +1094,19 @@ async function fetchColaboradores() {
         const data = await fetchWithHandling('http://localhost:3001/api/colaboradores', {}, 'Error al cargar colaboradores del servidor.');
         const normalized = data.map(normalizeBackendRow);
         allCollaborators = normalized;
+        // Aplicar el filtro de Fin de Misión para el mes de conciliación actual
+        let mesConciliacion = '';
+        const conciliationInput = document.getElementById('conciliationMonth');
+        if (conciliationInput && conciliationInput.value) {
+            mesConciliacion = conciliationInput.value;
+        } else {
+            const now = new Date();
+            mesConciliacion = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        }
+        const visibles = filtrarColaboradoresPorFinDeMision(normalized, mesConciliacion);
         applyActiveFilter();
-        updateCounters(normalized);
-        updateLocationCounters(normalized);
+        updateCounters(visibles);
+        updateLocationCounters(visibles);
         checkConciliationMonth();
     } catch (err) {
         showMessage(err.message, 'error');

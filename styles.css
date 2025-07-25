@@ -1510,9 +1510,10 @@ input[type="month"] {
     font-weight: bold;
     display: inline-flex;
     align-items: center;
+    gap: 2px;
 }
 .stim-count i.fas.fa-star {
-    margin-right: 2px;
+    margin-right: 1px;
 }
 
 /* --- Collapsible Gestión de Datos --- */
