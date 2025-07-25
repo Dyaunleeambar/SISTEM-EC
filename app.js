@@ -180,8 +180,16 @@ function filtrarColaboradoresPorFinDeMision(colaboradores, mesConciliacion) {
  * Llama a callback opcional tras renderizar.
  */
 function updateTable(data, callback) {
+    // Limpiar la tabla existente
     const tbody = document.querySelector('#collaboratorsTable tbody');
     if (!tbody) return;
+    
+    // Limpiar resaltados de celdas editadas antes de actualizar la tabla
+    const editedCells = document.querySelectorAll('.edited-cell');
+    editedCells.forEach(cell => {
+        cell.classList.remove('edited-cell');
+    });
+    
     tbody.innerHTML = '';
 
     // Obtener el mes de conciliación actual
@@ -247,7 +255,7 @@ function updateTable(data, callback) {
             </td>
             <td data-field="diasPresencia">${diasPresencia}</td>
             <td>
-                <button class="edit-btn" data-id="${row.id}">Editar</button>
+                <button class="edit-btn" data-id="${row.id}"><i class="fas fa-edit"></i></button>
                 <button class="delete-btn" data-id="${row.id}"><i class="fas fa-times"></i></button>
             </td>
         `;
@@ -910,7 +918,12 @@ function updateLocationCounters(data) {
         btn.className = 'location-button';
         const total = countersByLocation[location] || 0;
         const stim = stimByLocation[location] || 0;
-        btn.innerHTML = `${location} (${total}) <span class='stim-count'><i class='fas fa-star'></i> ${stim}</span>`;
+        const noStim = total - stim;
+        btn.innerHTML = `
+      ${location} (${total})
+      <span class='stim-count'><i class='fas fa-star'></i> ${stim}</span>
+      <span class='stim-count' style='margin-left:8px;'><i class='far fa-star'></i> ${noStim}</span>
+    `;
         btn.onclick = () => {
             activeFilter = location;
             const filtrados = allCollaborators.filter(c => (c.Estado || 'Sin Ubicación') === location);

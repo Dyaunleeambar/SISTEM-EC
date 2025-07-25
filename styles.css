@@ -520,10 +520,14 @@ html, body {
   max-width: 800px;
   background: #e8e8e8;
   border-radius: 8px;
-  padding: 16px;
+  padding: 32px 16px 32px 16px;
   margin-top: 0;
   margin-bottom: 0;
   color: #000000;
+  min-height: 240px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
 }
 
 .state-counters-card h3 {
@@ -1627,13 +1631,13 @@ input[type="month"] {
   align-items: center;
   background: #ff6b35;
   border-radius: 10px;
-  padding: 10px 22px;
+  padding: 24px 32px;
   box-shadow: 0 2px 8px rgba(255,107,53,0.12);
   color: #fff;
   min-width: 160px;
-  min-height: 48px;
-  font-size: 1.1rem;
-  gap: 12px;
+  min-height: 46px;
+  font-size: 1.45rem;
+  gap: 18px;
 }
 
 .counter-horizontal .counter-icon {
@@ -1643,15 +1647,16 @@ input[type="month"] {
 }
 
 .counter-horizontal .counter-value {
-  font-size: 1.7rem;
+  font-size: 2rem;
   font-weight: bold;
-  margin-right: 6px;
+  margin-right: 0px;  /* Reducido */
 }
 
 .counter-horizontal .counter-label {
-  font-size: 1rem;
+  font-size: 1.25rem;
+  margin-left: 0px;   /* Reducido */
   font-weight: 500;
-  margin-left: 2px;
+  letter-spacing: 0.5px;
 }
 
 @media (max-width: 900px) {
@@ -1709,23 +1714,14 @@ input[type="month"] {
 .location-buttons-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 10px 12px;
+  gap: 18px 18px;
 }
 
 .location-button {
-  font-size: 1.01rem;
-  padding: 8px 16px;
-  background: #fff;
-  color: #333;
-  border: 1px solid #bbb;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.2s, color 0.2s;
-  font-weight: 500;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  font-size: 1.04rem;
+  padding: 18px 8px;
+  min-height: 46px;
+  border-radius: 10px;
 }
 
 .location-button.active,
@@ -1736,25 +1732,6 @@ input[type="month"] {
 }
 
 /* Ajusta la sección de contadores generales para que sea más compacta */
-.counter-horizontal {
-  padding: 7px 14px;
-  min-width: 80px;
-  min-height: 36px;
-  font-size: 0.98rem;
-  gap: 8px;
-}
-.counter-horizontal .counter-icon {
-  font-size: 1.4rem;
-  margin: 0 6px 0 0;
-}
-.counter-horizontal .counter-value {
-  font-size: 1.2rem;
-  margin-right: 4px;
-}
-.counter-horizontal .counter-label {
-  font-size: 0.97rem;
-  margin-left: 1px;
-}
 
 @media (max-width: 900px) {
   .state-counters-card {
