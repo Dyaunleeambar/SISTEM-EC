@@ -460,9 +460,15 @@ window.onclick = function(event) {
 };
 
 // Enviar cambios de edición
-document.getElementById('editCollaboratorForm').addEventListener('submit', function(event) {
+document.getElementById('editCollaboratorForm').addEventListener('submit', async function(event) {
     event.preventDefault();
     const id = document.getElementById('editId').value;
+    const row = getRowById(id);
+    
+    // Limpiar resaltados anteriores
+    if (row) {
+        clearEditedCells(row);
+    }
     const nombre = document.getElementById('editNombre').value.trim();
     const estado = document.getElementById('editEstado').value.trim();
     const fechaSalida = document.getElementById('editFechaSalida').value;
@@ -484,17 +490,41 @@ document.getElementById('editCollaboratorForm').addEventListener('submit', funct
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(mapFrontendToBackend(colaboradorEditado))
     })
-    .then(res => res.json())
-    .then(() => {
+    .then(response => response.json())
+    .then(updatedData => {
+        showMessage('Colaborador actualizado correctamente', 'success');
         document.getElementById('editModal').style.display = 'none';
+        
+        // Resaltar las celdas editadas
+        if (row) {
+            // Identificar qué campos cambiaron
+            const updatedFields = [];
+            const nombre = document.getElementById('editNombre').value.trim();
+            const estado = document.getElementById('editEstado').value.trim();
+            const ubicacion = document.getElementById('editUbicacion').value.trim();
+            
+            // Verificar qué campos cambiaron
+            const originalNombre = row.querySelector('[data-field="nombre"]')?.textContent.trim();
+            const originalEstado = row.querySelector('[data-field="estado"]')?.textContent.trim();
+            const originalUbicacion = row.querySelector('[data-field="ubicacion"]')?.textContent.trim();
+            
+            if (nombre !== originalNombre) updatedFields.push('nombre');
+            if (estado !== originalEstado) updatedFields.push('estado');
+            if (ubicacion !== originalUbicacion) updatedFields.push('ubicacion');
+            
+            // Resaltar solo los campos que cambiaron
+            if (updatedFields.length > 0) {
+                markEditedCells(row, updatedFields);
+            }
+        }
+        
+        // Actualizar los datos
         fetchColaboradores();
-    })
-    .catch(err => {
+    }).catch(err => {
         alert('Error al actualizar colaborador.');
         console.error(err);
     });
 });
-
 // Función para obtener los datos almacenados en el DOM
 function getData() {
     const table = document.getElementById('collaboratorsTable');
@@ -687,6 +717,11 @@ function handleCheckboxChange(event) {
     });
 }
 
+/**
+ * Maneja el cambio de fechas en la tabla (salida/entrada).
+ * Valida reglas de negocio y sincroniza el cambio con el backend.
+ * Actualiza la UI y los contadores tras la confirmación del backend.
+ */
 /**
  * Maneja el cambio de fechas en la tabla (salida/entrada).
  * Valida reglas de negocio y sincroniza el cambio con el backend.
@@ -1190,6 +1225,32 @@ function normalizeBackendRow(row) {
         Vacaciones: vacaciones,
         id: row.id
     };
+}
+
+// --- Funciones para manejar celdas editadas ---
+function markEditedCells(row, fields = []) {
+    // Si no se especifican campos, marcar todos los editables
+    if (fields.length === 0) {
+        fields = ['nombre', 'ubicacion', 'estado'];
+    }
+    
+    fields.forEach(field => {
+        const cell = row.querySelector(`[data-field="${field}"]`);
+        if (cell) {
+            cell.classList.add('edited-cell');
+        }
+    });
+}
+
+function clearEditedCells(row) {
+    const cells = row.querySelectorAll('.edited-cell');
+    cells.forEach(cell => {
+        cell.classList.remove('edited-cell');
+    });
+}
+
+function getRowById(id) {
+    return document.querySelector(`tr[data-id="${id}"]`);
 }
 
 // --- Mensajes de error inline para el formulario de agregar colaborador ---

@@ -451,9 +451,11 @@ html, body {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  overflow: visible;
+  overflow: auto;
   padding: 0;
   /* Elimina la altura máxima y el scroll vertical */
+  max-height: 60vh;
+  overflow-y: auto;
 }
 
 #collaboratorsTable {
