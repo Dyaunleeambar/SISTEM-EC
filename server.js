@@ -108,23 +108,40 @@ dbInit.query(`CREATE DATABASE IF NOT EXISTS colaboradores_db`, (err) => {
         );
     });
 
-    // Endpoint: Actualizar un colaborador existente
-    // Valida campos obligatorios antes de actualizar
-    app.put('/api/colaboradores/:id', validateBody, (req, res) => {
-        const id = parseInt(req.params.id);
-        const { nombre, estado, fecha_salida, fecha_entrada, fin_mision, ubicacion } = req.body;
-        if (!nombre || !estado) {
-            return res.status(400).json({ error: 'Faltan datos obligatorios para actualizar' });
+    // Endpoint: Actualizar el orden de los colaboradores
+    app.put('/api/colaboradores/orden', (req, res) => {
+        // Validación manual sin usar el middleware validateBody
+        if (!req.body || typeof req.body !== 'object') {
+            return res.status(400).json({ error: 'Cuerpo de la petición vacío o inválido' });
         }
-        db.query(
-            `UPDATE colaboradores SET nombre=?, estado=?, fecha_salida=?, fecha_entrada=?, fin_mision=?, ubicacion=?
-             WHERE id=?`,
-            [nombre, estado, fecha_salida, fecha_entrada, fin_mision, ubicacion, id],
-            (err, result) => {
-                if (err) return res.status(500).json({ error: err.message });
-                res.json({ id, nombre, estado, fecha_salida, fecha_entrada, fin_mision, ubicacion });
-            }
-        );
+        
+        if (!req.body.orden || !Array.isArray(req.body.orden)) {
+            return res.status(400).json({ error: 'Formato inválido. Se espera un array de objetos {id, orden}' });
+        }
+        
+        // Crear consultas para actualizar cada colaborador
+        const updates = req.body.orden.map(item => {
+            return new Promise((resolve, reject) => {
+                if (!item.id || typeof item.orden !== 'number') {
+                    reject(new Error('Formato inválido en algún elemento del array'));
+                    return;
+                }
+                
+                db.query(
+                    'UPDATE colaboradores SET orden = ? WHERE id = ?',
+                    [item.orden, item.id],
+                    (err, result) => {
+                        if (err) reject(err);
+                        else resolve(result);
+                    }
+                );
+            });
+        });
+        
+        // Ejecutar todas las actualizaciones
+        Promise.all(updates)
+            .then(() => res.json({ message: 'Orden actualizado correctamente' }))
+            .catch(err => res.status(500).json({ error: err.message }));
     });
 
     // Endpoint: Eliminar un colaborador individual por id
