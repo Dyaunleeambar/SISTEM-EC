@@ -406,12 +406,6 @@ function updateTable(data, callback) {
                 // Si la fecha de salida queda vacía, forzar Fin de Misión a 'No'
                 if (field === 'Fecha de Salida' && (!value || value.trim() === '')) {
                     colaborador['Fin de Misión'] = 'No';
-                    // Actualizar en backend
-                    fetch(`http://localhost:3001/api/colaboradores/${id}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(mapFrontendToBackend(colaborador))
-                    });
                 }
                 // Actualizar en backend
                 fetch(`http://localhost:3001/api/colaboradores/${id}`, {
@@ -1033,6 +1027,7 @@ function updateStateCounters(data) {
     allBtn.textContent = `Todos (${data.length})`;
     allBtn.onclick = () => {
         activeFilter = 'Todos';
+        clearStatusFilters(); // Limpiar filtros de estado
         updateTable(allCollaborators);
         setActiveButton(allBtn);
     };
@@ -1047,6 +1042,7 @@ function updateStateCounters(data) {
         btn.innerHTML = `${estado} (${count}) <span class='stim-count'><i class='fas fa-star'></i> ${stimCount}</span>`;
         btn.onclick = () => {
             activeFilter = estado;
+            clearStatusFilters(); // Limpiar filtros de estado
             const filtrados = allCollaborators.filter(c => (c.Estado || 'Sin Ubicación') === estado);
             updateTable(filtrados);
             setActiveButton(btn);
@@ -1162,9 +1158,90 @@ function restoreActiveButton() {
     });
 }
 
+// Variables globales para el filtro de estado
+let activeStatusFilter = null;
+
+// Función para limpiar todos los filtros de estado
+function clearStatusFilters() {
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    activeStatusFilter = null;
+}
+
+// Función para aplicar filtro por estado
+function applyStatusFilter(filterType) {
+    clearStatusFilters();
+    
+    if (activeStatusFilter === filterType) {
+        // Si se hace clic en el mismo filtro, desactivarlo
+        activeStatusFilter = null;
+        updateTable(allCollaborators);
+        return;
+    }
+    
+    activeStatusFilter = filterType;
+    const activeBtn = document.getElementById(`filter${filterType}Btn`);
+    if (activeBtn) {
+        activeBtn.classList.add('active');
+    }
+    
+    // Limpiar filtro de ubicación
+    activeFilter = null;
+    document.querySelectorAll('.location-button').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    let filteredData = [];
+    
+    switch (filterType) {
+        case 'Stimulation':
+            filteredData = allCollaborators.filter(c => c.Estimulacion === 'Sí');
+            break;
+        case 'NoStimulation':
+            filteredData = allCollaborators.filter(c => c.Estimulacion === 'No');
+            break;
+        case 'Vacation':
+            filteredData = allCollaborators.filter(c => c.Vacaciones === 'Sí');
+            break;
+        case 'EndMission':
+            filteredData = allCollaborators.filter(c => c['Fin de Misión'] === 'Sí');
+            break;
+        default:
+            filteredData = allCollaborators;
+    }
+    
+    updateTable(filteredData);
+    
+    // Aplicar estilos después de filtrar
+    setTimeout(() => {
+        applySiCellStyles();
+    }, 100);
+}
+
 // Llama a esta función al cargar la página
 document.addEventListener('DOMContentLoaded', () => {
     fetchColaboradores();
+    
+    // Event listeners para los botones de filtro
+    const filterStimulationBtn = document.getElementById('filterStimulationBtn');
+    const filterNoStimulationBtn = document.getElementById('filterNoStimulationBtn');
+    const filterVacationBtn = document.getElementById('filterVacationBtn');
+    const filterEndMissionBtn = document.getElementById('filterEndMissionBtn');
+    
+    if (filterStimulationBtn) {
+        filterStimulationBtn.addEventListener('click', () => applyStatusFilter('Stimulation'));
+    }
+    if (filterNoStimulationBtn) {
+        filterNoStimulationBtn.addEventListener('click', () => applyStatusFilter('NoStimulation'));
+    }
+    if (filterVacationBtn) {
+        filterVacationBtn.addEventListener('click', () => applyStatusFilter('Vacation'));
+    }
+    if (filterEndMissionBtn) {
+        filterEndMissionBtn.addEventListener('click', () => applyStatusFilter('EndMission'));
+    }
+    
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
         searchInput.addEventListener('input', function() {

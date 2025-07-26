@@ -1698,6 +1698,46 @@ input[type="month"] {
   font-weight: 600;
 }
 
+.filter-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.filter-btn {
+  background: #f8f9fa;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  height: 40px;
+  color: #6c757d;
+}
+
+.filter-btn:hover {
+  background: #e9ecef;
+  border-color: #dee2e6;
+  color: #495057;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.filter-btn.active {
+  background: #007bff;
+  border-color: #007bff;
+  color: white;
+  box-shadow: 0 2px 8px rgba(0,123,255,0.3);
+}
+
+.filter-btn i {
+  font-size: 16px;
+}
+
 .location-button-todos {
   font-size: 0.93rem;
   padding: 5px 12px;
@@ -1742,6 +1782,39 @@ input[type="month"] {
   }
   .location-buttons-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+  .state-counters-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .filter-buttons {
+    gap: 6px;
+  }
+  .filter-btn {
+    min-width: 36px;
+    height: 36px;
+    padding: 6px 10px;
+  }
+  .filter-btn i {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .state-counters-header {
+    gap: 6px;
+  }
+  .filter-buttons {
+    gap: 4px;
+  }
+  .filter-btn {
+    min-width: 32px;
+    height: 32px;
+    padding: 4px 8px;
+  }
+  .filter-btn i {
+    font-size: 12px;
   }
 }
 

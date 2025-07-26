@@ -167,6 +167,28 @@ dbInit.query(`CREATE DATABASE IF NOT EXISTS colaboradores_db`, (err) => {
         });
     });
 
+    // Endpoint: Actualizar un colaborador existente
+    // Valida campos obligatorios antes de actualizar
+    app.put('/api/colaboradores/:id', validateBody, (req, res) => {
+        const id = parseInt(req.params.id);
+        const { nombre, estado, fecha_salida, fecha_entrada, fin_mision, ubicacion } = req.body;
+        if (!nombre || !estado) {
+            return res.status(400).json({ error: 'Faltan datos obligatorios para actualizar' });
+        }
+        db.query(
+            `UPDATE colaboradores SET nombre=?, estado=?, fecha_salida=?, fecha_entrada=?, fin_mision=?, ubicacion=?
+             WHERE id=?`,
+            [nombre, estado, fecha_salida, fecha_entrada, fin_mision, ubicacion, id],
+            (err, result) => {
+                if (err) return res.status(500).json({ error: err.message });
+                if (result.affectedRows === 0) {
+                    return res.status(404).json({ error: 'Colaborador no encontrado' });
+                }
+                res.json({ id, nombre, estado, fecha_salida, fecha_entrada, fin_mision, ubicacion });
+            }
+        );
+    });
+
     // Inicia el servidor en el puerto 3001
     // El backend queda escuchando para peticiones del frontend y de los tests
     const PORT = 3001;
