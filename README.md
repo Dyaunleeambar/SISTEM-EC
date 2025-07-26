@@ -1,53 +1,137 @@
 # Sistema de Estimulación de Colaboradores
 
-## Novedades recientes
-
-- **Colores actualizados:** Las celdas con valor "No" ahora usan un naranja claro (#f7a58a) en vez de rojo, para una mejor experiencia visual.
-- **Flujo de actualización robusto:** Al marcar/desmarcar el checkbox de "Fin de Misión", el cambio se refleja inmediatamente tras la confirmación del backend, sin necesidad de recargar la página.
-- **Sin errores en consola:** El sistema no muestra errores en consola y la experiencia es fluida.
-- **Favicon personalizado:** El sistema usa una estrella SVG como favicon, representando estímulo y logro.
-- **Código limpio:** No hay funciones duplicadas ni variables globales innecesarias. Los listeners de eventos están centralizados en `updateTable`.
-- **Validaciones claras:** El mensaje de validación de fechas es consistente y claro en todos los flujos.
-- **Cálculo único de días de presencia:** Solo se usa una función robusta para el cálculo de días de presencia.
-- **Tests automáticos:** El sistema cuenta con tests unitarios (frontend) y de integración (backend) usando Jest y Supertest.
-- **CI/CD:** El proyecto ejecuta los tests automáticamente en cada push/pull request usando GitHub Actions.
-
 ## Descripción General
 
 Sistema web para la gestión y estimulación de colaboradores según su presencia en el país durante un mes de conciliación. Permite agregar, editar, filtrar y exportar datos de colaboradores, calculando automáticamente derechos a estimulación, vacaciones y fin de misión según reglas de negocio.
 
----
+## Características Principales
 
-## Criterios de Validación
+- **Gestión de Colaboradores**
+  - Agregar nuevos colaboradores con sus datos personales
+  - Editar información existente de manera intuitiva
+  - Eliminar colaboradores del sistema
+  - Reordenar colaboradores mediante arrastrar y soltar
 
-**Estimulación**
-- Un colaborador tiene derecho a estimulación si el campo "Días de Presencia" es mayor o igual a 15 en el mes de conciliación.
-- Si los días de presencia son menores a 15, no tiene derecho a estimulación.
-- Si el campo de días de presencia es '-' o no es un número, no tiene derecho a estimulación.
+- **Seguimiento de Presencia**
+  - Registro de fechas de salida y entrada del país
+  - Cálculo automático de días de presencia
+  - Validación de fechas para evitar entradas incorrectas
 
-> **Nota:** El cálculo es robusto ante formatos y zonas horarias, y siempre refleja fielmente los días reales de presencia en el país durante el mes de conciliación.
+- **Cálculos Automáticos**
+  - Determinación de derecho a estimulación basado en días de presencia
+  - Cálculo de estado de vacaciones
+  - Gestión de fin de misión
 
----
+- **Filtrado y Búsqueda**
+  - Filtrado por ubicación/estado
+  - Búsqueda rápida por nombre
+  - Contadores en tiempo real para diferentes estados
 
-## Funcionalidades principales
+- **Exportación de Datos**
+  - Exportar a Excel con un solo clic
+  - Opciones para exportar todos los datos o solo los filtrados
 
-- **Agregar colaboradores** manualmente mediante un formulario.
-- **Gestión de Datos plegable:** La sección de gestión de datos (inputs de ubicación, nombre, y botones de acción) puede ocultarse o mostrarse haciendo clic en la pestaña con flecha ubicada debajo del título "Gestión de Datos".
-- **Visualizar y editar** fechas de salida y entrada directamente en la tabla.
-- **Cálculo automático** de estimulación, vacaciones y fin de misión según las reglas de negocio.
-- **Filtrado y contadores** por ubicación y estado, con botones dinámicos y contadores en tiempo real.
-- **Exportar datos a Excel**:
-  - Opción de exportar toda la base de datos o solo los datos visibles (filtrados) mediante un modal interactivo.
-- **Limpiar la base de datos** para reiniciar la carga de colaboradores.
-- **Sincronización automática** con el backend tras cada cambio.
-- **Mensajes de éxito y error** en la interfaz.
-- **Codificación visual por colores** en la tabla:
-  - Celdas con valor "Sí": Color de fondo verde claro (#cadfcb)
-  - Celdas con valor "No": Color de fondo naranja claro (#f7a58a)
-- **Reordenar colaboradores con drag & drop:**
-  - Puedes cambiar el orden de los colaboradores arrastrando las filas desde el handle de tres puntitos verticales (⋮) en la primera columna de la tabla.
-  - El nuevo orden se guarda automáticamente en la base de datos y se mantiene al recargar la página.
-  - El sistema usa un campo `orden` en la base de datos para garantizar la persistencia del orden personalizado.
+- **Interfaz Intuitiva**
+  - Diseño responsivo
+  - Codificación visual por colores
+  - Mensajes de retroalimentación claros
+
+## Requisitos del Sistema
+
+- Node.js (v14 o superior)
+- MySQL (v5.7 o superior)
+- Navegador web moderno (Chrome, Firefox, Edge, Safari)
+
+## Instalación
+
+1. **Clonar el repositorio**
+   ```bash
+   git clone [URL_DEL_REPOSITORIO]
+   cd SistemaEstimulación01
+   ```
+
+2. **Instalar dependencias**
+   ```bash
+   npm install
+   ```
+
+3. **Configurar la base de datos**
+   - Asegúrate de tener MySQL en ejecución
+   - El sistema creará automáticamente la base de datos y las tablas necesarias
+   - Las credenciales por defecto son:
+     - Usuario: root
+     - Contraseña: Cuba123456
+     - Base de datos: colaboradores_db
+
+4. **Iniciar el servidor**
+   ```bash
+   node server.js
+   ```
+
+5. **Abrir la aplicación**
+   Abre tu navegador y navega a:
+   ```
+   http://localhost:3000
+   ```
+
+## Uso
+
+1. **Agregar un nuevo colaborador**
+   - Completa el formulario en la sección superior
+   - Especifica nombre, estado, ubicación y fechas relevantes
+   - Haz clic en "Agregar" para guardar
+
+2. **Editar información**
+   - Haz clic en el ícono de edición junto al colaborador
+   - Modifica los campos necesarios en el modal
+   - Guarda los cambios
+
+3. **Filtrar colaboradores**
+   - Usa los botones de filtro para ver colaboradores por estado
+   - Utiliza la barra de búsqueda para encontrar colaboradores específicos
+
+4. **Exportar datos**
+   - Haz clic en el botón "Exportar a Excel"
+   - Elige si deseas exportar todos los datos o solo los filtrados
+   - Descarga el archivo generado
+
+## Estructura del Proyecto
+
+- `index.html` - Página principal de la aplicación
+- `styles.css` - Estilos CSS
+- `app.js` - Lógica principal del frontend
+- `logic.js` - Funciones auxiliares
+- `server.js` - Servidor Node.js/Express
+- `package.json` - Dependencias y scripts
+- `tests/` - Pruebas unitarias y de integración
+
+## Tecnologías Utilizadas
+
+- **Frontend**: HTML5, CSS3, JavaScript (ES6+)
+- **Backend**: Node.js, Express
+- **Base de Datos**: MySQL
+- **Dependencias Principales**:
+  - express: Para el servidor web
+  - mysql2: Cliente MySQL para Node.js
+  - cors: Para permitir solicitudes entre dominios
+  - jest: Para pruebas unitarias
+  - supertest: Para pruebas de integración
+
+## Contribución
+
+1. Haz un fork del proyecto
+2. Crea una rama para tu característica (`git checkout -b feature/nueva-caracteristica`)
+3. Haz commit de tus cambios (`git commit -am 'Añade nueva característica'`)
+4. Haz push a la rama (`git push origin feature/nueva-caracteristica`)
+5. Abre un Pull Request
+
+## Licencia
+
+Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más detalles.
+
+## Contacto
+
+Para consultas o soporte, por favor contacta al equipo de desarrollo.
 - **Tests automáticos:**
   - Tests unitarios para la lógica de negocio (frontend) con Jest (`logic.js`).
   - Tests de integración para la API backend con Jest + Supertest (`server.test.js`).
