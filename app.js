@@ -997,11 +997,39 @@ function exportarDatos(tipo) {
     } else {
         data = getData();
     }
+
     if (!data || data.length === 0) {
         showMessage('No hay datos para exportar.', 'error');
         return;
     }
-    const ws = XLSX.utils.json_to_sheet(data);
+
+    // Obtener el mes de conciliación para calcular los días de presencia
+    const conciliationInput = document.getElementById('conciliationMonth');
+    let mesConciliacion = '';
+    if (conciliationInput && conciliationInput.value) {
+        mesConciliacion = conciliationInput.value;
+    } else {
+        const now = new Date();
+        mesConciliacion = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    }
+
+    // Mapear los datos al formato deseado
+    const dataParaExportar = data.map(colaborador => {
+        const diasPresencia = calcularDiasPresencia(colaborador, mesConciliacion);
+        return {
+            'id': colaborador.id,
+            'Ubicación/Estado': colaborador.Estado,
+            'Nombre y Apellidos': colaborador['Nombre y Apellidos'],
+            'Fecha de Salida': colaborador['Fecha de Salida'],
+            'Fecha de Entrada': colaborador['Fecha de Entrada'],
+            'Con derecho a Estimulación': evaluarEstimulaciónPorDiasPresencia(diasPresencia),
+            'Vacaciones': evaluateVacaciones(colaborador),
+            'Fin de misión': colaborador['Fin de Misión'],
+            'Días de Presencia': diasPresencia
+        };
+    });
+
+    const ws = XLSX.utils.json_to_sheet(dataParaExportar);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Colaboradores');
     XLSX.writeFile(wb, 'colaboradores_exportados.xlsx');
