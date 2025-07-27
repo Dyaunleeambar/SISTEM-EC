@@ -1,10 +1,23 @@
-// Set global para IDs de filas editadas (persistente en localStorage)
+let originalCollaboratorsState = {};
 
-function showLoader() {
-    document.getElementById('loader').style.display = 'flex';
+function storeOriginalState(data) {
+    originalCollaboratorsState = {};
+    data.forEach(c => {
+        originalCollaboratorsState[c.id] = { ...c };
+    });
 }
-function hideLoader() {
-    document.getElementById('loader').style.display = 'none';
+
+function wasEdited(colaborador) {
+    const original = originalCollaboratorsState[colaborador.id];
+    if (!original) return false;
+
+    return (
+        original['Nombre y Apellidos'] !== colaborador['Nombre y Apellidos'] ||
+        original.Estado !== colaborador.Estado ||
+        original['Fecha de Salida'] !== colaborador['Fecha de Salida'] ||
+        original['Fecha de Entrada'] !== colaborador['Fecha de Entrada'] ||
+        original['Fin de Misión'] !== colaborador['Fin de Misión']
+    );
 }
 
 // Funciones auxiliares
@@ -211,11 +224,7 @@ function updateTable(data, callback) {
             if (row['Fin de Misión'] === 'Sí') {
                 row['Fin de Misión'] = 'No';
                 // Actualizar en backend si era 'Sí'
-                fetch(`http://localhost:3001/api/colaboradores/${row.id}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(mapFrontendToBackend(row))
-                });
+                updateColaboradorInBackend(row).then(() => fetchColaboradores());
             } else {
                 row['Fin de Misión'] = 'No';
             }
@@ -408,16 +417,8 @@ function updateTable(data, callback) {
                     colaborador['Fin de Misión'] = 'No';
                 }
                 // Actualizar en backend
-                fetch(`http://localhost:3001/api/colaboradores/${id}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(mapFrontendToBackend(colaborador))
-                })
-                .then(res => res.json())
-                .then(() => fetchColaboradores())
-                .catch(err => {
-                    showMessage('Error al actualizar colaborador.', 'error');
-                    console.error(err);
+                updateColaboradorInBackend(colaborador).then(() => {
+                    fetchColaboradores();
                 });
             }
         });
@@ -492,45 +493,9 @@ document.getElementById('editCollaboratorForm').addEventListener('submit', async
         Vacaciones: 'No'
     };
 
-    fetch(`http://localhost:3001/api/colaboradores/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(mapFrontendToBackend(colaboradorEditado))
-    })
-    .then(response => response.json())
-    .then(updatedData => {
-        showMessage('Colaborador actualizado correctamente', 'success');
-        document.getElementById('editModal').style.display = 'none';
-        
-        // Resaltar las celdas editadas
-        if (row) {
-            // Identificar qué campos cambiaron
-            const updatedFields = [];
-            const nombre = document.getElementById('editNombre').value.trim();
-            const estado = document.getElementById('editEstado').value.trim();
-            const ubicacion = document.getElementById('editUbicacion').value.trim();
-            
-            // Verificar qué campos cambiaron
-            const originalNombre = row.querySelector('[data-field="nombre"]')?.textContent.trim();
-            const originalEstado = row.querySelector('[data-field="estado"]')?.textContent.trim();
-            const originalUbicacion = row.querySelector('[data-field="ubicacion"]')?.textContent.trim();
-            
-            if (nombre !== originalNombre) updatedFields.push('nombre');
-            if (estado !== originalEstado) updatedFields.push('estado');
-            if (ubicacion !== originalUbicacion) updatedFields.push('ubicacion');
-            
-            // Resaltar solo los campos que cambiaron
-            if (updatedFields.length > 0) {
-                markEditedCells(row, updatedFields);
-            }
-        }
-        
-        // Actualizar los datos
-        fetchColaboradores();
-    }).catch(err => {
-        alert('Error al actualizar colaborador.');
-        console.error(err);
-    });
+    await updateColaboradorInBackend(colaboradorEditado);
+    document.getElementById('editModal').style.display = 'none';
+    await fetchColaboradores();
 });
 // Función para obtener los datos almacenados en el DOM
 function getData() {
@@ -620,7 +585,7 @@ function getData() {
  * Valida reglas de negocio y sincroniza el cambio con el backend.
  * Actualiza la UI y los contadores tras la confirmación del backend.
  */
-function handleCheckboxChange(event) {
+async function handleCheckboxChange(event) {
     const checkbox = event.target;
     const dataId = checkbox.dataset.id;
     const dataField = checkbox.dataset.field;
@@ -711,17 +676,8 @@ function handleCheckboxChange(event) {
     }
 
     // Sincronizar con el backend y refrescar solo cuando termine
-    fetch(`http://localhost:3001/api/colaboradores/${row.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(mapFrontendToBackend(row))
-    })
-    .then(res => res.json())
-    .then(() => fetchColaboradores())
-    .catch(err => {
-        showMessage('Error al actualizar colaborador.', 'error');
-        console.error(err);
-    });
+    await updateColaboradorInBackend(row);
+    await fetchColaboradores();
 }
 
 /**
@@ -734,7 +690,7 @@ function handleCheckboxChange(event) {
  * Valida reglas de negocio y sincroniza el cambio con el backend.
  * Actualiza la UI y los contadores tras la confirmación del backend.
  */
-function handleDateChange(event) {
+async function handleDateChange(event) {
     const input = event.target;
     const collaboratorId = input.dataset.id;
     const field = input.dataset.field;
@@ -836,9 +792,8 @@ function handleDateChange(event) {
     });
 
     // Sincronizar con el backend y resaltar la fila tras éxito
-    updateColaboradorInBackend(row).then(() => {
-        // No hay resaltado de filas editadas permanentemente
-    });
+    await updateColaboradorInBackend(row);
+    await fetchColaboradores();
 }
 
 function validateDates(row) {
@@ -907,6 +862,7 @@ function updateLocationCounters(data) {
     // Botón Todos
     allBtn.textContent = `Todos (${data.length})`;
     allBtn.onclick = () => {
+        clearStatusFilters();
         activeFilter = 'Todos';
         updateTable(allCollaborators);
         setActiveButton(allBtn);
@@ -924,6 +880,7 @@ function updateLocationCounters(data) {
       <span class='stim-count' style='margin-left:8px;'><i class='far fa-star'></i> ${noStim}</span>
     `;
         btn.onclick = () => {
+            clearStatusFilters();
             activeFilter = location;
             const filtrados = allCollaborators.filter(c => (c.Estado || 'Sin Ubicación') === location);
             updateTable(filtrados);
@@ -1118,6 +1075,7 @@ async function fetchColaboradores() {
         const data = await fetchWithHandling('http://localhost:3001/api/colaboradores', {}, 'Error al cargar colaboradores del servidor.');
         const normalized = data.map(normalizeBackendRow);
         allCollaborators = normalized;
+        storeOriginalState(allCollaborators);
         // Aplicar el filtro de Fin de Misión para el mes de conciliación actual
         let mesConciliacion = '';
         const conciliationInput = document.getElementById('conciliationMonth');
@@ -1199,6 +1157,11 @@ function clearStatusFilters() {
 
 // Función para aplicar filtro por estado
 function applyStatusFilter(filterType) {
+    if (filterType === 'Edited' && !isConciliationMonthSelected()) {
+        showMessage('Por favor, seleccione un mes de conciliación para poder usar este filtro.', 'error');
+        return;
+    }
+
     clearStatusFilters();
     
     if (activeStatusFilter === filterType) {
@@ -1223,6 +1186,18 @@ function applyStatusFilter(filterType) {
     let filteredData = [];
     
     switch (filterType) {
+        case 'Edited':
+            const conciliationMonth = getConciliationMonth();
+            if (!conciliationMonth.year || !conciliationMonth.month) {
+                showMessage('Por favor, seleccione un mes de conciliación para filtrar por editados.', 'error');
+                return;
+            }
+            filteredData = allCollaborators.filter(c => 
+                wasEdited(c) ||
+                isDateInConciliationMonth(c['Fecha de Salida'], conciliationMonth) ||
+                isDateInConciliationMonth(c['Fecha de Entrada'], conciliationMonth)
+            );
+            break;
         case 'Stimulation':
             filteredData = allCollaborators.filter(c => c.Estimulacion === 'Sí');
             break;
@@ -1252,11 +1227,15 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchColaboradores();
     
     // Event listeners para los botones de filtro
+    const filterEditedBtn = document.getElementById('filterEditedBtn');
     const filterStimulationBtn = document.getElementById('filterStimulationBtn');
     const filterNoStimulationBtn = document.getElementById('filterNoStimulationBtn');
     const filterVacationBtn = document.getElementById('filterVacationBtn');
     const filterEndMissionBtn = document.getElementById('filterEndMissionBtn');
     
+    if (filterEditedBtn) {
+        filterEditedBtn.addEventListener('click', () => applyStatusFilter('Edited'));
+    }
     if (filterStimulationBtn) {
         filterStimulationBtn.addEventListener('click', () => applyStatusFilter('Stimulation'));
     }
@@ -1489,18 +1468,9 @@ if (editCollaboratorForm) {
             Estimulacion: 'Sí',
             Vacaciones: 'No'
         };
-        try {
-            await fetchWithHandling(`http://localhost:3001/api/colaboradores/${id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(mapFrontendToBackend(colaboradorEditado))
-            }, 'Error al actualizar colaborador.');
-            document.getElementById('editModal').style.display = 'none';
-            await fetchColaboradores();
-        } catch (err) {
-            showMessage(err.message, 'error');
-            console.error(err);
-        }
+        await updateColaboradorInBackend(colaboradorEditado);
+        document.getElementById('editModal').style.display = 'none';
+        await fetchColaboradores();
     });
 }
 
@@ -1530,6 +1500,17 @@ function parseDateYMD(fechaString) {
     if (!fechaString) return null;
     const [year, month, day] = fechaString.split('-').map(Number);
     return new Date(year, month - 1, day);
+}
+
+function isDateInConciliationMonth(dateString, conciliationMonth) {
+    if (!dateString || !conciliationMonth || !conciliationMonth.year || !conciliationMonth.month) {
+        return false;
+    }
+    const date = parseDateYMD(dateString);
+    if (!date) {
+        return false;
+    }
+    return date.getFullYear() === conciliationMonth.year && (date.getMonth() + 1) === conciliationMonth.month;
 }
 
 function calcularDiasPresencia(colaborador, mesConciliacion) {
