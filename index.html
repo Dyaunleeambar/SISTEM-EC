@@ -168,6 +168,22 @@
         </div>
       </div>
     </div>
+
+    <!-- Modal de Login -->
+    <div id="loginModal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <span id="closeLoginModal" class="close">&times;</span>
+        <h3>Iniciar Sesión</h3>
+        <form id="loginForm">
+          <input type="text" id="usernameInput" placeholder="Usuario" required>
+          <div class="error-inline" id="usernameError"></div>
+          <input type="password" id="passwordInput" placeholder="Contraseña" required>
+          <div class="error-inline" id="passwordError"></div>
+          <button type="submit">Entrar</button>
+        </form>
+      </div>
+    </div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="app.js"></script>
     <script>
