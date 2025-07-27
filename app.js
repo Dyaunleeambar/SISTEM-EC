@@ -457,14 +457,9 @@ function openEditModal(colaborador) {
     document.getElementById('editModal').style.display = 'block';
 }
 
-// Cerrar el modal
+// Cerrar el modal de edición
 document.getElementById('closeEditModal').onclick = function() {
     document.getElementById('editModal').style.display = 'none';
-};
-window.onclick = function(event) {
-    if (event.target == document.getElementById('editModal')) {
-        document.getElementById('editModal').style.display = 'none';
-    }
 };
 
 // Enviar cambios de edición
@@ -924,16 +919,7 @@ if (exportButton && exportModal) {
         exportModal.style.display = 'block';
     });
 }
-if (closeExportModal && exportModal) {
-    closeExportModal.onclick = function() {
-        exportModal.style.display = 'none';
-    };
-    window.onclick = function(event) {
-        if (event.target == exportModal) {
-            exportModal.style.display = 'none';
-        }
-    };
-}
+
 if (exportAllBtn) {
     exportAllBtn.onclick = function() {
         exportarDatos('all');
@@ -1731,8 +1717,18 @@ if (confirmCleanEndMissionBtn) {
         fetchColaboradores();
     };
 }
-// Cerrar modal si se hace clic fuera del contenido
+// Centralizar el cierre de modales al hacer clic fuera de ellos
 window.addEventListener('click', function(event) {
+    const editModal = document.getElementById('editModal');
+    const exportModal = document.getElementById('exportModal');
+    const cleanEndMissionModal = document.getElementById('cleanEndMissionModal');
+
+    if (event.target === editModal) {
+        editModal.style.display = 'none';
+    }
+    if (event.target === exportModal) {
+        exportModal.style.display = 'none';
+    }
     if (event.target === cleanEndMissionModal) {
         cleanEndMissionModal.style.display = 'none';
     }

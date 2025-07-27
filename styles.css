@@ -642,7 +642,7 @@ html, body {
   color: #000000;
 }
 #editCollaboratorForm button[type="submit"] {
-    background-color: #4CAF50;
+    background-color: #007bff;
     color: white;
     padding: 12px 24px;
     border: none;
@@ -655,7 +655,7 @@ html, body {
     width: 100%;
 }
 #editCollaboratorForm button[type="submit"]:hover {
-    background-color: #82d885;
+    background-color: #0056b3;
 }
 .modal-content h3 {
     margin-top: 0;
