@@ -2,39 +2,57 @@
 
 ## Descripción General
 
-Sistema web para la gestión y estimulación de colaboradores según su presencia en el país durante un mes de conciliación. Permite agregar, editar, filtrar y exportar datos de colaboradores, calculando automáticamente derechos a estimulación, vacaciones y fin de misión según reglas de negocio.
+Sistema web completo para la gestión y estimulación de colaboradores según su presencia en el país durante un mes de conciliación. Incluye sistema de autenticación JWT con roles de usuario, gestión de colaboradores, cálculos automáticos, filtrado avanzado y exportación de datos.
 
 ## Características Principales
 
-- **Gestión de Colaboradores**
-  - Agregar nuevos colaboradores con sus datos personales
-  - Editar información existente de manera intuitiva
-  - Eliminar colaboradores del sistema
-  - Reordenar colaboradores mediante arrastrar y soltar
+### 🔐 Sistema de Autenticación
+- **Autenticación JWT** con tokens seguros
+- **Sistema de Roles**: admin, editor, viewer con permisos específicos
+- **Interfaz de Login** elegante con modal atractivo
+- **Sesión Persistente** con opción "Recordar sesión"
+- **Cambio de Contraseña** mensual obligatorio
+- **Rate Limiting** para prevenir abuso
+- **Auditoría Completa** de sesiones y cambios
 
-- **Seguimiento de Presencia**
-  - Registro de fechas de salida y entrada del país
-  - Cálculo automático de días de presencia
-  - Validación de fechas para evitar entradas incorrectas
+### 👥 Gestión de Usuarios
+- **Usuario Admin**: Acceso total, puede crear otros usuarios
+- **Usuario Editor**: Puede crear y editar colaboradores
+- **Usuario Viewer**: Solo puede ver y exportar datos
+- **Gestión de Sesiones** con tokens de acceso y refresh
+- **Historial de Cambios** de contraseña
 
-- **Cálculos Automáticos**
-  - Determinación de derecho a estimulación basado en días de presencia
-  - Cálculo de estado de vacaciones
-  - Gestión de fin de misión
+### 📊 Gestión de Colaboradores
+- Agregar nuevos colaboradores con sus datos personales
+- Editar información existente de manera intuitiva
+- Eliminar colaboradores del sistema (solo admin)
+- Reordenar colaboradores mediante arrastrar y soltar
 
-- **Filtrado y Búsqueda**
-  - Filtrado por ubicación/estado
-  - Búsqueda rápida por nombre
-  - Contadores en tiempo real para diferentes estados
+### 📈 Seguimiento de Presencia
+- Registro de fechas de salida y entrada del país
+- Cálculo automático de días de presencia
+- Validación de fechas para evitar entradas incorrectas
 
-- **Exportación de Datos**
-  - Exportar a Excel con un solo clic
-  - Opciones para exportar todos los datos o solo los filtrados
+### 🧮 Cálculos Automáticos
+- Determinación de derecho a estimulación basado en días de presencia
+- Cálculo de estado de vacaciones
+- Gestión de fin de misión
 
-- **Interfaz Intuitiva**
-  - Diseño responsivo
-  - Codificación visual por colores
-  - Mensajes de retroalimentación claros
+### 🔍 Filtrado y Búsqueda
+- Filtrado por ubicación/estado
+- Búsqueda rápida por nombre
+- Contadores en tiempo real para diferentes estados
+
+### 📤 Exportación de Datos
+- Exportar a Excel con un solo clic
+- Opciones para exportar todos los datos o solo los filtrados
+
+### 🎨 Interfaz Moderna
+- Diseño responsivo y atractivo
+- Codificación visual por colores
+- Fondo animado con gradientes
+- Modal de login elegante
+- Mensajes de retroalimentación claros
 
 ## Requisitos del Sistema
 
@@ -55,7 +73,26 @@ Sistema web para la gestión y estimulación de colaboradores según su presenci
    npm install
    ```
 
-3. **Configurar la base de datos**
+3. **Configurar variables de entorno**
+   - Crear archivo `config.env` con las siguientes variables:
+   ```env
+   PORT=3001
+   NODE_ENV=development
+   DB_HOST=localhost
+   DB_USER=root
+   DB_PASSWORD=Cuba123456
+   DB_NAME=colaboradores_db
+   JWT_SECRET=tu_secreto_jwt_muy_seguro
+   JWT_EXPIRES_IN=24h
+   JWT_REFRESH_EXPIRES_IN=7d
+   BCRYPT_ROUNDS=12
+   RATE_LIMIT_WINDOW_MS=900000
+   RATE_LIMIT_MAX_REQUESTS=100
+   PASSWORD_EXPIRY_DAYS=30
+   MIN_PASSWORD_LENGTH=6
+   ```
+
+4. **Configurar la base de datos**
    - Asegúrate de tener MySQL en ejecución
    - El sistema creará automáticamente la base de datos y las tablas necesarias
    - Las credenciales por defecto son:
@@ -63,18 +100,58 @@ Sistema web para la gestión y estimulación de colaboradores según su presenci
      - Contraseña: Cuba123456
      - Base de datos: colaboradores_db
 
-4. **Iniciar el servidor**
+5. **Iniciar el servidor**
    ```bash
    node server.js
    ```
 
-5. **Abrir la aplicación**
+6. **Abrir la aplicación**
    Abre tu navegador y navega a:
    ```
-   http://localhost:3000
+   http://localhost:3001
    ```
 
-## Uso
+## Usuarios del Sistema
+
+### Usuarios de Prueba Disponibles:
+
+1. **Administrador** - `admin` / `admin123`
+   - Acceso total a todas las funcionalidades
+   - Puede crear, editar, eliminar colaboradores
+   - Puede crear otros usuarios
+   - Gestión completa del sistema
+
+2. **Editor** - `editor` / `editor123`
+   - Puede crear y editar colaboradores
+   - No puede eliminar colaboradores
+   - No puede crear usuarios
+   - Acceso a exportación de datos
+
+3. **Viewer** - `viewer` / `viewer123`
+   - Solo puede ver colaboradores
+   - No puede crear, editar o eliminar
+   - Puede exportar datos
+   - Acceso de solo lectura
+
+## Uso del Sistema
+
+### 🔐 Autenticación
+1. **Iniciar Sesión**
+   - Ingresa con tus credenciales en el modal de login
+   - Marca "Recordar sesión" si deseas mantener la sesión activa
+   - El sistema te redirigirá automáticamente según tu rol
+
+2. **Gestión de Sesión**
+   - La sesión se mantiene activa según tu configuración
+   - Puedes cerrar sesión desde el botón en la parte superior
+   - Los tokens se renuevan automáticamente
+
+3. **Cambio de Contraseña**
+   - El sistema te notificará cuando debas cambiar tu contraseña
+   - Las contraseñas deben tener al menos 6 caracteres
+   - Se requiere cambio mensual por seguridad
+
+### 📊 Gestión de Colaboradores
 
 1. **Agregar un nuevo colaborador**
    - Completa el formulario en la sección superior
@@ -86,36 +163,158 @@ Sistema web para la gestión y estimulación de colaboradores según su presenci
    - Modifica los campos necesarios en el modal
    - Guarda los cambios
 
-3. **Filtrar colaboradores**
-   - Usa los botones de filtro para ver colaboradores por estado
-   - Utiliza la barra de búsqueda para encontrar colaboradores específicos
+3. **Eliminar colaborador** (solo admin)
+   - Haz clic en el ícono de eliminar
+   - Confirma la acción
 
-4. **Exportar datos**
-   - Haz clic en el botón "Exportar a Excel"
-   - Elige si deseas exportar todos los datos o solo los filtrados
-   - Descarga el archivo generado
+### 🔍 Filtrado y Búsqueda
+- Usa los botones de filtro para ver colaboradores por estado
+- Utiliza la barra de búsqueda para encontrar colaboradores específicos
+- Los contadores se actualizan en tiempo real
+
+### 📤 Exportación de Datos
+- Haz clic en el botón "Exportar a Excel"
+- Elige si deseas exportar todos los datos o solo los filtrados
+- Descarga el archivo generado
 
 ## Estructura del Proyecto
 
 - `index.html` - Página principal de la aplicación
-- `styles.css` - Estilos CSS
-- `app.js` - Lógica principal del frontend
+- `styles.css` - Estilos CSS con diseño moderno
+- `app.js` - Lógica principal del frontend con autenticación
 - `logic.js` - Funciones auxiliares
-- `server.js` - Servidor Node.js/Express
+- `server.js` - Servidor Node.js/Express con autenticación JWT
+- `config.env` - Variables de entorno y configuración
 - `package.json` - Dependencias y scripts
 - `tests/` - Pruebas unitarias y de integración
 
 ## Tecnologías Utilizadas
 
-- **Frontend**: HTML5, CSS3, JavaScript (ES6+)
-- **Backend**: Node.js, Express
-- **Base de Datos**: MySQL
-- **Dependencias Principales**:
-  - express: Para el servidor web
-  - mysql2: Cliente MySQL para Node.js
-  - cors: Para permitir solicitudes entre dominios
-  - jest: Para pruebas unitarias
-  - supertest: Para pruebas de integración
+### Frontend
+- **HTML5**: Estructura semántica
+- **CSS3**: Estilos modernos con animaciones y gradientes
+- **JavaScript (ES6+)**: Lógica de aplicación y autenticación
+
+### Backend
+- **Node.js**: Runtime de JavaScript
+- **Express**: Framework web
+- **MySQL**: Base de datos relacional
+
+### Autenticación y Seguridad
+- **JWT (jsonwebtoken)**: Tokens de autenticación
+- **bcryptjs**: Hash seguro de contraseñas
+- **express-rate-limit**: Protección contra ataques de fuerza bruta
+- **dotenv**: Gestión de variables de entorno
+
+### Dependencias Principales
+```json
+{
+  "express": "^4.18.2",
+  "mysql2": "^3.6.0",
+  "cors": "^2.8.5",
+  "bcryptjs": "^2.4.3",
+  "jsonwebtoken": "^9.0.2",
+  "express-rate-limit": "^6.10.0",
+  "dotenv": "^16.3.1",
+  "jest": "^29.5.0",
+  "supertest": "^6.3.3"
+}
+```
+
+## Estructura de la Base de Datos
+
+### Tabla `colaboradores`
+| Campo         | Tipo         | Descripción                                 |
+|-------------- |------------- |---------------------------------------------|
+| id            | INT          | Identificador autoincremental (PK)          |
+| nombre        | VARCHAR(255) | Nombre y apellidos del colaborador          |
+| estado        | VARCHAR(255) | Ubicación/estado actual                     |
+| fecha_salida  | VARCHAR(20)  | Fecha de salida (YYYY-MM-DD)                |
+| fecha_entrada | VARCHAR(20)  | Fecha de entrada (YYYY-MM-DD)               |
+| fin_mision    | TINYINT      | 1 = Sí, 0 = No                              |
+| ubicacion     | VARCHAR(255) | Ubicación (igual a estado)                  |
+| orden         | INT          | Orden personalizado para drag & drop        |
+
+### Tabla `usuarios`
+| Campo                | Tipo         | Descripción                           |
+|--------------------- |------------- |---------------------------------------|
+| id                   | INT          | Identificador autoincremental (PK)    |
+| username             | VARCHAR(50)  | Nombre de usuario único               |
+| password_hash        | VARCHAR(255) | Hash de la contraseña                 |
+| email                | VARCHAR(100) | Email del usuario                     |
+| rol                  | ENUM         | admin, editor, viewer                 |
+| fecha_creacion       | TIMESTAMP    | Fecha de creación del usuario         |
+| ultimo_login         | TIMESTAMP    | Último acceso al sistema              |
+| ultimo_cambio_password| TIMESTAMP    | Último cambio de contraseña           |
+| activo               | BOOLEAN      | Estado del usuario (activo/inactivo)  |
+
+### Tabla `sesiones`
+| Campo        | Tipo         | Descripción                           |
+|------------- |------------- |---------------------------------------|
+| id           | INT          | Identificador autoincremental (PK)    |
+| usuario_id   | INT          | ID del usuario (FK)                   |
+| token        | VARCHAR(500) | Token de sesión                       |
+| fecha_inicio | TIMESTAMP    | Fecha de inicio de sesión             |
+| fecha_fin    | TIMESTAMP    | Fecha de fin de sesión                |
+| activa       | BOOLEAN      | Estado de la sesión                   |
+
+### Tabla `cambios_password`
+| Campo        | Tipo         | Descripción                           |
+|------------- |------------- |---------------------------------------|
+| id           | INT          | Identificador autoincremental (PK)    |
+| usuario_id   | INT          | ID del usuario (FK)                   |
+| fecha_cambio | TIMESTAMP    | Fecha del cambio                      |
+| ip_address   | VARCHAR(45)  | Dirección IP del cambio               |
+
+## API Endpoints
+
+### Autenticación
+- `POST /api/auth/login` - Iniciar sesión
+- `POST /api/auth/logout` - Cerrar sesión
+- `POST /api/auth/change-password` - Cambiar contraseña
+- `GET /api/auth/verify` - Verificar token
+- `POST /api/auth/create-user` - Crear usuario (solo admin)
+
+### Colaboradores
+- `GET /api/colaboradores` - Obtener todos los colaboradores
+- `POST /api/colaboradores` - Crear colaborador
+- `PUT /api/colaboradores/:id` - Actualizar colaborador
+- `DELETE /api/colaboradores/:id` - Eliminar colaborador
+
+## Seguridad
+
+### Autenticación JWT
+- Tokens de acceso con expiración de 24 horas
+- Tokens de refresh con expiración de 7 días
+- Verificación automática de tokens en cada petición
+
+### Protección de Rutas
+- Middleware de autenticación para rutas protegidas
+- Verificación de roles para operaciones específicas
+- Rate limiting para prevenir ataques
+
+### Hash de Contraseñas
+- Uso de bcryptjs con 12 rondas de hash
+- Contraseñas nunca se almacenan en texto plano
+- Cambio obligatorio cada 30 días
+
+## Testing
+
+### Tests Unitarios (Frontend)
+```bash
+npm test
+# o
+npx jest app.test.js
+```
+
+### Tests de Integración (Backend)
+```bash
+npx jest server.test.js
+```
+
+### CI/CD
+- GitHub Actions ejecuta tests automáticamente
+- Workflow en `.github/workflows/nodejs.yml`
 
 ## Contribución
 
@@ -132,165 +331,7 @@ Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más det
 ## Contacto
 
 Para consultas o soporte, por favor contacta al equipo de desarrollo.
-- **Tests automáticos:**
-  - Tests unitarios para la lógica de negocio (frontend) con Jest (`logic.js`).
-  - Tests de integración para la API backend con Jest + Supertest (`server.test.js`).
-- **CI/CD:**
-  - GitHub Actions ejecuta los tests automáticamente en cada push/pull request.
-
-## Flujo de uso
-
-1. **Seleccionar mes de conciliación**
-   - El input de mes de conciliación es obligatorio para habilitar la edición de la tabla y los formularios.
-   - Al seleccionar o cambiar el mes, la tabla se regenera automáticamente y los campos de edición y botones se habilitan según las reglas.
-   - **No se puede seleccionar un mes futuro**: El sistema valida que el mes de conciliación no sea mayor al mes actual.
-
-2. **Agregar colaborador**
-   - Completa el formulario con los datos requeridos.
-   - Haz clic en "Agregar" para guardar el colaborador.
-
-3. **Visualización y edición**
-   - Los colaboradores se muestran en una tabla editable con codificación visual por colores.
-   - Puedes modificar fechas de salida y entrada.
-   - **El campo de fecha de entrada está deshabilitado hasta que se establezca la fecha de salida para cada colaborador.**
-   - Los campos de estimulación, vacaciones y fin de misión se recalculan automáticamente.
-   - **No se puede marcar 'Fin de Misión' sin haber seleccionado el mes de conciliación.**
-   - **No se puede marcar 'Fin de Misión' si existe una fecha de entrada o si la fecha de salida está vacía o es futura.**
-   - **El cambio de 'Fin de Misión' se refleja inmediatamente tras la confirmación del backend, sin necesidad de recargar.**
-
-4. **Filtrado y contadores**
-   - Puedes filtrar por ubicación usando los botones generados dinámicamente.
-   - Los contadores generales y por estado se actualizan en tiempo real.
-
-5. **Exportar a Excel**
-   - Haz clic en "Exportar a Excel" para abrir un modal y elegir entre exportar toda la base de datos o solo los datos visibles en la tabla.
-
-6. **Limpiar base de datos**
-   - Haz clic en "Limpiar Base de Datos" para borrar todos los colaboradores y volver a habilitar la carga manual.
-
-## Validaciones implementadas
-
-- **Mes de conciliación**: No puede ser un mes futuro.
-- **Fecha de entrada**: No se puede establecer sin tener una fecha de salida previa.
-- **Fin de Misión**: 
-  - No se puede marcar si existe una fecha de entrada (contradicción lógica).
-  - No se puede marcar sin haber seleccionado el mes de conciliación.
-  - No se puede marcar si la fecha de salida está vacía o es futura.
-- **Fechas coherentes**: La fecha de entrada no puede ser anterior a la fecha de salida. El mensaje de error es siempre claro y consistente.
-
-## Consideraciones técnicas
-
-- El sistema está optimizado y el código limpio, sin logs de depuración innecesarios ni duplicados.
-- **Codificación visual automática:** Las celdas de la tabla se colorean automáticamente según su valor ("Sí" en verde, "No" en naranja).
-- El mes de conciliación no puede ser mayor al mes actual. Si el usuario intenta seleccionar un mes futuro, el sistema muestra un mensaje de error y no permite la selección.
-- No se puede marcar 'Fin de Misión' si existe una fecha de entrada para el colaborador, ya que esto contradice el concepto de fin de misión. El sistema muestra un mensaje de error y no permite marcar el checkbox en ese caso.
-- **Contadores y filtros dinámicos:** El sistema muestra contadores generales y por estado/ubicación, y permite filtrar la tabla dinámicamente.
-- **Exportación avanzada:** El usuario puede elegir exportar toda la base de datos o solo los datos filtrados/visibles mediante un modal.
-- **Backend Express + MySQL:** El backend crea automáticamente la base de datos y la tabla si no existen, y expone endpoints REST para CRUD de colaboradores.
-- **Favicon:** El sistema usa una estrella SVG como favicon.
-- **Listeners centralizados:** Todos los listeners de eventos de la tabla están centralizados en `updateTable` para evitar duplicados y fugas de memoria.
-- **Tests automáticos:**
-  - Tests unitarios en `logic.js` (ver sección de testing).
-  - Tests de integración en `server.test.js`.
-- **CI/CD:**
-  - Workflow de GitHub Actions en `.github/workflows/nodejs.yml`.
-
-## Estructura de archivos relevante
-
-- `index.html`: Estructura de la interfaz y elementos con los IDs requeridos.
-- `styles.css`: Estilos visuales de la aplicación, incluyendo los colores para la codificación visual de celdas.
-- `app.js`: Lógica principal del frontend, manejo de eventos, validaciones, filtros, exportación, etc.
-- `logic.js`: Funciones puras de lógica de negocio, testeables de forma aislada.
-- `server.js`: Backend Express para almacenar y servir los datos de colaboradores, con creación automática de la base de datos y tabla.
-- `app.test.js`: Tests unitarios para la lógica de negocio (frontend).
-- `server.test.js`: Tests de integración para la API backend.
-- `.github/workflows/nodejs.yml`: Workflow de GitHub Actions para CI.
-
-## Requisitos
-
-- Node.js y npm instalados.
-- Backend corriendo (`node server.js`).
-- Navegador moderno.
-- MySQL corriendo en localhost (usuario: root, password: Cuba123456, base: colaboradores_db).
-
-## Instalación y ejecución
-
-1. Clona el repositorio.
-2. Instala dependencias con `npm install`.
-   - Esto generará el directorio `node_modules`, que contiene todas las dependencias necesarias para el backend y los tests.
-3. Ejecuta el backend con `node server.js`.
-4. Abre `index.html` en tu navegador.
-
-> **Nota:** El directorio `node_modules` no se incluye en el repositorio y se genera automáticamente al instalar las dependencias.
-
-## Testing
-
-### Tests unitarios (frontend)
-
-- Las funciones de lógica de negocio están en `logic.js` y se testean con Jest en `app.test.js`.
-- Para correr los tests unitarios:
-  ```bash
-  npm test
-  # o
-  npx jest app.test.js
-  ```
-
-### Tests de integración (backend)
-
-- Los endpoints principales de la API se testean con Jest + Supertest en `server.test.js`.
-- Para correr los tests de integración:
-  ```bash
-  npx jest server.test.js
-  ```
-
-### CI/CD con GitHub Actions
-
-- El workflow `.github/workflows/nodejs.yml` ejecuta automáticamente todos los tests en cada push o pull request a la rama `main`.
-- Puedes ver los resultados en la pestaña "Actions" de tu repositorio en GitHub.
-
-## Estructura de la base de datos
-
-La tabla principal es `colaboradores`:
-
-| Campo         | Tipo         | Descripción                                 |
-|-------------- |------------- |---------------------------------------------|
-| id            | INT          | Identificador autoincremental (PK)          |
-| nombre        | VARCHAR(255) | Nombre y apellidos del colaborador          |
-| estado        | VARCHAR(255) | Ubicación/estado actual                     |
-| fecha_salida  | VARCHAR(20)  | Fecha de salida (YYYY-MM-DD)                |
-| fecha_entrada | VARCHAR(20)  | Fecha de entrada (YYYY-MM-DD)               |
-| fin_mision    | TINYINT      | 1 = Sí, 0 = No                              |
-| ubicacion     | VARCHAR(255) | Ubicación (igual a estado)                  |
-| orden         | INT          | Orden personalizado para drag & drop        |
-
-- La base de datos y la tabla se crean automáticamente al iniciar el backend.
-- El campo `orden` permite reordenar los colaboradores en la tabla.
-- Hay una restricción UNIQUE en (nombre, estado) para evitar duplicados.
-
-## Restauración de backups
-
-- Puedes hacer un backup de la base de datos MySQL usando:
-  ```bash
-  mysqldump -u root -p colaboradores_db > backup.sql
-  ```
-- Para restaurar:
-  ```bash
-  mysql -u root -p colaboradores_db < backup.sql
-  ```
-- Si usas SQLite3, puedes copiar el archivo `.db` directamente.
 
 ---
 
-**¡Listo para usar y mantener!**
-
----
-
-## Tareas pendientes / Futuras mejoras
-
-- Migrar a un ORM como Sequelize para mayor flexibilidad y mantenibilidad si la lógica de base de datos crece.
-- Implementar autenticación y control de acceso si el sistema se expone a internet.
-- Agregar paginación y/o virtualización en la tabla y endpoints si el volumen de datos crece.
-- Preparar el frontend para internacionalización (i18n) si se usará en otros países.
-- Automatizar backups de la base de datos.
-- Mejorar el cierre del servidor en los tests de integración para evitar mensajes de Jest sobre handles abiertos.
-- Agregar más tests de validación y casos de error en frontend y backend.
+**¡Sistema completo y listo para producción!** 🚀

@@ -597,6 +597,7 @@ html, body {
 .message-box.error { background: #f44336; }
 .message-box.success { background: #4caf50; }
 .message-box.info { background: #2196f3; }
+.message-box.warning { background: #ff9800; }
 
 /* Centrar el modal en la pantalla */
 #editModal.modal {
@@ -829,6 +830,29 @@ html, body {
     #editCollaboratorForm button {
         width: 100%;
         margin: 0;
+    }
+    
+    .title-user-container {
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .header-title {
+        text-align: center;
+        margin-left: 0;
+        margin-right: 0;
+    }
+    
+    .user-info-placeholder {
+        min-width: auto;
+        width: 100%;
+    }
+    
+    .user-info {
+        width: 100%;
+        justify-content: space-between;
+        font-size: 11px;
     }
 }
 
@@ -1887,16 +1911,40 @@ input[type="month"] {
 
 /* ===== ESTILOS PARA SISTEMA DE AUTENTICACIÓN ===== */
 
+/* Contenedor del título y usuario */
+.title-user-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.header-title {
+    text-align: center;
+    font-size: 2rem;
+    font-weight: bold;
+    margin-bottom: 18px;
+    color: #000000;
+    flex: 1;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.user-info-placeholder {
+    flex: 0 0 auto;
+    min-width: 200px;
+}
+
 /* Información del usuario */
 .user-info {
     display: flex;
     align-items: center;
-    gap: 15px;
-    margin-top: 10px;
-    padding: 10px;
+    gap: 10px;
+    padding: 8px 12px;
     background: #f8f9fa;
     border-radius: 6px;
     border: 1px solid #e9ecef;
+    font-size: 12px;
 }
 
 .user-info span {
@@ -1921,16 +1969,43 @@ input[type="month"] {
 }
 
 /* Modal de login */
+#loginModal {
+    backdrop-filter: blur(10px);
+    background: linear-gradient(-45deg, #0a0a0a, #1f1f1f, #3a3a3a, #5a5a5a);
+    background-size: 400% 400%;
+    animation: gradientShift 8s ease infinite;
+}
+
+@keyframes gradientShift {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
 #loginModal .modal-content {
     max-width: 400px;
     width: 90%;
     margin: 15% auto;
+    background: linear-gradient(135deg, #f5845a 0%, #f7c893 100%);
+    color: white;
+    border: none;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(40px);
+    border-radius: 15px;
 }
 
 #loginModal h3 {
     text-align: center;
     margin-bottom: 20px;
-    color: #333;
+    color: black;
+    font-size: 1.5rem;
+    font-weight: 600;
 }
 
 #loginForm {
@@ -1942,32 +2017,44 @@ input[type="month"] {
 #loginForm input[type="text"],
 #loginForm input[type="password"] {
     padding: 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
+    border: 2px solid rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
     font-size: 14px;
-    transition: border-color 0.3s;
+    background: rgba(255, 255, 255, 0.2);
+    color: black;
+    transition: all 0.3s;
+}
+
+#loginForm input[type="text"]::placeholder,
+#loginForm input[type="password"]::placeholder {
+    color: rgba(0, 0, 0, 0.6);
 }
 
 #loginForm input[type="text"]:focus,
 #loginForm input[type="password"]:focus {
-    border-color: #007bff;
+    border-color: rgba(0, 0, 0, 0.8);
     outline: none;
-    box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.2);
+    background: rgba(255, 255, 255, 0.3);
 }
 
 #loginForm button[type="submit"] {
-    background: #007bff;
-    color: white;
-    border: none;
+    background: rgba(0, 0, 0, 0.2);
+    color: black;
+    border: 2px solid rgba(0, 0, 0, 0.5);
     padding: 12px;
-    border-radius: 4px;
+    border-radius: 8px;
     font-size: 16px;
     cursor: pointer;
-    transition: background-color 0.3s;
+    transition: all 0.3s;
+    font-weight: 600;
 }
 
 #loginForm button[type="submit"]:hover {
-    background: #0056b3;
+    background: rgba(0, 0, 0, 0.3);
+    border-color: rgba(0, 0, 0, 0.8);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
 }
 
 #loginForm button[type="submit"]:disabled {
@@ -1981,7 +2068,7 @@ input[type="month"] {
     align-items: center;
     gap: 8px;
     font-size: 14px;
-    color: #666;
+    color: rgba(0, 0, 0, 0.9);
 }
 
 .remember-me input[type="checkbox"] {

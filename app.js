@@ -3,6 +3,47 @@ let currentUser = null;
 let authToken = localStorage.getItem('authToken');
 let refreshToken = localStorage.getItem('refreshToken');
 
+// ===== CONFIGURACIÓN DE TIMEOUT POR INACTIVIDAD =====
+let inactivityTimeout = null;
+const INACTIVITY_TIMEOUT = 5 * 60 * 1000; // 5 minutos en milisegundos
+
+// Función para reiniciar el timer de inactividad
+function resetInactivityTimer() {
+    if (inactivityTimeout) {
+        clearTimeout(inactivityTimeout);
+    }
+    
+    if (isAuthenticated()) {
+        // Timer principal para cerrar sesión
+        inactivityTimeout = setTimeout(() => {
+            console.log('Sesión cerrada por inactividad');
+            logout();
+            showMessage('Sesión cerrada por inactividad. Por favor, inicie sesión nuevamente.', 'error');
+        }, INACTIVITY_TIMEOUT);
+        
+        // Timer de advertencia 1 minuto antes
+        setTimeout(() => {
+            if (isAuthenticated()) {
+                showMessage('Su sesión se cerrará en 1 minuto por inactividad. Mueva el mouse o presione una tecla para continuar.', 'warning');
+            }
+        }, INACTIVITY_TIMEOUT - 60000); // 1 minuto antes
+    }
+}
+
+// Función para manejar eventos de actividad del usuario
+function handleUserActivity() {
+    resetInactivityTimer();
+}
+
+// Configurar listeners para detectar actividad del usuario
+function setupInactivityListeners() {
+    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+    
+    events.forEach(event => {
+        document.addEventListener(event, handleUserActivity, true);
+    });
+}
+
 // Función para verificar si el usuario está autenticado
 function isAuthenticated() {
     return authToken !== null;
@@ -27,6 +68,12 @@ function handleAuthError(error) {
 
 // Función para hacer logout
 function logout() {
+    // Limpiar timer de inactividad
+    if (inactivityTimeout) {
+        clearTimeout(inactivityTimeout);
+        inactivityTimeout = null;
+    }
+    
     if (authToken) {
         fetch('http://localhost:3001/api/auth/logout', {
             method: 'POST',
@@ -125,9 +172,10 @@ function updateUIForUserRole() {
         <button onclick="logout()" class="logout-btn">Cerrar Sesión</button>
     `;
     
-    // Agregar al header si no existe
-    if (!document.querySelector('.user-info')) {
-        document.querySelector('.header-main').appendChild(userInfo);
+    // Agregar al placeholder si no existe
+    const placeholder = document.querySelector('.user-info-placeholder');
+    if (placeholder && !document.querySelector('.user-info')) {
+        placeholder.appendChild(userInfo);
     }
 }
 
@@ -1942,6 +1990,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     updateUIForUserRole();
                     await fetchColaboradores();
                     
+                    // Configurar timer de inactividad
+                    setupInactivityListeners();
+                    resetInactivityTimer();
+                    
                     showMessage(`Bienvenido, ${currentUser.username}!`, 'success');
                     
                     // Limpiar formulario
@@ -1984,6 +2036,10 @@ document.addEventListener('DOMContentLoaded', function() {
             document.querySelector('.main-container').style.display = 'block';
             updateUIForUserRole();
             await fetchColaboradores();
+            
+            // Configurar timer de inactividad si ya está autenticado
+            setupInactivityListeners();
+            resetInactivityTimer();
         } else {
             document.querySelector('.main-container').style.display = 'none';
             showLoginModal();
