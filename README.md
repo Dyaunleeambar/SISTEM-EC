@@ -23,36 +23,36 @@ Sistema web completo para la gestión y estimulación de colaboradores según su
 - **Historial de Cambios** de contraseña
 
 ### 📊 Gestión de Colaboradores
-- Agregar nuevos colaboradores con sus datos personales
-- Editar información existente de manera intuitiva
+  - Agregar nuevos colaboradores con sus datos personales
+  - Editar información existente de manera intuitiva
 - Eliminar colaboradores del sistema (solo admin)
-- Reordenar colaboradores mediante arrastrar y soltar
+  - Reordenar colaboradores mediante arrastrar y soltar
 
 ### 📈 Seguimiento de Presencia
-- Registro de fechas de salida y entrada del país
-- Cálculo automático de días de presencia
-- Validación de fechas para evitar entradas incorrectas
+  - Registro de fechas de salida y entrada del país
+  - Cálculo automático de días de presencia
+  - Validación de fechas para evitar entradas incorrectas
 
 ### 🧮 Cálculos Automáticos
-- Determinación de derecho a estimulación basado en días de presencia
-- Cálculo de estado de vacaciones
-- Gestión de fin de misión
+  - Determinación de derecho a estimulación basado en días de presencia
+  - Cálculo de estado de vacaciones
+  - Gestión de fin de misión
 
 ### 🔍 Filtrado y Búsqueda
-- Filtrado por ubicación/estado
-- Búsqueda rápida por nombre
-- Contadores en tiempo real para diferentes estados
+  - Filtrado por ubicación/estado
+  - Búsqueda rápida por nombre
+  - Contadores en tiempo real para diferentes estados
 
 ### 📤 Exportación de Datos
-- Exportar a Excel con un solo clic
-- Opciones para exportar todos los datos o solo los filtrados
+  - Exportar a Excel con un solo clic
+  - Opciones para exportar todos los datos o solo los filtrados
 
 ### 🎨 Interfaz Moderna
 - Diseño responsivo y atractivo
-- Codificación visual por colores
+  - Codificación visual por colores
 - Fondo animado con gradientes
 - Modal de login elegante
-- Mensajes de retroalimentación claros
+  - Mensajes de retroalimentación claros
 
 ## Requisitos del Sistema
 
@@ -168,14 +168,14 @@ Sistema web completo para la gestión y estimulación de colaboradores según su
    - Confirma la acción
 
 ### 🔍 Filtrado y Búsqueda
-- Usa los botones de filtro para ver colaboradores por estado
-- Utiliza la barra de búsqueda para encontrar colaboradores específicos
+   - Usa los botones de filtro para ver colaboradores por estado
+   - Utiliza la barra de búsqueda para encontrar colaboradores específicos
 - Los contadores se actualizan en tiempo real
 
 ### 📤 Exportación de Datos
-- Haz clic en el botón "Exportar a Excel"
-- Elige si deseas exportar todos los datos o solo los filtrados
-- Descarga el archivo generado
+   - Haz clic en el botón "Exportar a Excel"
+   - Elige si deseas exportar todos los datos o solo los filtrados
+   - Descarga el archivo generado
 
 ## Estructura del Proyecto
 
