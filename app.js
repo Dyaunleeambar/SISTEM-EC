@@ -1,3 +1,136 @@
+// ===== CONFIGURACIÓN DE AUTENTICACIÓN =====
+let currentUser = null;
+let authToken = localStorage.getItem('authToken');
+let refreshToken = localStorage.getItem('refreshToken');
+
+// Función para verificar si el usuario está autenticado
+function isAuthenticated() {
+    return authToken !== null;
+}
+
+// Función para obtener el token de autorización
+function getAuthHeaders() {
+    return {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+    };
+}
+
+// Función para manejar errores de autenticación
+function handleAuthError(error) {
+    if (error.status === 401) {
+        logout();
+        showLoginModal();
+        showMessage('Sesión expirada. Por favor, inicie sesión nuevamente.', 'error');
+    }
+}
+
+// Función para hacer logout
+function logout() {
+    if (authToken) {
+        fetch('http://localhost:3001/api/auth/logout', {
+            method: 'POST',
+            headers: getAuthHeaders()
+        }).catch(err => console.error('Error en logout:', err));
+    }
+    
+    authToken = null;
+    refreshToken = null;
+    currentUser = null;
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('currentUser');
+    
+    // Ocultar contenido principal y mostrar login
+    document.querySelector('.main-container').style.display = 'none';
+    showLoginModal();
+}
+
+// Función para mostrar el modal de login
+function showLoginModal() {
+    const loginModal = document.getElementById('loginModal');
+    if (loginModal) {
+        loginModal.style.display = 'block';
+    }
+}
+
+// Función para ocultar el modal de login
+function hideLoginModal() {
+    const loginModal = document.getElementById('loginModal');
+    if (loginModal) {
+        loginModal.style.display = 'none';
+    }
+}
+
+// Función para verificar el token al cargar la página
+async function verifyToken() {
+    if (!authToken) {
+        showLoginModal();
+        return false;
+    }
+
+    try {
+        const response = await fetch('http://localhost:3001/api/auth/verify', {
+            headers: getAuthHeaders()
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            currentUser = data.usuario;
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            return true;
+        } else {
+            logout();
+            return false;
+        }
+    } catch (error) {
+        console.error('Error verificando token:', error);
+        logout();
+        return false;
+    }
+}
+
+// Función para actualizar la UI según el rol del usuario
+function updateUIForUserRole() {
+    if (!currentUser) return;
+
+    const isAdmin = currentUser.rol === 'admin';
+    const isEditor = currentUser.rol === 'editor' || isAdmin;
+    const isViewer = currentUser.rol === 'viewer' || isEditor;
+
+    // Mostrar/ocultar botones según rol
+    const addButton = document.querySelector('#addCollaboratorForm button[type="submit"]');
+    const exportButton = document.getElementById('exportButton');
+    const cleanButton = document.getElementById('cleanOldEndMissionButton');
+    const editButtons = document.querySelectorAll('.edit-btn');
+    const deleteButtons = document.querySelectorAll('.delete-btn');
+
+    if (addButton) addButton.style.display = isEditor ? 'inline-block' : 'none';
+    if (exportButton) exportButton.style.display = isViewer ? 'inline-block' : 'none';
+    if (cleanButton) cleanButton.style.display = isAdmin ? 'inline-block' : 'none';
+
+    editButtons.forEach(btn => {
+        btn.style.display = isEditor ? 'inline-block' : 'none';
+    });
+
+    deleteButtons.forEach(btn => {
+        btn.style.display = isAdmin ? 'inline-block' : 'none';
+    });
+
+    // Mostrar información del usuario
+    const userInfo = document.createElement('div');
+    userInfo.className = 'user-info';
+    userInfo.innerHTML = `
+        <span>Usuario: ${currentUser.username} (${currentUser.rol})</span>
+        <button onclick="logout()" class="logout-btn">Cerrar Sesión</button>
+    `;
+    
+    // Agregar al header si no existe
+    if (!document.querySelector('.user-info')) {
+        document.querySelector('.header-main').appendChild(userInfo);
+    }
+}
+
 let originalCollaboratorsState = {};
 
 function storeOriginalState(data) {
@@ -1747,6 +1880,117 @@ function highlightEditedCells(rowId) {
     }
 }
 
+// ===== MANEJO DEL FORMULARIO DE LOGIN =====
+
+// Event listener para el formulario de login
+document.addEventListener('DOMContentLoaded', function() {
+    const loginForm = document.getElementById('loginForm');
+    const closeLoginModal = document.getElementById('closeLoginModal');
+    
+    if (loginForm) {
+        loginForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            
+            const username = document.getElementById('usernameInput').value.trim();
+            const password = document.getElementById('passwordInput').value;
+            const rememberMe = document.getElementById('rememberMe')?.checked || false;
+            
+            // Limpiar errores previos
+            setInlineError('usernameInput', 'usernameError', '');
+            setInlineError('passwordInput', 'passwordError', '');
+            
+            // Validaciones
+            let hasError = false;
+            if (!username) {
+                setInlineError('usernameInput', 'usernameError', 'El usuario es requerido');
+                hasError = true;
+            }
+            if (!password) {
+                setInlineError('passwordInput', 'passwordError', 'La contraseña es requerida');
+                hasError = true;
+            }
+            
+            if (hasError) return;
+            
+            try {
+                const response = await fetch('http://localhost:3001/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password, rememberMe })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Login exitoso
+                    authToken = data.tokens.accessToken;
+                    refreshToken = data.tokens.refreshToken;
+                    currentUser = data.usuario;
+                    
+                    // Guardar en localStorage
+                    localStorage.setItem('authToken', authToken);
+                    localStorage.setItem('refreshToken', refreshToken);
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    
+                    // Ocultar modal y mostrar contenido principal
+                    hideLoginModal();
+                    document.querySelector('.main-container').style.display = 'block';
+                    
+                    // Actualizar UI y cargar datos
+                    updateUIForUserRole();
+                    await fetchColaboradores();
+                    
+                    showMessage(`Bienvenido, ${currentUser.username}!`, 'success');
+                    
+                    // Limpiar formulario
+                    loginForm.reset();
+                    
+                } else {
+                    // Error en login
+                    if (data.passwordExpired) {
+                        showMessage('Su contraseña ha expirado. Debe cambiarla.', 'error');
+                        // Aquí podrías mostrar un modal para cambiar contraseña
+                    } else {
+                        showMessage(data.error || 'Error en el login', 'error');
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Error en login:', error);
+                showMessage('Error de conexión. Intente nuevamente.', 'error');
+            }
+        });
+    }
+    
+    // Cerrar modal de login
+    if (closeLoginModal) {
+        closeLoginModal.addEventListener('click', hideLoginModal);
+    }
+    
+    // Cerrar modal al hacer clic fuera
+    window.addEventListener('click', function(event) {
+        const loginModal = document.getElementById('loginModal');
+        if (event.target === loginModal) {
+            hideLoginModal();
+        }
+    });
+    
+    // Verificar autenticación al cargar la página
+    (async function() {
+        const isAuth = await verifyToken();
+        if (isAuth) {
+            document.querySelector('.main-container').style.display = 'block';
+            updateUIForUserRole();
+            await fetchColaboradores();
+        } else {
+            document.querySelector('.main-container').style.display = 'none';
+            showLoginModal();
+        }
+    })();
+});
+
 // Exportar funciones puras para testing
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
@@ -1757,11 +2001,26 @@ if (typeof module !== 'undefined' && module.exports) {
 }
 
 /**
- * Utilidad para fetch con manejo de errores centralizado
+ * Utilidad para fetch con manejo de errores centralizado y autenticación
  */
 async function fetchWithHandling(url, options = {}, errorMsg = 'Error de red') {
     try {
+        // Agregar headers de autenticación si el usuario está autenticado
+        if (isAuthenticated()) {
+            options.headers = {
+                ...options.headers,
+                ...getAuthHeaders()
+            };
+        }
+
         const res = await fetch(url, options);
+        
+        // Manejar errores de autenticación
+        if (res.status === 401) {
+            handleAuthError({ status: 401 });
+            throw new Error('No autorizado');
+        }
+        
         if (!res.ok) {
             let msg = errorMsg;
             try {
@@ -1770,6 +2029,7 @@ async function fetchWithHandling(url, options = {}, errorMsg = 'Error de red') {
             } catch {}
             throw new Error(msg);
         }
+        
         if (options.method && options.method.toUpperCase() === 'DELETE') return true;
         return await res.json();
     } catch (err) {

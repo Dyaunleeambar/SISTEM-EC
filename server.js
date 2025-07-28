@@ -1,10 +1,23 @@
 const express = require('express');
 const cors = require('cors');
 const mysql = require('mysql2');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const rateLimit = require('express-rate-limit');
+require('dotenv').config({ path: './config.env' });
+
 const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname));
+
+// Configuración de rate limiting
+const limiter = rateLimit({
+    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutos
+    max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100, // máximo 100 requests por ventana
+    message: 'Demasiadas peticiones desde esta IP, intenta de nuevo más tarde.'
+});
+app.use('/api/', limiter);
 
 // Conexión inicial SIN database
 // Se conecta solo al servidor MySQL para crear la base de datos si no existe
@@ -30,7 +43,7 @@ dbInit.query(`CREATE DATABASE IF NOT EXISTS colaboradores_db`, (err) => {
         database: 'colaboradores_db'
     });
 
-    // Crea la tabla si no existe
+    // Crea la tabla de colaboradores si no existe
     db.query(`
         CREATE TABLE IF NOT EXISTS colaboradores (
             id INT AUTO_INCREMENT PRIMARY KEY,
@@ -41,6 +54,70 @@ dbInit.query(`CREATE DATABASE IF NOT EXISTS colaboradores_db`, (err) => {
             fin_mision TINYINT,
             ubicacion VARCHAR(255),
             orden INT DEFAULT 0
+        )
+    `);
+
+    // Forzar recreación de tablas de autenticación
+    console.log('Inicializando tablas de autenticación...');
+    
+    // Eliminar tablas existentes si hay problemas
+    db.query('DROP TABLE IF EXISTS cambios_password', (err) => {
+        if (err) console.error('Error eliminando tabla cambios_password:', err);
+    });
+    
+    db.query('DROP TABLE IF EXISTS sesiones', (err) => {
+        if (err) console.error('Error eliminando tabla sesiones:', err);
+    });
+    
+    db.query('DROP TABLE IF EXISTS usuarios', (err) => {
+        if (err) console.error('Error eliminando tabla usuarios:', err);
+    });
+    
+    // Crear tabla de usuarios
+    db.query(`
+        CREATE TABLE usuarios (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            username VARCHAR(50) UNIQUE NOT NULL,
+            password_hash VARCHAR(255) NOT NULL,
+            email VARCHAR(100),
+            rol ENUM('admin', 'editor', 'viewer') DEFAULT 'viewer',
+            fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            ultimo_login TIMESTAMP NULL,
+            ultimo_cambio_password TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            activo BOOLEAN DEFAULT TRUE,
+            INDEX idx_username (username),
+            INDEX idx_rol (rol)
+        )
+    `, (err) => {
+        if (err) {
+            console.error('Error creando tabla usuarios:', err);
+        } else {
+            console.log('Tabla usuarios creada correctamente');
+        }
+    });
+
+    // Crea la tabla de sesiones para auditoría
+    db.query(`
+        CREATE TABLE IF NOT EXISTS sesiones (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            usuario_id INT NOT NULL,
+            token_id VARCHAR(255),
+            fecha_login TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            fecha_logout TIMESTAMP NULL,
+            ip_address VARCHAR(45),
+            user_agent TEXT,
+            FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+        )
+    `);
+
+    // Crea la tabla de cambios de contraseña
+    db.query(`
+        CREATE TABLE IF NOT EXISTS cambios_password (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            usuario_id INT NOT NULL,
+            fecha_cambio TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            ip_address VARCHAR(45),
+            FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
         )
     `);
 
@@ -55,9 +132,281 @@ dbInit.query(`CREATE DATABASE IF NOT EXISTS colaboradores_db`, (err) => {
         }
     );
 
+    // ===== FUNCIONES DE AUTENTICACIÓN =====
+    
+    // Función para crear un usuario administrador por defecto
+    function crearUsuarioAdmin() {
+        const adminPassword = 'admin123'; // Contraseña temporal
+        bcrypt.hash(adminPassword, parseInt(process.env.BCRYPT_ROUNDS) || 12).then(hash => {
+            db.query(
+                `INSERT IGNORE INTO usuarios (username, password_hash, email, rol) 
+                 VALUES (?, ?, ?, ?)`,
+                ['admin', hash, 'admin@sistema.com', 'admin'],
+                (err, result) => {
+                    if (err) {
+                        console.error('Error creando usuario admin:', err);
+                    } else if (result.affectedRows > 0) {
+                        console.log('Usuario administrador creado: admin / admin123');
+                    }
+                }
+            );
+        });
+    }
+
+    // Crear usuario admin al inicializar
+    crearUsuarioAdmin();
+
+    // Middleware para verificar JWT
+    function verificarToken(req, res, next) {
+        const token = req.headers.authorization?.split(' ')[1];
+        
+        if (!token) {
+            return res.status(401).json({ error: 'Token de acceso requerido' });
+        }
+
+        jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+            if (err) {
+                return res.status(401).json({ error: 'Token inválido o expirado' });
+            }
+            req.usuario = decoded;
+            next();
+        });
+    }
+
+    // Middleware para verificar roles
+    function verificarRol(roles) {
+        return (req, res, next) => {
+            if (!req.usuario) {
+                return res.status(401).json({ error: 'Usuario no autenticado' });
+            }
+            
+            if (!roles.includes(req.usuario.rol)) {
+                return res.status(403).json({ error: 'Acceso denegado. Rol insuficiente.' });
+            }
+            
+            next();
+        };
+    }
+
+    // Función para generar tokens
+    function generarTokens(usuario) {
+        const accessToken = jwt.sign(
+            { 
+                id: usuario.id, 
+                username: usuario.username, 
+                rol: usuario.rol 
+            },
+            process.env.JWT_SECRET,
+            { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
+        );
+
+        const refreshToken = jwt.sign(
+            { 
+                id: usuario.id, 
+                username: usuario.username 
+            },
+            process.env.JWT_SECRET,
+            { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d' }
+        );
+
+        return { accessToken, refreshToken };
+    }
+
+    // ===== ENDPOINTS DE AUTENTICACIÓN =====
+
+    // Endpoint: Login
+    app.post('/api/auth/login', (req, res) => {
+        const { username, password, rememberMe } = req.body;
+        
+        if (!username || !password) {
+            return res.status(400).json({ error: 'Usuario y contraseña son requeridos' });
+        }
+
+        db.query(
+            'SELECT * FROM usuarios WHERE username = ? AND activo = TRUE',
+            [username],
+            async (err, results) => {
+                if (err) return res.status(500).json({ error: err.message });
+                if (results.length === 0) {
+                    return res.status(401).json({ error: 'Credenciales inválidas' });
+                }
+
+                const usuario = results[0];
+                const passwordValida = await bcrypt.compare(password, usuario.password_hash);
+                
+                if (!passwordValida) {
+                    return res.status(401).json({ error: 'Credenciales inválidas' });
+                }
+
+                // Verificar si la contraseña ha expirado
+                const ultimoCambio = new Date(usuario.ultimo_cambio_password);
+                const diasTranscurridos = (new Date() - ultimoCambio) / (1000 * 60 * 60 * 24);
+                const diasExpiracion = parseInt(process.env.PASSWORD_EXPIRY_DAYS) || 30;
+                
+                if (diasTranscurridos > diasExpiracion) {
+                    return res.status(401).json({ 
+                        error: 'Contraseña expirada. Debe cambiarla.',
+                        passwordExpired: true 
+                    });
+                }
+
+                // Generar tokens
+                const tokens = generarTokens(usuario);
+                
+                // Actualizar último login
+                db.query(
+                    'UPDATE usuarios SET ultimo_login = CURRENT_TIMESTAMP WHERE id = ?',
+                    [usuario.id]
+                );
+
+                // Registrar sesión
+                const tokenId = jwt.sign({ id: usuario.id, timestamp: Date.now() }, process.env.JWT_SECRET, { expiresIn: '1h' });
+                db.query(
+                    `INSERT INTO sesiones (usuario_id, token_id, ip_address, user_agent) 
+                     VALUES (?, ?, ?, ?)`,
+                    [usuario.id, tokenId, req.ip, req.headers['user-agent']]
+                );
+
+                res.json({
+                    message: 'Login exitoso',
+                    usuario: {
+                        id: usuario.id,
+                        username: usuario.username,
+                        email: usuario.email,
+                        rol: usuario.rol
+                    },
+                    tokens,
+                    passwordExpired: false
+                });
+            }
+        );
+    });
+
+    // Endpoint: Logout
+    app.post('/api/auth/logout', verificarToken, (req, res) => {
+        const token = req.headers.authorization?.split(' ')[1];
+        
+        // Marcar sesión como cerrada
+        db.query(
+            'UPDATE sesiones SET fecha_logout = CURRENT_TIMESTAMP WHERE token_id = ?',
+            [token]
+        );
+
+        res.json({ message: 'Logout exitoso' });
+    });
+
+    // Endpoint: Cambiar contraseña
+    app.post('/api/auth/change-password', verificarToken, async (req, res) => {
+        const { currentPassword, newPassword } = req.body;
+        const usuarioId = req.usuario.id;
+
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({ error: 'Contraseña actual y nueva son requeridas' });
+        }
+
+        if (newPassword.length < (parseInt(process.env.MIN_PASSWORD_LENGTH) || 8)) {
+            return res.status(400).json({ error: `La contraseña debe tener al menos ${process.env.MIN_PASSWORD_LENGTH || 8} caracteres` });
+        }
+
+        // Verificar contraseña actual
+        db.query(
+            'SELECT password_hash FROM usuarios WHERE id = ?',
+            [usuarioId],
+            async (err, results) => {
+                if (err) return res.status(500).json({ error: err.message });
+                if (results.length === 0) {
+                    return res.status(404).json({ error: 'Usuario no encontrado' });
+                }
+
+                const passwordValida = await bcrypt.compare(currentPassword, results[0].password_hash);
+                if (!passwordValida) {
+                    return res.status(401).json({ error: 'Contraseña actual incorrecta' });
+                }
+
+                // Hash de nueva contraseña
+                const newPasswordHash = await bcrypt.hash(newPassword, parseInt(process.env.BCRYPT_ROUNDS) || 12);
+
+                // Actualizar contraseña
+                db.query(
+                    `UPDATE usuarios 
+                     SET password_hash = ?, ultimo_cambio_password = CURRENT_TIMESTAMP 
+                     WHERE id = ?`,
+                    [newPasswordHash, usuarioId],
+                    (err, result) => {
+                        if (err) return res.status(500).json({ error: err.message });
+                        
+                        // Registrar cambio de contraseña
+                        db.query(
+                            'INSERT INTO cambios_password (usuario_id, ip_address) VALUES (?, ?)',
+                            [usuarioId, req.ip]
+                        );
+
+                        res.json({ message: 'Contraseña actualizada exitosamente' });
+                    }
+                );
+            }
+        );
+    });
+
+    // Endpoint: Verificar token
+    app.get('/api/auth/verify', verificarToken, (req, res) => {
+        res.json({
+            usuario: {
+                id: req.usuario.id,
+                username: req.usuario.username,
+                rol: req.usuario.rol
+            }
+        });
+    });
+
+    // Endpoint: Crear usuario (solo admin)
+    app.post('/api/auth/create-user', verificarToken, verificarRol(['admin']), async (req, res) => {
+        const { username, password, email, rol } = req.body;
+        
+        if (!username || !password) {
+            return res.status(400).json({ error: 'Usuario y contraseña son requeridos' });
+        }
+
+        if (password.length < (parseInt(process.env.MIN_PASSWORD_LENGTH) || 8)) {
+            return res.status(400).json({ error: `La contraseña debe tener al menos ${process.env.MIN_PASSWORD_LENGTH || 8} caracteres` });
+        }
+
+        try {
+            const passwordHash = await bcrypt.hash(password, parseInt(process.env.BCRYPT_ROUNDS) || 12);
+            
+            db.query(
+                `INSERT INTO usuarios (username, password_hash, email, rol) 
+                 VALUES (?, ?, ?, ?)`,
+                [username, passwordHash, email || null, rol || 'viewer'],
+                (err, result) => {
+                    if (err) {
+                        if (err.code === 'ER_DUP_ENTRY') {
+                            return res.status(409).json({ error: 'El usuario ya existe' });
+                        }
+                        return res.status(500).json({ error: err.message });
+                    }
+                    
+                    res.json({
+                        message: 'Usuario creado exitosamente',
+                        usuario: {
+                            id: result.insertId,
+                            username,
+                            email,
+                            rol: rol || 'viewer'
+                        }
+                    });
+                }
+            );
+        } catch (error) {
+            res.status(500).json({ error: 'Error al crear usuario' });
+        }
+    });
+
+    // ===== ENDPOINTS EXISTENTES (PROTEGIDOS) =====
+
     // Endpoint: Obtener todos los colaboradores ordenados
     // Devuelve la lista completa de colaboradores, ordenados por el campo personalizado 'orden' y luego por id
-    app.get('/api/colaboradores', (req, res) => {
+    app.get('/api/colaboradores', verificarToken, (req, res) => {
         db.query('SELECT * FROM colaboradores ORDER BY orden ASC, id ASC', (err, results) => {
             if (err) return res.status(500).json({ error: err.message });
             res.json(results);
@@ -75,7 +424,7 @@ dbInit.query(`CREATE DATABASE IF NOT EXISTS colaboradores_db`, (err) => {
 
     // Endpoint: Agregar un colaborador
     // Valida campos obligatorios y unicidad antes de insertar
-    app.post('/api/colaboradores', validateBody, (req, res) => {
+    app.post('/api/colaboradores', verificarToken, verificarRol(['admin', 'editor']), validateBody, (req, res) => {
         const { nombre, estado, fecha_salida, fecha_entrada, fin_mision, ubicacion } = req.body;
         if (!nombre || !estado) {
             return res.status(400).json({ error: 'Faltan datos obligatorios' });
@@ -109,7 +458,7 @@ dbInit.query(`CREATE DATABASE IF NOT EXISTS colaboradores_db`, (err) => {
     });
 
     // Endpoint: Actualizar el orden de los colaboradores
-    app.put('/api/colaboradores/orden', (req, res) => {
+    app.put('/api/colaboradores/orden', verificarToken, verificarRol(['admin', 'editor']), (req, res) => {
         // Validación manual sin usar el middleware validateBody
         if (!req.body || typeof req.body !== 'object') {
             return res.status(400).json({ error: 'Cuerpo de la petición vacío o inválido' });
@@ -146,7 +495,7 @@ dbInit.query(`CREATE DATABASE IF NOT EXISTS colaboradores_db`, (err) => {
 
     // Endpoint: Eliminar un colaborador individual por id
     // Devuelve 404 si el colaborador no existe
-    app.delete('/api/colaboradores/:id', (req, res) => {
+    app.delete('/api/colaboradores/:id', verificarToken, verificarRol(['admin']), (req, res) => {
         const id = parseInt(req.params.id);
         db.query('DELETE FROM colaboradores WHERE id=?', [id], (err, result) => {
             if (err) return res.status(500).json({ error: err.message });
@@ -159,7 +508,7 @@ dbInit.query(`CREATE DATABASE IF NOT EXISTS colaboradores_db`, (err) => {
 
     // Endpoint: Eliminar todos los colaboradores (limpieza total)
     // Seguridad: solo borra filas completas, nunca actualiza nombre/estado a NULL o vacío
-    app.delete('/api/colaboradores', (req, res) => {
+    app.delete('/api/colaboradores', verificarToken, verificarRol(['admin']), (req, res) => {
         db.query('DELETE FROM colaboradores', (err, result) => {
             if (err) return res.status(500).json({ error: err.message });
             db.query('ALTER TABLE colaboradores AUTO_INCREMENT = 1');
@@ -169,7 +518,7 @@ dbInit.query(`CREATE DATABASE IF NOT EXISTS colaboradores_db`, (err) => {
 
     // Endpoint: Actualizar un colaborador existente
     // Valida campos obligatorios antes de actualizar
-    app.put('/api/colaboradores/:id', validateBody, (req, res) => {
+    app.put('/api/colaboradores/:id', verificarToken, verificarRol(['admin', 'editor']), validateBody, (req, res) => {
         const id = parseInt(req.params.id);
         const { nombre, estado, fecha_salida, fecha_entrada, fin_mision, ubicacion } = req.body;
         if (!nombre || !estado) {
@@ -189,10 +538,12 @@ dbInit.query(`CREATE DATABASE IF NOT EXISTS colaboradores_db`, (err) => {
         );
     });
 
-    // Inicia el servidor en el puerto 3001
+    // Inicia el servidor en el puerto configurado
     // El backend queda escuchando para peticiones del frontend y de los tests
-    const PORT = 3001;
+    const PORT = process.env.PORT || 3001;
     app.listen(PORT, () => {
         console.log(`Servidor backend escuchando en http://localhost:${PORT}`);
+        console.log(`Sistema de autenticación activo`);
+        console.log(`Usuario admin creado: admin / admin123`);
     });
 });
