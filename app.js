@@ -5,43 +5,68 @@ let refreshToken = localStorage.getItem('refreshToken');
 
 // ===== CONFIGURACIÓN DE TIMEOUT POR INACTIVIDAD =====
 let inactivityTimeout = null;
+let warningTimeout = null;
 const INACTIVITY_TIMEOUT = 5 * 60 * 1000; // 5 minutos en milisegundos
 
 // Función para reiniciar el timer de inactividad
 function resetInactivityTimer() {
+    // Limpiar timers existentes
     if (inactivityTimeout) {
         clearTimeout(inactivityTimeout);
+        inactivityTimeout = null;
+    }
+    if (warningTimeout) {
+        clearTimeout(warningTimeout);
+        warningTimeout = null;
     }
     
     if (isAuthenticated()) {
+        // Timer de advertencia 1 minuto antes
+        warningTimeout = setTimeout(() => {
+            if (isAuthenticated()) {
+                showMessage('Su sesión se cerrará en 1 minuto por inactividad. Mueva el mouse o presione una tecla para continuar.', 'warning');
+            }
+        }, INACTIVITY_TIMEOUT - 60000); // 1 minuto antes
+        
         // Timer principal para cerrar sesión
         inactivityTimeout = setTimeout(() => {
             console.log('Sesión cerrada por inactividad');
             logout();
             showMessage('Sesión cerrada por inactividad. Por favor, inicie sesión nuevamente.', 'error');
         }, INACTIVITY_TIMEOUT);
-        
-        // Timer de advertencia 1 minuto antes
-        setTimeout(() => {
-            if (isAuthenticated()) {
-                showMessage('Su sesión se cerrará en 1 minuto por inactividad. Mueva el mouse o presione una tecla para continuar.', 'warning');
-            }
-        }, INACTIVITY_TIMEOUT - 60000); // 1 minuto antes
     }
 }
 
 // Función para manejar eventos de actividad del usuario
+let activityThrottle = null;
 function handleUserActivity() {
-    resetInactivityTimer();
+    // Evitar múltiples llamadas en corto tiempo
+    if (activityThrottle) {
+        clearTimeout(activityThrottle);
+    }
+    
+    activityThrottle = setTimeout(() => {
+        resetInactivityTimer();
+    }, 100); // Throttle de 100ms
 }
 
 // Configurar listeners para detectar actividad del usuario
 function setupInactivityListeners() {
-    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+    const events = ['mousedown', 'keypress', 'scroll', 'touchstart', 'click'];
     
     events.forEach(event => {
-        document.addEventListener(event, handleUserActivity, true);
+        document.addEventListener(event, handleUserActivity, { passive: true });
     });
+    
+    // Para mousemove, usar throttling más agresivo
+    let mouseMoveThrottle = null;
+    document.addEventListener('mousemove', () => {
+        if (mouseMoveThrottle) return;
+        mouseMoveThrottle = setTimeout(() => {
+            handleUserActivity();
+            mouseMoveThrottle = null;
+        }, 500); // Solo cada 500ms para mousemove
+    }, { passive: true });
 }
 
 // Función para verificar si el usuario está autenticado
@@ -66,13 +91,26 @@ function handleAuthError(error) {
     }
 }
 
-// Función para hacer logout
-function logout() {
-    // Limpiar timer de inactividad
+// Función para limpiar todos los timers y throttles
+function clearAllTimers() {
     if (inactivityTimeout) {
         clearTimeout(inactivityTimeout);
         inactivityTimeout = null;
     }
+    if (warningTimeout) {
+        clearTimeout(warningTimeout);
+        warningTimeout = null;
+    }
+    if (activityThrottle) {
+        clearTimeout(activityThrottle);
+        activityThrottle = null;
+    }
+}
+
+// Función para hacer logout
+function logout() {
+    // Limpiar todos los timers
+    clearAllTimers();
     
     if (authToken) {
         fetch('http://localhost:3001/api/auth/logout', {
@@ -81,12 +119,16 @@ function logout() {
         }).catch(err => console.error('Error en logout:', err));
     }
     
+    // LIMPIAR COMPLETAMENTE EL LOCALSTORAGE
+    localStorage.clear();
+    sessionStorage.clear();
+    
     authToken = null;
     refreshToken = null;
     currentUser = null;
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('currentUser');
+    
+    // Mostrar notificación de logout
+    showMessage(`Sesión cerrada. Hasta luego, ${currentUser ? currentUser.username : 'usuario'}!`, 'info');
     
     // Ocultar contenido principal y mostrar login
     document.querySelector('.main-container').style.display = 'none';
@@ -203,22 +245,32 @@ function displayUsersList(users) {
 
 // Función para verificar el token al cargar la página
 async function verifyToken() {
+    console.log('verifyToken - authToken existe:', !!authToken);
     if (!authToken) {
+        console.log('verifyToken - No hay authToken, mostrando login modal');
         showLoginModal();
         return false;
     }
 
     try {
+        console.log('verifyToken - Verificando token con el servidor...');
         const response = await fetch('http://localhost:3001/api/auth/verify', {
             headers: getAuthHeaders()
         });
 
         if (response.ok) {
             const data = await response.json();
+            console.log('verifyToken - Respuesta exitosa:', data);
+            console.log('verifyToken - Usuario recibido:', data.usuario);
+            console.log('verifyToken - Rol del usuario:', data.usuario.rol);
+            
             currentUser = data.usuario;
             localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            
+            console.log('verifyToken - currentUser establecido:', currentUser);
             return true;
         } else {
+            console.log('verifyToken - Token inválido, haciendo logout');
             logout();
             return false;
         }
@@ -231,11 +283,19 @@ async function verifyToken() {
 
 // Función para actualizar la UI según el rol del usuario
 function updateUIForUserRole() {
-    if (!currentUser) return;
+    if (!currentUser) {
+        console.log('updateUIForUserRole: No hay usuario actual');
+        return;
+    }
+
+    console.log('updateUIForUserRole: Usuario actual:', currentUser);
+    console.log('updateUIForUserRole: Rol del usuario:', currentUser.rol);
 
     const isAdmin = currentUser.rol === 'admin';
     const isEditor = currentUser.rol === 'editor' || isAdmin;
     const isViewer = currentUser.rol === 'viewer' || isEditor;
+
+    console.log('updateUIForUserRole: isAdmin:', isAdmin, 'isEditor:', isEditor, 'isViewer:', isViewer);
 
     // Mostrar/ocultar botones según rol
     const addButton = document.querySelector('#addCollaboratorForm button[type="submit"]');
@@ -256,7 +316,13 @@ function updateUIForUserRole() {
         btn.style.display = isAdmin ? 'inline-block' : 'none';
     });
 
-    // Mostrar información del usuario
+    // Limpiar información de usuario anterior
+    const existingUserInfo = document.querySelector('.user-info');
+    if (existingUserInfo) {
+        existingUserInfo.remove();
+    }
+    
+    // Crear nueva información del usuario
     const userInfo = document.createElement('div');
     userInfo.className = 'user-info';
     
@@ -272,9 +338,9 @@ function updateUIForUserRole() {
         <button onclick="logout()" class="logout-btn">Cerrar Sesión</button>
     `;
     
-    // Agregar al placeholder si no existe
+    // Agregar al placeholder
     const placeholder = document.querySelector('.user-info-placeholder');
-    if (placeholder && !document.querySelector('.user-info')) {
+    if (placeholder) {
         placeholder.appendChild(userInfo);
     }
 }
@@ -1756,10 +1822,16 @@ function showMessage(msg, type = 'info') {
     if (!box) return;
     box.textContent = msg;
     box.className = 'message-box ' + type;
+    
+    // Auto-ocultar después de un tiempo
+    const timeout = type === 'success' ? 3000 : 5000;
     setTimeout(() => {
         box.textContent = '';
         box.className = 'message-box';
-    }, 4000);
+    }, timeout);
+    
+    // También mostrar en consola para debugging
+    console.log(`[${type.toUpperCase()}] ${msg}`);
 }
 
 // Mueve la función parseDateYMD aquí para que esté antes de calcularDiasPresencia
@@ -1844,11 +1916,35 @@ function calcularDiasPresencia(colaborador, mesConciliacion) {
     return '-';
 }
 
-// Validación de mes de conciliación antes de editar o cambiar fechas
-function isConciliationMonthSelected() {
-    const conciliationInput = document.getElementById('conciliationMonth');
-    return conciliationInput && conciliationInput.value && conciliationInput.value.trim() !== '';
-}
+    // Validación de mes de conciliación antes de editar o cambiar fechas
+    function isConciliationMonthSelected() {
+        const conciliationInput = document.getElementById('conciliationMonth');
+        return conciliationInput && conciliationInput.value && conciliationInput.value.trim() !== '';
+    }
+    
+    // Validación de permisos de usuario
+    function hasPermission(action) {
+        if (!currentUser) return false;
+        
+        const permissions = {
+            'create_user': ['admin'],
+            'edit_user': ['admin'],
+            'delete_user': ['admin'],
+            'view_audit': ['admin'],
+            'create_colaborador': ['admin', 'editor'],
+            'edit_colaborador': ['admin', 'editor'],
+            'delete_colaborador': ['admin'],
+            'export_data': ['admin', 'editor', 'viewer'],
+            'view_data': ['admin', 'editor', 'viewer']
+        };
+        
+        return permissions[action] && permissions[action].includes(currentUser.rol);
+    }
+    
+    // Función para mostrar error de permisos
+    function showPermissionError(action) {
+        showMessage(`No tienes permisos para realizar esta acción: ${action}`, 'error');
+    }
 
 // Función para habilitar/deshabilitar campos de edición según el mes de conciliación
 function checkConciliationMonth() {
@@ -2071,27 +2167,71 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 const data = await response.json();
                 
-                if (response.ok) {
-                    // Login exitoso
-                    authToken = data.tokens.accessToken;
-                    refreshToken = data.tokens.refreshToken;
-                    currentUser = data.usuario;
+                        if (response.ok) {
+            // Login exitoso
+            console.log('Login exitoso - Datos recibidos:', data);
+            console.log('Login exitoso - Usuario:', data.usuario);
+            console.log('Login exitoso - Rol:', data.usuario.rol);
+            
+            // LIMPIAR COMPLETAMENTE EL LOCALSTORAGE ANTES DE GUARDAR NUEVOS DATOS
+            localStorage.clear();
+            sessionStorage.clear();
+            
+            // Limpiar también las variables globales
+            authToken = null;
+            refreshToken = null;
+            currentUser = null;
+            
+            authToken = data.tokens.accessToken;
+            refreshToken = data.tokens.refreshToken;
+            currentUser = data.usuario;
                     
-                    // Guardar en localStorage
-                    localStorage.setItem('authToken', authToken);
-                    localStorage.setItem('refreshToken', refreshToken);
-                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    console.log('Login exitoso - currentUser establecido:', currentUser);
+                    console.log('Login exitoso - currentUser.rol:', currentUser.rol);
+                    
+                                    // Guardar en localStorage
+                localStorage.setItem('authToken', authToken);
+                localStorage.setItem('refreshToken', refreshToken);
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                
+                // Siempre guardar como true (cerrar sesión al salir por defecto)
+                localStorage.setItem('logoutOnClose', 'true');
                     
                     // Ocultar modal y mostrar contenido principal
                     hideLoginModal();
                     document.querySelector('.main-container').style.display = 'block';
                     
-                    // Actualizar UI y cargar datos
-                    updateUIForUserRole();
-                    await fetchColaboradores();
+                                    // Forzar actualización inmediata de la UI
+                console.log('Login exitoso - Llamando a updateUIForUserRole()');
+                console.log('Login exitoso - Usuario a mostrar:', currentUser.username, 'Rol:', currentUser.rol);
+                
+                // Ocultar contenido principal temporalmente
+                document.querySelector('.main-container').style.display = 'none';
+                
+                // Actualizar UI con el nuevo usuario
+                updateUIForUserRole();
+                
+                // Pequeño delay para asegurar la actualización
+                setTimeout(() => {
+                    // Mostrar contenido principal
+                    document.querySelector('.main-container').style.display = 'block';
+                    
+                    // Cargar datos
+                    fetchColaboradores();
+                }, 100);
+                
+                // Mostrar notificación de login exitoso
+                showMessage(`Bienvenido, ${currentUser.username}! (${currentUser.rol})`, 'success');
                     
                     // Configurar timer de inactividad
-                    setupInactivityListeners();
+setupInactivityListeners();
+
+// Detectar cuando el usuario cierra la pestaña/ventana
+window.addEventListener('beforeunload', function() {
+    // SIEMPRE cerrar sesión al salir (comportamiento por defecto)
+    localStorage.clear();
+    sessionStorage.clear();
+});
                     resetInactivityTimer();
                     
                     showMessage(`Bienvenido, ${currentUser.username}!`, 'success');

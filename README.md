@@ -74,7 +74,8 @@ Sistema web completo para la gestión y estimulación de colaboradores según su
    ```
 
 3. **Configurar variables de entorno**
-   - Crear archivo `config.env` con las siguientes variables:
+   - Copia el archivo de ejemplo: `cp config.env.example config.env`
+   - Edita `config.env` y ajusta los valores según tu entorno:
    ```env
    PORT=3001
    NODE_ENV=development
@@ -82,7 +83,7 @@ Sistema web completo para la gestión y estimulación de colaboradores según su
    DB_USER=root
    DB_PASSWORD=Cuba123456
    DB_NAME=colaboradores_db
-   JWT_SECRET=tu_secreto_jwt_muy_seguro
+   JWT_SECRET=tu_secreto_jwt_muy_seguro_y_largo
    JWT_EXPIRES_IN=24h
    JWT_REFRESH_EXPIRES_IN=7d
    BCRYPT_ROUNDS=12
@@ -110,6 +111,16 @@ Sistema web completo para la gestión y estimulación de colaboradores según su
    ```
    http://localhost:3001
    ```
+
+### 🖥️ Ejecutar como aplicación de escritorio (Electron)
+
+Para ejecutar la aplicación como una aplicación de escritorio nativa:
+
+```bash
+npm run electron-dev
+```
+
+Esto iniciará tanto el servidor backend como la aplicación Electron en modo desarrollo.
 
 ## Usuarios del Sistema
 

@@ -177,6 +177,9 @@
       <div class="modal-content">
         <span id="closeLoginModal" class="close">&times;</span>
         <h3>Iniciar Sesión</h3>
+        <p style="text-align: center; color: #666; font-size: 12px; margin-bottom: 15px;">
+          <i class="fas fa-info-circle"></i> La sesión se cerrará automáticamente al cerrar la aplicación
+        </p>
         <form id="loginForm">
           <input type="text" id="usernameInput" placeholder="Usuario" required>
           <div class="error-inline" id="usernameError"></div>
@@ -186,6 +189,8 @@
             <input type="checkbox" id="rememberMe">
             <label for="rememberMe">Recordar sesión</label>
           </div>
+          <!-- Opción oculta: Siempre cerrar sesión al salir -->
+          <input type="hidden" id="logoutOnClose" name="logoutOnClose" value="true">
           <button type="submit">Entrar</button>
         </form>
       </div>

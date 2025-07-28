@@ -120,6 +120,22 @@ dbInit.query(`CREATE DATABASE IF NOT EXISTS colaboradores_db`, (err) => {
             FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
         )
     `);
+    
+    // Crea la tabla de auditoría de cambios
+    db.query(`
+        CREATE TABLE IF NOT EXISTS auditoria_cambios (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            usuario_id INT NOT NULL,
+            tabla_afectada VARCHAR(50) NOT NULL,
+            accion VARCHAR(20) NOT NULL,
+            registro_id INT,
+            datos_anteriores JSON,
+            datos_nuevos JSON,
+            ip_address VARCHAR(45),
+            fecha_cambio TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+        )
+    `);
 
     // Agrega restricción UNIQUE a (nombre, estado) para evitar duplicados
     db.query(
@@ -188,6 +204,15 @@ dbInit.query(`CREATE DATABASE IF NOT EXISTS colaboradores_db`, (err) => {
         };
     }
 
+    // Función para registrar auditoría
+    function registrarAuditoria(usuarioId, tabla, accion, registroId, datosAnteriores, datosNuevos, ip) {
+        db.query(
+            `INSERT INTO auditoria_cambios (usuario_id, tabla_afectada, accion, registro_id, datos_anteriores, datos_nuevos, ip_address) 
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [usuarioId, tabla, accion, registroId, JSON.stringify(datosAnteriores), JSON.stringify(datosNuevos), ip]
+        );
+    }
+    
     // Función para generar tokens
     function generarTokens(usuario) {
         const accessToken = jwt.sign(
@@ -216,9 +241,11 @@ dbInit.query(`CREATE DATABASE IF NOT EXISTS colaboradores_db`, (err) => {
 
     // Endpoint: Login
     app.post('/api/auth/login', (req, res) => {
+        console.log('Login attempt:', { username: req.body.username, hasPassword: !!req.body.password });
         const { username, password, rememberMe } = req.body;
         
         if (!username || !password) {
+            console.log('Login failed: Missing username or password');
             return res.status(400).json({ error: 'Usuario y contraseña son requeridos' });
         }
 
@@ -228,6 +255,7 @@ dbInit.query(`CREATE DATABASE IF NOT EXISTS colaboradores_db`, (err) => {
             async (err, results) => {
                 if (err) return res.status(500).json({ error: err.message });
                 if (results.length === 0) {
+                    console.log('Login failed: User not found:', username);
                     return res.status(401).json({ error: 'Credenciales inválidas' });
                 }
 
@@ -235,6 +263,7 @@ dbInit.query(`CREATE DATABASE IF NOT EXISTS colaboradores_db`, (err) => {
                 const passwordValida = await bcrypt.compare(password, usuario.password_hash);
                 
                 if (!passwordValida) {
+                    console.log('Login failed: Invalid password for user:', username);
                     return res.status(401).json({ error: 'Credenciales inválidas' });
                 }
 
@@ -267,6 +296,12 @@ dbInit.query(`CREATE DATABASE IF NOT EXISTS colaboradores_db`, (err) => {
                     [usuario.id, tokenId, req.ip, req.headers['user-agent']]
                 );
 
+                console.log('Login successful for user:', {
+                    id: usuario.id,
+                    username: usuario.username,
+                    rol: usuario.rol
+                });
+                
                 res.json({
                     message: 'Login exitoso',
                     usuario: {
@@ -405,6 +440,23 @@ dbInit.query(`CREATE DATABASE IF NOT EXISTS colaboradores_db`, (err) => {
     // Endpoint: Obtener lista de usuarios (solo admin)
     app.get('/api/auth/users', verificarToken, verificarRol(['admin']), (req, res) => {
         db.query('SELECT id, username, email, rol, fecha_creacion, ultimo_login, activo FROM usuarios ORDER BY username', (err, results) => {
+            if (err) {
+                return res.status(500).json({ error: err.message });
+            }
+            res.json(results);
+        });
+    });
+    
+    // Endpoint: Obtener auditoría de cambios (solo admin)
+    app.get('/api/auth/audit', verificarToken, verificarRol(['admin']), (req, res) => {
+        const limit = parseInt(req.query.limit) || 50;
+        db.query(`
+            SELECT ac.*, u.username 
+            FROM auditoria_cambios ac 
+            JOIN usuarios u ON ac.usuario_id = u.id 
+            ORDER BY ac.fecha_cambio DESC 
+            LIMIT ?
+        `, [limit], (err, results) => {
             if (err) {
                 return res.status(500).json({ error: err.message });
             }
