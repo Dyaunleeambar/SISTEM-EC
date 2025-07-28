@@ -109,6 +109,98 @@ function hideLoginModal() {
     }
 }
 
+// ===== FUNCIONES DE CONFIGURACIÓN =====
+
+// Función para mostrar el modal de configuración
+function showConfigModal() {
+    const configModal = document.getElementById('configModal');
+    if (configModal) {
+        configModal.style.display = 'block';
+        loadUsersList();
+    }
+}
+
+// Función para ocultar el modal de configuración
+function hideConfigModal() {
+    const configModal = document.getElementById('configModal');
+    if (configModal) {
+        configModal.style.display = 'none';
+    }
+}
+
+// Función para cambiar entre tabs de configuración
+function showConfigTab(tabName) {
+    // Ocultar todos los tabs
+    const tabContents = document.querySelectorAll('.config-tab-content');
+    tabContents.forEach(tab => tab.classList.remove('active'));
+    
+    // Desactivar todos los botones de tab
+    const tabButtons = document.querySelectorAll('.config-tab');
+    tabButtons.forEach(btn => btn.classList.remove('active'));
+    
+    // Mostrar el tab seleccionado
+    const selectedTab = document.getElementById(tabName + 'Tab');
+    if (selectedTab) {
+        selectedTab.classList.add('active');
+    }
+    
+    // Activar el botón correspondiente
+    const selectedButton = document.querySelector(`[onclick="showConfigTab('${tabName}')"]`);
+    if (selectedButton) {
+        selectedButton.classList.add('active');
+    }
+}
+
+// Función para cargar la lista de usuarios
+async function loadUsersList() {
+    try {
+        const response = await fetch('http://localhost:3001/api/auth/users', {
+            headers: getAuthHeaders()
+        });
+        
+        if (response.ok) {
+            const users = await response.json();
+            displayUsersList(users);
+        } else {
+            showMessage('Error al cargar usuarios', 'error');
+        }
+    } catch (error) {
+        console.error('Error cargando usuarios:', error);
+        showMessage('Error de conexión', 'error');
+    }
+}
+
+// Función para mostrar la lista de usuarios
+function displayUsersList(users) {
+    const usersList = document.getElementById('usersList');
+    if (!usersList) return;
+    
+    usersList.innerHTML = '';
+    
+    users.forEach(user => {
+        const userItem = document.createElement('div');
+        userItem.className = 'user-item';
+        userItem.innerHTML = `
+            <div class="user-info-details">
+                <div class="username">${user.username}</div>
+                <div class="email">${user.email}</div>
+                <div class="role">${user.rol}</div>
+            </div>
+            <div class="user-actions">
+                <button class="user-action-btn" onclick="editUser(${user.id})">
+                    <i class="fas fa-edit"></i> Editar
+                </button>
+                ${user.username !== 'admin' ? `
+                    <button class="user-action-btn delete" onclick="deleteUser(${user.id})">
+                        <i class="fas fa-trash"></i> Eliminar
+                    </button>
+                ` : ''}
+            </div>
+        `;
+        usersList.appendChild(userItem);
+    });
+}
+
 // Función para verificar el token al cargar la página
 async function verifyToken() {
     if (!authToken) {
@@ -167,8 +259,16 @@ function updateUIForUserRole() {
     // Mostrar información del usuario
     const userInfo = document.createElement('div');
     userInfo.className = 'user-info';
+    
+    // Botón de configuración solo para admin
+    const configButton = isAdmin ? 
+        `<button onclick="showConfigModal()" class="config-btn" title="Configuración del Sistema">
+            <i class="fas fa-cog"></i>
+        </button>` : '';
+    
     userInfo.innerHTML = `
         <span>Usuario: ${currentUser.username} (${currentUser.rol})</span>
+        ${configButton}
         <button onclick="logout()" class="logout-btn">Cerrar Sesión</button>
     `;
     
@@ -2027,7 +2127,95 @@ document.addEventListener('DOMContentLoaded', function() {
         if (event.target === loginModal) {
             hideLoginModal();
         }
+        
+        const configModal = document.getElementById('configModal');
+        if (event.target === configModal) {
+            hideConfigModal();
+        }
     });
+    
+    // Event listeners para el modal de configuración
+    const closeConfigModal = document.getElementById('closeConfigModal');
+    if (closeConfigModal) {
+        closeConfigModal.addEventListener('click', hideConfigModal);
+    }
+    
+    // Formulario de creación de usuarios
+    const createUserForm = document.getElementById('createUserForm');
+    if (createUserForm) {
+        createUserForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                username: document.getElementById('newUsername').value,
+                email: document.getElementById('newEmail').value,
+                password: document.getElementById('newPassword').value,
+                rol: document.getElementById('newRole').value
+            };
+            
+            try {
+                const response = await fetch('http://localhost:3001/api/auth/create-user', {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify(formData)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showMessage('Usuario creado exitosamente', 'success');
+                    createUserForm.reset();
+                    loadUsersList(); // Recargar lista
+                } else {
+                    showMessage(data.error || 'Error al crear usuario', 'error');
+                }
+            } catch (error) {
+                console.error('Error creando usuario:', error);
+                showMessage('Error de conexión', 'error');
+            }
+        });
+    }
+    
+    // Formulario de cambio de contraseña
+    const changePasswordForm = document.getElementById('changePasswordForm');
+    if (changePasswordForm) {
+        changePasswordForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const newPassword = document.getElementById('newPasswordChange').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            if (newPassword !== confirmPassword) {
+                showMessage('Las contraseñas no coinciden', 'error');
+                return;
+            }
+            
+            const formData = {
+                currentPassword: document.getElementById('currentPassword').value,
+                newPassword: newPassword
+            };
+            
+            try {
+                const response = await fetch('http://localhost:3001/api/auth/change-password', {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify(formData)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showMessage('Contraseña cambiada exitosamente', 'success');
+                    changePasswordForm.reset();
+                } else {
+                    showMessage(data.error || 'Error al cambiar contraseña', 'error');
+                }
+            } catch (error) {
+                console.error('Error cambiando contraseña:', error);
+                showMessage('Error de conexión', 'error');
+            }
+        });
+    }
     
     // Verificar autenticación al cargar la página
     (async function() {

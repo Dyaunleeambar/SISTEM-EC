@@ -402,6 +402,16 @@ dbInit.query(`CREATE DATABASE IF NOT EXISTS colaboradores_db`, (err) => {
         }
     });
 
+    // Endpoint: Obtener lista de usuarios (solo admin)
+    app.get('/api/auth/users', verificarToken, verificarRol(['admin']), (req, res) => {
+        db.query('SELECT id, username, email, rol, fecha_creacion, ultimo_login, activo FROM usuarios ORDER BY username', (err, results) => {
+            if (err) {
+                return res.status(500).json({ error: err.message });
+            }
+            res.json(results);
+        });
+    });
+
     // ===== ENDPOINTS EXISTENTES (PROTEGIDOS) =====
 
     // Endpoint: Obtener todos los colaboradores ordenados
