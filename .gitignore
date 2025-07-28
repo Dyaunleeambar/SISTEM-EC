@@ -53,3 +53,6 @@ coverage/
 
 # Archivos de configuración local
 *.local
+
+# Scripts de ayuda local
+configurar-github.bat
