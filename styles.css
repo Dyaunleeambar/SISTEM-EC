@@ -2104,6 +2104,17 @@ input[type="month"] {
     display: block;
 }
 
+/* Animación de shake para el modal de login */
+#loginModal .modal-content.shake-animation {
+    animation: shake 0.3s ease-in-out;
+}
+
+#loginModal .modal-content.shake-animation input[type="text"],
+#loginModal .modal-content.shake-animation input[type="password"] {
+    border-color: #e74c3c;
+    box-shadow: 0 0 8px rgba(231, 76, 60, 0.3);
+}
+
 /* Responsive para login */
 @media (max-width: 480px) {
     #loginModal .modal-content {

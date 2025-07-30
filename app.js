@@ -1947,6 +1947,25 @@ function calcularDiasPresencia(colaborador, mesConciliacion) {
         showMessage(`No tienes permisos para realizar esta acción: ${action}`, 'error');
     }
 
+    // Función helper para aplicar animación de shake al modal de login
+    function applyLoginShakeAnimation() {
+        const loginModal = document.getElementById('loginModal');
+        const modalContent = loginModal.querySelector('.modal-content');
+        
+        if (modalContent) {
+            // Remover clase anterior si existe
+            modalContent.classList.remove('shake-animation');
+            
+            // Aplicar animación de shake
+            modalContent.classList.add('shake-animation');
+            
+            // Remover la clase después de la animación
+            setTimeout(() => {
+                modalContent.classList.remove('shake-animation');
+            }, 300);
+        }
+    }
+
 // Función para habilitar/deshabilitar campos de edición según el mes de conciliación
 function checkConciliationMonth() {
     const enabled = isConciliationMonthSelected();
@@ -2164,7 +2183,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 hasError = true;
             }
             
-            if (hasError) return;
+            if (hasError) {
+                // Aplicar animación de shake para errores de validación
+                applyLoginShakeAnimation();
+                return;
+            }
             
             try {
                 const response = await fetch('http://localhost:3001/api/auth/login', {
@@ -2255,7 +2278,16 @@ window.addEventListener('beforeunload', function() {
                         showMessage('Su contraseña ha expirado. Debe cambiarla.', 'error');
                         // Aquí podrías mostrar un modal para cambiar contraseña
                     } else {
-                        showMessage(data.error || 'Error en el login', 'error');
+                        // Mostrar error y aplicar animación de shake
+                        const errorMessage = data.error || 'Usuario o contraseña incorrectos';
+                        showMessage(errorMessage, 'error');
+                        
+                        // Aplicar animación de shake al modal de login
+                        applyLoginShakeAnimation();
+                        
+                        // Limpiar campos de contraseña
+                        document.getElementById('passwordInput').value = '';
+                        document.getElementById('passwordInput').focus();
                     }
                 }
                 
