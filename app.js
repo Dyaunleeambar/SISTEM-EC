@@ -131,7 +131,23 @@ function logout() {
     showMessage(`Sesión cerrada. Hasta luego, ${currentUser ? currentUser.username : 'usuario'}!`, 'info');
     
     // Ocultar contenido principal y mostrar login
-    document.querySelector('.main-container').style.display = 'none';
+    const mainContainer = document.querySelector('.main-container');
+    if (mainContainer) {
+        mainContainer.style.display = 'none';
+        mainContainer.style.opacity = '0';
+    }
+    
+    // Limpiar formulario de login
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+        loginForm.reset();
+    }
+    
+    // Limpiar errores previos
+    setInlineError('usernameInput', 'usernameError', '');
+    setInlineError('passwordInput', 'passwordError', '');
+    
+    // Mostrar modal de login
     showLoginModal();
 }
 
@@ -140,6 +156,14 @@ function showLoginModal() {
     const loginModal = document.getElementById('loginModal');
     if (loginModal) {
         loginModal.style.display = 'block';
+        loginModal.style.opacity = '1';
+        // Asegurar que el modal esté visible y enfocado
+        setTimeout(() => {
+            const usernameInput = document.getElementById('usernameInput');
+            if (usernameInput) {
+                usernameInput.focus();
+            }
+        }, 100);
     }
 }
 
