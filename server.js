@@ -447,6 +447,105 @@ dbInit.query(`CREATE DATABASE IF NOT EXISTS colaboradores_db`, (err) => {
         });
     });
     
+    // Endpoint: Actualizar usuario (solo admin)
+    app.put('/api/auth/users/:id', verificarToken, verificarRol(['admin']), validateBody, async (req, res) => {
+        const userId = parseInt(req.params.id);
+        const { username, email, rol, activo } = req.body;
+        
+        if (!username || !email || !rol) {
+            return res.status(400).json({ error: 'Faltan datos obligatorios' });
+        }
+        
+        // Verificar que el usuario existe
+        db.query('SELECT * FROM usuarios WHERE id = ?', [userId], (err, results) => {
+            if (err) return res.status(500).json({ error: err.message });
+            if (results.length === 0) {
+                return res.status(404).json({ error: 'Usuario no encontrado' });
+            }
+            
+            const userBefore = results[0];
+            
+            // Verificar que no se está editando el usuario admin
+            if (userBefore.username === 'admin' && username !== 'admin') {
+                return res.status(400).json({ error: 'No se puede cambiar el nombre de usuario del administrador principal' });
+            }
+            
+            // Verificar que el nuevo username no existe en otro usuario
+            db.query('SELECT id FROM usuarios WHERE username = ? AND id != ?', [username, userId], (err, results) => {
+                if (err) return res.status(500).json({ error: err.message });
+                if (results.length > 0) {
+                    return res.status(409).json({ error: 'Ya existe un usuario con ese nombre' });
+                }
+                
+                // Actualizar el usuario
+                db.query(
+                    'UPDATE usuarios SET username = ?, email = ?, rol = ?, activo = ? WHERE id = ?',
+                    [username, email, rol, activo ? 1 : 0, userId],
+                    (err, result) => {
+                        if (err) return res.status(500).json({ error: err.message });
+                        
+                        // Registrar auditoría
+                        const userAfter = { id: userId, username, email, rol, activo };
+                        registrarAuditoria(
+                            req.user.id,
+                            'usuarios',
+                            'UPDATE',
+                            userId,
+                            userBefore,
+                            userAfter,
+                            req.ip
+                        );
+                        
+                        res.json({ message: 'Usuario actualizado correctamente', id: userId });
+                    }
+                );
+            });
+        });
+    });
+    
+    // Endpoint: Eliminar usuario (solo admin)
+    app.delete('/api/auth/users/:id', verificarToken, verificarRol(['admin']), (req, res) => {
+        const userId = parseInt(req.params.id);
+        
+        // Verificar que el usuario existe
+        db.query('SELECT * FROM usuarios WHERE id = ?', [userId], (err, results) => {
+            if (err) return res.status(500).json({ error: err.message });
+            if (results.length === 0) {
+                return res.status(404).json({ error: 'Usuario no encontrado' });
+            }
+            
+            const user = results[0];
+            
+            // No permitir eliminar el usuario admin principal
+            if (user.username === 'admin') {
+                return res.status(400).json({ error: 'No se puede eliminar el usuario administrador principal' });
+            }
+            
+            // No permitir eliminar el propio usuario
+            if (user.id === req.user.id) {
+                return res.status(400).json({ error: 'No puedes eliminar tu propia cuenta' });
+            }
+            
+            // Eliminar el usuario
+            db.query('DELETE FROM usuarios WHERE id = ?', [userId], (err, result) => {
+                if (err) return res.status(500).json({ error: err.message });
+                
+                // Registrar auditoría
+                registrarAuditoria(
+                    req.user.id,
+                    'usuarios',
+                    'DELETE',
+                    userId,
+                    user,
+                    null,
+                    req.ip
+                );
+                
+                res.json({ message: 'Usuario eliminado correctamente', id: userId });
+            });
+        });
+    });
+    
     // Endpoint: Obtener auditoría de cambios (solo admin)
     app.get('/api/auth/audit', verificarToken, verificarRol(['admin']), (req, res) => {
         const limit = parseInt(req.query.limit) || 50;

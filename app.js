@@ -288,6 +288,158 @@ function displayUsersList(users) {
     });
 }
 
+// Función para editar usuario
+async function editUser(userId) {
+    try {
+        // Obtener los datos del usuario
+        const response = await fetch(`http://localhost:3001/api/auth/users`, {
+            headers: getAuthHeaders()
+        });
+        
+        if (!response.ok) {
+            showMessage('Error al cargar datos del usuario', 'error');
+            return;
+        }
+        
+        const users = await response.json();
+        const user = users.find(u => u.id === userId);
+        
+        if (!user) {
+            showMessage('Usuario no encontrado', 'error');
+            return;
+        }
+        
+        // Mostrar modal de edición
+        showEditUserModal(user);
+        
+    } catch (error) {
+        console.error('Error editando usuario:', error);
+        showMessage('Error de conexión', 'error');
+    }
+}
+
+// Función para mostrar modal de edición de usuario
+function showEditUserModal(user) {
+    // Crear el modal dinámicamente
+    const modalHtml = `
+        <div id="editUserModal" class="modal" style="display:block;">
+            <div class="modal-content" style="max-width: 500px;">
+                <span class="close" onclick="closeEditUserModal()">&times;</span>
+                <h3>Editar Usuario</h3>
+                <form id="editUserForm">
+                    <input type="hidden" id="editUserId" value="${user.id}">
+                    <input type="text" id="editUsername" placeholder="Nombre de usuario" value="${user.username}" required>
+                    <input type="email" id="editEmail" placeholder="Email" value="${user.email}" required>
+                    <select id="editRole" required>
+                        <option value="admin" ${user.rol === 'admin' ? 'selected' : ''}>Administrador</option>
+                        <option value="editor" ${user.rol === 'editor' ? 'selected' : ''}>Editor</option>
+                        <option value="viewer" ${user.rol === 'viewer' ? 'selected' : ''}>Viewer</option>
+                    </select>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="editActive" ${user.activo ? 'checked' : ''}>
+                        <label for="editActive">Usuario activo</label>
+                    </div>
+                    <button type="submit">Guardar Cambios</button>
+                    <button type="button" onclick="closeEditUserModal()" style="background-color: #6c757d;">Cancelar</button>
+                </form>
+            </div>
+        </div>
+    `;
+    
+    // Agregar el modal al DOM
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // Configurar el evento del formulario
+    const form = document.getElementById('editUserForm');
+    form.addEventListener('submit', handleEditUserSubmit);
+    
+    // Configurar cierre del modal
+    const modal = document.getElementById('editUserModal');
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeEditUserModal();
+        }
+    });
+}
+
+// Función para manejar el envío del formulario de edición
+async function handleEditUserSubmit(event) {
+    event.preventDefault();
+    
+    const userId = document.getElementById('editUserId').value;
+    const username = document.getElementById('editUsername').value.trim();
+    const email = document.getElementById('editEmail').value.trim();
+    const rol = document.getElementById('editRole').value;
+    const activo = document.getElementById('editActive').checked;
+    
+    if (!username || !email || !rol) {
+        showMessage('Todos los campos son obligatorios', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`http://localhost:3001/api/auth/users/${userId}`, {
+            method: 'PUT',
+            headers: {
+                ...getAuthHeaders(),
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                username,
+                email,
+                rol,
+                activo
+            })
+        });
+        
+        if (response.ok) {
+            showMessage('Usuario actualizado correctamente', 'success');
+            closeEditUserModal();
+            loadUsersList(); // Recargar la lista
+        } else {
+            const error = await response.json();
+            showMessage(error.error || 'Error al actualizar usuario', 'error');
+        }
+    } catch (error) {
+        console.error('Error actualizando usuario:', error);
+        showMessage('Error de conexión', 'error');
+    }
+}
+
+// Función para cerrar el modal de edición
+function closeEditUserModal() {
+    const modal = document.getElementById('editUserModal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+// Función para eliminar usuario
+async function deleteUser(userId) {
+    // Confirmar antes de eliminar
+    if (!confirm('¿Estás seguro de que deseas eliminar este usuario? Esta acción no se puede deshacer.')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`http://localhost:3001/api/auth/users/${userId}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders()
+        });
+        
+        if (response.ok) {
+            showMessage('Usuario eliminado correctamente', 'success');
+            loadUsersList(); // Recargar la lista
+        } else {
+            const error = await response.json();
+            showMessage(error.error || 'Error al eliminar usuario', 'error');
+        }
+    } catch (error) {
+        console.error('Error eliminando usuario:', error);
+        showMessage('Error de conexión', 'error');
+    }
+}
+
 // Función para verificar el token al cargar la página
 async function verifyToken() {
     console.log('verifyToken - authToken existe:', !!authToken);
@@ -2002,10 +2154,10 @@ function calcularDiasPresencia(colaborador, mesConciliacion) {
             // Aplicar animación de shake
             modalContent.classList.add('shake-animation');
             
-            // Remover la clase después de la animación
+            // Remover la clase después de la animación (más rápida)
             setTimeout(() => {
                 modalContent.classList.remove('shake-animation');
-            }, 600);
+            }, 400);
         }
     }
 
@@ -2016,59 +2168,58 @@ function calcularDiasPresencia(colaborador, mesConciliacion) {
         const loadingMessage = document.getElementById('loadingMessage');
         const mainContainer = document.querySelector('.main-container');
         
-        // Paso 1: Modal fade out (400ms)
-        loginModal.style.transition = 'opacity 0.4s ease';
+        // Paso 1: Modal fade out (200ms)
+        loginModal.style.transition = 'opacity 0.2s ease';
         loginModal.style.opacity = '0';
         
-        await new Promise(resolve => setTimeout(resolve, 400));
+        await new Promise(resolve => setTimeout(resolve, 200));
         
         // Ocultar modal completamente
         hideLoginModal();
         
-        // Paso 2: Overlay de carga fade in (200ms)
+        // Paso 2: Overlay de carga fade in (100ms)
         loadingOverlay.style.display = 'flex';
         loadingOverlay.classList.add('show');
         
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await new Promise(resolve => setTimeout(resolve, 100));
         
-        // Paso 3: Mensajes dinámicos
+        // Paso 3: Mensajes dinámicos (más rápidos)
         const messages = [
             'Iniciando sesión...',
-            'Cargando colaboradores...',
-            'Preparando interfaz...',
-            'Configurando permisos...'
+            'Cargando datos...',
+            'Preparando interfaz...'
         ];
         
         for (let i = 0; i < messages.length; i++) {
             loadingMessage.style.opacity = '0';
-            await new Promise(resolve => setTimeout(resolve, 300));
+            await new Promise(resolve => setTimeout(resolve, 150));
             loadingMessage.textContent = messages[i];
             loadingMessage.style.opacity = '1';
-            await new Promise(resolve => setTimeout(resolve, 1200));
+            await new Promise(resolve => setTimeout(resolve, 600));
         }
         
         // Paso 4: Actualizar UI y cargar datos
         updateUIForUserRole();
         await fetchColaboradores();
         
-        // Paso 5: Overlay fade out y aplicación fade in (600ms)
+        // Paso 5: Overlay fade out y aplicación fade in (300ms)
         loadingOverlay.classList.remove('show');
         
-        await new Promise(resolve => setTimeout(resolve, 300));
+        await new Promise(resolve => setTimeout(resolve, 150));
         
         // Mostrar aplicación principal
         mainContainer.style.opacity = '0';
-        mainContainer.style.display = 'block';
-        mainContainer.style.transition = 'opacity 0.6s ease';
+        mainContainer.style.display = 'flex';
+        mainContainer.style.transition = 'opacity 0.3s ease';
         
         setTimeout(() => {
             mainContainer.style.opacity = '1';
-        }, 50);
+        }, 25);
         
         // Ocultar overlay completamente
         setTimeout(() => {
             loadingOverlay.style.display = 'none';
-        }, 600);
+        }, 300);
     }
 
     // Función para iniciar la transición post-logout
@@ -2077,35 +2228,34 @@ function calcularDiasPresencia(colaborador, mesConciliacion) {
         const loadingOverlay = document.getElementById('loadingOverlay');
         const loadingMessage = document.getElementById('loadingMessage');
         
-        // Paso 1: Aplicación principal fade out (400ms)
-        mainContainer.style.transition = 'opacity 0.4s ease';
+        // Paso 1: Aplicación principal fade out (200ms)
+        mainContainer.style.transition = 'opacity 0.2s ease';
         mainContainer.style.opacity = '0';
         
-        await new Promise(resolve => setTimeout(resolve, 400));
+        await new Promise(resolve => setTimeout(resolve, 200));
         
         // Ocultar aplicación completamente
         mainContainer.style.display = 'none';
         
-        // Paso 2: Overlay de carga fade in (200ms)
+        // Paso 2: Overlay de carga fade in (100ms)
         loadingOverlay.style.display = 'flex';
         loadingOverlay.classList.add('show');
         
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await new Promise(resolve => setTimeout(resolve, 100));
         
-        // Paso 3: Mensajes dinámicos para logout
+        // Paso 3: Mensajes dinámicos para logout (más rápidos)
         const messages = [
             'Cerrando sesión...',
             'Guardando cambios...',
-            'Limpiando datos...',
             'Preparando login...'
         ];
         
         for (let i = 0; i < messages.length; i++) {
             loadingMessage.style.opacity = '0';
-            await new Promise(resolve => setTimeout(resolve, 300));
+            await new Promise(resolve => setTimeout(resolve, 150));
             loadingMessage.textContent = messages[i];
             loadingMessage.style.opacity = '1';
-            await new Promise(resolve => setTimeout(resolve, 1200));
+            await new Promise(resolve => setTimeout(resolve, 600));
         }
         
         // Paso 4: Limpiar formulario y errores
@@ -2116,16 +2266,16 @@ function calcularDiasPresencia(colaborador, mesConciliacion) {
         setInlineError('usernameInput', 'usernameError', '');
         setInlineError('passwordInput', 'passwordError', '');
         
-        // Paso 5: Overlay fade out y modal login fade in (600ms)
+        // Paso 5: Overlay fade out y modal login fade in (300ms)
         loadingOverlay.classList.remove('show');
         
-        await new Promise(resolve => setTimeout(resolve, 300));
+        await new Promise(resolve => setTimeout(resolve, 150));
         
         // Mostrar modal de login
         const loginModal = document.getElementById('loginModal');
         loginModal.style.opacity = '0';
         loginModal.style.display = 'block';
-        loginModal.style.transition = 'opacity 0.6s ease';
+        loginModal.style.transition = 'opacity 0.3s ease';
         
         setTimeout(() => {
             loginModal.style.opacity = '1';
@@ -2134,12 +2284,12 @@ function calcularDiasPresencia(colaborador, mesConciliacion) {
             if (usernameInput) {
                 usernameInput.focus();
             }
-        }, 50);
+        }, 25);
         
         // Ocultar overlay completamente
         setTimeout(() => {
             loadingOverlay.style.display = 'none';
-        }, 600);
+        }, 300);
     }
 
 // Función para habilitar/deshabilitar campos de edición según el mes de conciliación
@@ -2582,7 +2732,7 @@ window.addEventListener('beforeunload', function() {
     (async function() {
         const isAuth = await verifyToken();
         if (isAuth) {
-            document.querySelector('.main-container').style.display = 'block';
+            document.querySelector('.main-container').style.display = 'flex';
             updateUIForUserRole();
             await fetchColaboradores();
             
