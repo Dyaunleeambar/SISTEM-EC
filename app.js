@@ -31,7 +31,7 @@ function resetInactivityTimer() {
         // Timer principal para cerrar sesión
         inactivityTimeout = setTimeout(() => {
             console.log('Sesión cerrada por inactividad');
-            logout();
+            logout(true); // Con animación para inactividad
             showMessage('Sesión cerrada por inactividad. Por favor, inicie sesión nuevamente.', 'error');
         }, INACTIVITY_TIMEOUT);
     }
@@ -85,7 +85,7 @@ function getAuthHeaders() {
 // Función para manejar errores de autenticación
 function handleAuthError(error) {
     if (error.status === 401) {
-        logout();
+        logout(true); // Con animación para sesión expirada
         showLoginModal();
         showMessage('Sesión expirada. Por favor, inicie sesión nuevamente.', 'error');
     }
@@ -108,7 +108,7 @@ function clearAllTimers() {
 }
 
 // Función para hacer logout
-function logout() {
+function logout(showTransition = true) {
     // Limpiar todos los timers
     clearAllTimers();
     
@@ -127,28 +127,49 @@ function logout() {
     refreshToken = null;
     currentUser = null;
     
-    // Mostrar notificación de logout
-    showMessage(`Sesión cerrada. Hasta luego, ${currentUser ? currentUser.username : 'usuario'}!`, 'info');
-    
-    // Ocultar contenido principal y mostrar login
-    const mainContainer = document.querySelector('.main-container');
-    if (mainContainer) {
-        mainContainer.style.display = 'none';
-        mainContainer.style.opacity = '0';
+    if (showTransition) {
+        // Mostrar notificación de logout
+        showMessage(`Sesión cerrada. Hasta luego, ${currentUser ? currentUser.username : 'usuario'}!`, 'info');
+        
+        // Ocultar contenido principal y mostrar login
+        const mainContainer = document.querySelector('.main-container');
+        if (mainContainer) {
+            mainContainer.style.display = 'none';
+            mainContainer.style.opacity = '0';
+        }
+        
+        // Limpiar formulario de login
+        const loginForm = document.getElementById('loginForm');
+        if (loginForm) {
+            loginForm.reset();
+        }
+        
+        // Limpiar errores previos
+        setInlineError('usernameInput', 'usernameError', '');
+        setInlineError('passwordInput', 'passwordError', '');
+        
+        // Iniciar flujo de transición post-logout
+        startPostLogoutTransition();
+    } else {
+        // Solo limpiar y mostrar modal de login sin animación
+        const mainContainer = document.querySelector('.main-container');
+        if (mainContainer) {
+            mainContainer.style.display = 'none';
+        }
+        
+        // Limpiar formulario de login
+        const loginForm = document.getElementById('loginForm');
+        if (loginForm) {
+            loginForm.reset();
+        }
+        
+        // Limpiar errores previos
+        setInlineError('usernameInput', 'usernameError', '');
+        setInlineError('passwordInput', 'passwordError', '');
+        
+        // Mostrar modal de login directamente
+        showLoginModal();
     }
-    
-    // Limpiar formulario de login
-    const loginForm = document.getElementById('loginForm');
-    if (loginForm) {
-        loginForm.reset();
-    }
-    
-    // Limpiar errores previos
-    setInlineError('usernameInput', 'usernameError', '');
-    setInlineError('passwordInput', 'passwordError', '');
-    
-    // Mostrar modal de login
-    showLoginModal();
 }
 
 // Función para mostrar el modal de login
@@ -295,12 +316,12 @@ async function verifyToken() {
             return true;
         } else {
             console.log('verifyToken - Token inválido, haciendo logout');
-            logout();
+            logout(false); // Sin animación para inicialización
             return false;
         }
     } catch (error) {
         console.error('Error verificando token:', error);
-        logout();
+        logout(false); // Sin animación para inicialización
         return false;
     }
 }
@@ -1581,8 +1602,6 @@ function applyStatusFilter(filterType) {
 
 // Llama a esta función al cargar la página
 document.addEventListener('DOMContentLoaded', () => {
-    fetchColaboradores();
-    
     // Event listeners para los botones de filtro
     const filterEditedBtn = document.getElementById('filterEditedBtn');
     const filterStimulationBtn = document.getElementById('filterStimulationBtn');
@@ -2044,6 +2063,77 @@ function calcularDiasPresencia(colaborador, mesConciliacion) {
         
         setTimeout(() => {
             mainContainer.style.opacity = '1';
+        }, 50);
+        
+        // Ocultar overlay completamente
+        setTimeout(() => {
+            loadingOverlay.style.display = 'none';
+        }, 600);
+    }
+
+    // Función para iniciar la transición post-logout
+    async function startPostLogoutTransition() {
+        const mainContainer = document.querySelector('.main-container');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const loadingMessage = document.getElementById('loadingMessage');
+        
+        // Paso 1: Aplicación principal fade out (400ms)
+        mainContainer.style.transition = 'opacity 0.4s ease';
+        mainContainer.style.opacity = '0';
+        
+        await new Promise(resolve => setTimeout(resolve, 400));
+        
+        // Ocultar aplicación completamente
+        mainContainer.style.display = 'none';
+        
+        // Paso 2: Overlay de carga fade in (200ms)
+        loadingOverlay.style.display = 'flex';
+        loadingOverlay.classList.add('show');
+        
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
+        // Paso 3: Mensajes dinámicos para logout
+        const messages = [
+            'Cerrando sesión...',
+            'Guardando cambios...',
+            'Limpiando datos...',
+            'Preparando login...'
+        ];
+        
+        for (let i = 0; i < messages.length; i++) {
+            loadingMessage.style.opacity = '0';
+            await new Promise(resolve => setTimeout(resolve, 300));
+            loadingMessage.textContent = messages[i];
+            loadingMessage.style.opacity = '1';
+            await new Promise(resolve => setTimeout(resolve, 1200));
+        }
+        
+        // Paso 4: Limpiar formulario y errores
+        const loginForm = document.getElementById('loginForm');
+        if (loginForm) {
+            loginForm.reset();
+        }
+        setInlineError('usernameInput', 'usernameError', '');
+        setInlineError('passwordInput', 'passwordError', '');
+        
+        // Paso 5: Overlay fade out y modal login fade in (600ms)
+        loadingOverlay.classList.remove('show');
+        
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        // Mostrar modal de login
+        const loginModal = document.getElementById('loginModal');
+        loginModal.style.opacity = '0';
+        loginModal.style.display = 'block';
+        loginModal.style.transition = 'opacity 0.6s ease';
+        
+        setTimeout(() => {
+            loginModal.style.opacity = '1';
+            // Focus en el campo de usuario
+            const usernameInput = document.getElementById('usernameInput');
+            if (usernameInput) {
+                usernameInput.focus();
+            }
         }, 50);
         
         // Ocultar overlay completamente
