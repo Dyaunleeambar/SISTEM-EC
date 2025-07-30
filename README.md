@@ -17,7 +17,7 @@ Sistema web completo para la gestión y estimulación de colaboradores según su
 
 ### 👥 Gestión de Usuarios
 - **Usuario Admin**: Acceso total, puede crear otros usuarios
-- **Usuario Editor**: Puede crear y editar colaboradores
+- **Usuario Editor**: Puede crear y editar colaboradores, y limpiar fin de misión antiguos
 - **Usuario Viewer**: Solo puede ver y exportar datos
 - **Gestión de Sesiones** con tokens de acceso y refresh
 - **Historial de Cambios** de contraseña
@@ -290,7 +290,8 @@ Esto iniciará tanto el servidor backend como la aplicación Electron en modo de
 - `GET /api/colaboradores` - Obtener todos los colaboradores
 - `POST /api/colaboradores` - Crear colaborador
 - `PUT /api/colaboradores/:id` - Actualizar colaborador
-- `DELETE /api/colaboradores/:id` - Eliminar colaborador
+- `DELETE /api/colaboradores/:id` - Eliminar colaborador (solo admin)
+- `DELETE /api/colaboradores/clean-old-mission/:id` - Eliminar colaborador en fin de misión (admin/editor)
 
 ## Seguridad
 

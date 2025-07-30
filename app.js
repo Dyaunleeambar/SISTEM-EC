@@ -306,7 +306,7 @@ function updateUIForUserRole() {
 
     if (addButton) addButton.style.display = isEditor ? 'inline-block' : 'none';
     if (exportButton) exportButton.style.display = isViewer ? 'inline-block' : 'none';
-    if (cleanButton) cleanButton.style.display = isAdmin ? 'inline-block' : 'none';
+    if (cleanButton) cleanButton.style.display = (isAdmin || isEditor) ? 'inline-block' : 'none';
 
     editButtons.forEach(btn => {
         btn.style.display = isEditor ? 'inline-block' : 'none';
@@ -1934,6 +1934,7 @@ function calcularDiasPresencia(colaborador, mesConciliacion) {
             'create_colaborador': ['admin', 'editor'],
             'edit_colaborador': ['admin', 'editor'],
             'delete_colaborador': ['admin'],
+            'clean_old_end_mission': ['admin', 'editor'],
             'export_data': ['admin', 'editor', 'viewer'],
             'view_data': ['admin', 'editor', 'viewer']
         };
@@ -2032,6 +2033,12 @@ let toDeleteEndMission = [];
 
 if (cleanOldEndMissionButton) {
     cleanOldEndMissionButton.addEventListener('click', function() {
+        // Verificar permisos
+        if (!hasPermission('clean_old_end_mission')) {
+            showPermissionError('limpiar fin de misión antiguos');
+            return;
+        }
+        
         const conciliationInput = document.getElementById('conciliationMonth');
         if (!conciliationInput || !conciliationInput.value) {
             showMessage('Debe seleccionar el mes de conciliación antes de limpiar.', 'error');
@@ -2084,7 +2091,10 @@ if (confirmCleanEndMissionBtn) {
         }
         for (const id of idsToDelete) {
             try {
-                await fetch(`http://localhost:3001/api/colaboradores/${id}`, { method: 'DELETE' });
+                await fetch(`http://localhost:3001/api/colaboradores/clean-old-mission/${id}`, { 
+                    method: 'DELETE',
+                    headers: getAuthHeaders()
+                });
             } catch (err) {
                 console.error('Error eliminando colaborador:', id, err);
             }

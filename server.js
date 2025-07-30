@@ -568,6 +568,46 @@ dbInit.query(`CREATE DATABASE IF NOT EXISTS colaboradores_db`, (err) => {
         });
     });
 
+    // Endpoint: Eliminar colaboradores en fin de misión antiguos (para limpieza)
+    // Permite a administradores y editores eliminar colaboradores específicos
+    app.delete('/api/colaboradores/clean-old-mission/:id', verificarToken, verificarRol(['admin', 'editor']), (req, res) => {
+        const id = parseInt(req.params.id);
+        
+        // Verificar que el colaborador existe y está en fin de misión
+        db.query('SELECT * FROM colaboradores WHERE id=?', [id], (err, result) => {
+            if (err) return res.status(500).json({ error: err.message });
+            if (result.length === 0) {
+                return res.status(404).json({ error: 'Colaborador no encontrado' });
+            }
+            
+            const colaborador = result[0];
+            if (colaborador.fin_mision !== 1) {
+                return res.status(400).json({ error: 'Solo se pueden eliminar colaboradores en fin de misión' });
+            }
+            
+            // Eliminar el colaborador
+            db.query('DELETE FROM colaboradores WHERE id=?', [id], (err, result) => {
+                if (err) return res.status(500).json({ error: err.message });
+                if (result.affectedRows === 0) {
+                    return res.status(404).json({ error: 'Colaborador no encontrado' });
+                }
+                
+                // Registrar la auditoría
+                registrarAuditoria(
+                    req.user.id,
+                    'colaboradores',
+                    'DELETE_CLEAN_OLD_MISSION',
+                    id,
+                    colaborador,
+                    null,
+                    req.ip
+                );
+                
+                res.json({ message: 'Colaborador en fin de misión eliminado', id });
+            });
+        });
+    });
+
     // Endpoint: Eliminar todos los colaboradores (limpieza total)
     // Seguridad: solo borra filas completas, nunca actualiza nombre/estado a NULL o vacío
     app.delete('/api/colaboradores', verificarToken, verificarRol(['admin']), (req, res) => {

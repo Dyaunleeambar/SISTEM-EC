@@ -56,3 +56,8 @@ coverage/
 
 # Scripts de ayuda local
 configurar-github.bat
+limpiar-proyecto.bat
+
+# Documentación generada
+*.pdf
+documentacion-generada/

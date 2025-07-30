@@ -54,4 +54,26 @@ describe('API de Colaboradores', () => {
     expect(res.statusCode).toBe(200);
     expect(res.body).toHaveProperty('message');
   });
+
+  it('DELETE /api/colaboradores/clean-old-mission/:id - debe eliminar colaborador en fin de misión', async () => {
+    // Crear un colaborador en fin de misión para el test
+    const colaboradorFinMision = await request('http://localhost:3001')
+      .post('/api/colaboradores')
+      .send({
+        nombre: 'Test Fin Mision',
+        estado: 'Fin de Misión',
+        fecha_salida: '2024-01-15',
+        fecha_entrada: '',
+        fin_mision: 1,
+        ubicacion: 'Test Estado'
+      });
+    
+    const finMisionId = colaboradorFinMision.body.id;
+    
+    const res = await request('http://localhost:3001')
+      .delete(`/api/colaboradores/clean-old-mission/${finMisionId}`);
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toHaveProperty('message');
+    expect(res.body.message).toContain('eliminado');
+  });
 }); 
