@@ -1962,7 +1962,7 @@ function calcularDiasPresencia(colaborador, mesConciliacion) {
             // Remover la clase después de la animación
             setTimeout(() => {
                 modalContent.classList.remove('shake-animation');
-            }, 300);
+            }, 600);
         }
     }
 
@@ -2174,18 +2174,32 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Validaciones
             let hasError = false;
-            if (!username) {
-                setInlineError('usernameInput', 'usernameError', 'El usuario es requerido');
+            let errorMessage = '';
+            
+            if (!username && !password) {
+                errorMessage = 'Usuario y contraseña son requeridos';
+                hasError = true;
+            } else if (!username) {
+                errorMessage = 'El usuario es requerido';
+                hasError = true;
+            } else if (!password) {
+                errorMessage = 'La contraseña es requerida';
                 hasError = true;
             }
-            if (!password) {
-                setInlineError('passwordInput', 'passwordError', 'La contraseña es requerida');
-                hasError = true;
+            
+            if (hasError) {
+                setInlineError('passwordInput', 'passwordError', errorMessage);
             }
             
             if (hasError) {
                 // Aplicar animación de shake para errores de validación
                 applyLoginShakeAnimation();
+                
+                // Limpiar error después de 3 segundos
+                setTimeout(() => {
+                    setInlineError('passwordInput', 'passwordError', '');
+                }, 3000);
+                
                 return;
             }
             
@@ -2285,9 +2299,18 @@ window.addEventListener('beforeunload', function() {
                         // Aplicar animación de shake al modal de login
                         applyLoginShakeAnimation();
                         
-                        // Limpiar campos de contraseña
-                        document.getElementById('passwordInput').value = '';
-                        document.getElementById('passwordInput').focus();
+                        // Limpiar campos de contraseña y mostrar error visual
+                        const passwordInput = document.getElementById('passwordInput');
+                        passwordInput.value = '';
+                        passwordInput.focus();
+                        
+                        // Mostrar error visual solo en el campo de contraseña
+                        setInlineError('passwordInput', 'passwordError', 'Credenciales incorrectas');
+                        
+                        // Limpiar error después de 3 segundos
+                        setTimeout(() => {
+                            setInlineError('passwordInput', 'passwordError', '');
+                        }, 3000);
                     }
                 }
                 
