@@ -1966,6 +1966,68 @@ function calcularDiasPresencia(colaborador, mesConciliacion) {
         }
     }
 
+    // Función para iniciar la transición post-login
+    async function startPostLoginTransition() {
+        const loginModal = document.getElementById('loginModal');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const loadingMessage = document.getElementById('loadingMessage');
+        const mainContainer = document.querySelector('.main-container');
+        
+        // Paso 1: Modal fade out (400ms)
+        loginModal.style.transition = 'opacity 0.4s ease';
+        loginModal.style.opacity = '0';
+        
+        await new Promise(resolve => setTimeout(resolve, 400));
+        
+        // Ocultar modal completamente
+        hideLoginModal();
+        
+        // Paso 2: Overlay de carga fade in (200ms)
+        loadingOverlay.style.display = 'flex';
+        loadingOverlay.classList.add('show');
+        
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
+        // Paso 3: Mensajes dinámicos
+        const messages = [
+            'Iniciando sesión...',
+            'Cargando colaboradores...',
+            'Preparando interfaz...',
+            'Configurando permisos...'
+        ];
+        
+        for (let i = 0; i < messages.length; i++) {
+            loadingMessage.style.opacity = '0';
+            await new Promise(resolve => setTimeout(resolve, 300));
+            loadingMessage.textContent = messages[i];
+            loadingMessage.style.opacity = '1';
+            await new Promise(resolve => setTimeout(resolve, 1200));
+        }
+        
+        // Paso 4: Actualizar UI y cargar datos
+        updateUIForUserRole();
+        await fetchColaboradores();
+        
+        // Paso 5: Overlay fade out y aplicación fade in (600ms)
+        loadingOverlay.classList.remove('show');
+        
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        // Mostrar aplicación principal
+        mainContainer.style.opacity = '0';
+        mainContainer.style.display = 'block';
+        mainContainer.style.transition = 'opacity 0.6s ease';
+        
+        setTimeout(() => {
+            mainContainer.style.opacity = '1';
+        }, 50);
+        
+        // Ocultar overlay completamente
+        setTimeout(() => {
+            loadingOverlay.style.display = 'none';
+        }, 600);
+    }
+
 // Función para habilitar/deshabilitar campos de edición según el mes de conciliación
 function checkConciliationMonth() {
     const enabled = isConciliationMonthSelected();
@@ -2244,28 +2306,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Siempre guardar como true (cerrar sesión al salir por defecto)
                 localStorage.setItem('logoutOnClose', 'true');
                     
-                    // Ocultar modal y mostrar contenido principal
-                    hideLoginModal();
-                    document.querySelector('.main-container').style.display = 'block';
-                    
-                                    // Forzar actualización inmediata de la UI
-                console.log('Login exitoso - Llamando a updateUIForUserRole()');
-                console.log('Login exitoso - Usuario a mostrar:', currentUser.username, 'Rol:', currentUser.rol);
-                
-                // Ocultar contenido principal temporalmente
-                document.querySelector('.main-container').style.display = 'none';
-                
-                // Actualizar UI con el nuevo usuario
-                updateUIForUserRole();
-                
-                // Pequeño delay para asegurar la actualización
-                setTimeout(() => {
-                    // Mostrar contenido principal
-                    document.querySelector('.main-container').style.display = 'block';
-                    
-                    // Cargar datos
-                    fetchColaboradores();
-                }, 100);
+                    // Iniciar flujo de transición post-login
+                    startPostLoginTransition();
                 
                 // Mostrar notificación de login exitoso
                 showMessage(`Bienvenido, ${currentUser.username}! (${currentUser.rol})`, 'success');
