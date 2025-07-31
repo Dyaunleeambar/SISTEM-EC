@@ -3,10 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Evaluación de Colaboradores</title>
+    <title>Sistema de Estimulación de Colaboradores</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="description" content="Sistema completo para la gestión y estimulación de colaboradores">
+    <meta name="theme-color" content="#4a90e2">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Sistema Estimulación">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Icons -->
+    <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="assets/icon-512.png">
+    <link rel="apple-touch-icon" href="assets/icon-192.png">
+    
+    <!-- Styles -->
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='52' font-size='52'%3E%E2%AD%90%3C/text%3E%3C/svg%3E" />
 </head>
 <body>
   <div class="main-container">
@@ -16,7 +32,7 @@
         <div class="header-main">
           <div class="title-user-container">
             <div class="user-info-placeholder"></div>
-            <h1 class="header-title">Sistema de Estimulación para los Colaboradores</h1>
+            <h1 class="header-title">Retribución del pago adicional</h1>
           </div>            
           <div class="counters">
             <div class="counter-horizontal">
@@ -261,7 +277,79 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="app.js"></script>
+    
+    <!-- PWA Service Worker Registration -->
     <script>
+      // Registrar el Service Worker
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then((registration) => {
+              console.log('Service Worker registrado exitosamente:', registration.scope);
+              
+              // Verificar actualizaciones
+              registration.addEventListener('updatefound', () => {
+                const newWorker = registration.installing;
+                newWorker.addEventListener('statechange', () => {
+                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    // Hay una nueva versión disponible
+                    if (confirm('Hay una nueva versión disponible. ¿Deseas actualizar?')) {
+                      newWorker.postMessage({ type: 'SKIP_WAITING' });
+                      window.location.reload();
+                    }
+                  }
+                });
+              });
+            })
+            .catch((error) => {
+              console.log('Error al registrar Service Worker:', error);
+            });
+        });
+      }
+
+      // Mostrar banner de instalación PWA
+      let deferredPrompt;
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        
+        // Mostrar botón de instalación si es necesario
+        const installButton = document.createElement('button');
+        installButton.textContent = 'Instalar App';
+        installButton.style.cssText = `
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          z-index: 1000;
+          background: #4a90e2;
+          color: white;
+          border: none;
+          padding: 10px 20px;
+          border-radius: 5px;
+          cursor: pointer;
+          font-size: 14px;
+        `;
+        
+        installButton.addEventListener('click', () => {
+          deferredPrompt.prompt();
+          deferredPrompt.userChoice.then((choiceResult) => {
+            if (choiceResult.outcome === 'accepted') {
+              console.log('Usuario aceptó instalar la PWA');
+            }
+            deferredPrompt = null;
+            installButton.remove();
+          });
+        });
+        
+        document.body.appendChild(installButton);
+      });
+
+      // Manejar instalación completada
+      window.addEventListener('appinstalled', (evt) => {
+        console.log('PWA instalada exitosamente');
+      });
+
+      // Script original del toggle
       document.addEventListener('DOMContentLoaded', function() {
         const tab = document.getElementById('toggleFormTab');
         const formContainer = document.getElementById('collaboratorFormContainer');

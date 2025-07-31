@@ -11,6 +11,12 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname));
 
+// Configurar headers para PWA
+app.use((req, res, next) => {
+    res.setHeader('Service-Worker-Allowed', '/');
+    next();
+});
+
 // Configuración de rate limiting
 const limiter = rateLimit({
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutos
