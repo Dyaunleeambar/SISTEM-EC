@@ -1,11 +1,12 @@
 const { app, BrowserWindow, Menu, dialog } = require('electron');
 const path = require('path');
-const { spawn } = require('child_process');
 const isDev = process.env.NODE_ENV === 'development';
+
+// Importar el servidor
+let serverProcess = null;
 
 // Mantener una referencia global del objeto de ventana
 let mainWindow;
-let serverProcess;
 
 function createWindow() {
     // Crear la ventana del navegador
@@ -20,29 +21,40 @@ function createWindow() {
             enableRemoteModule: false,
             webSecurity: true
         },
-        icon: path.join(__dirname, '../assets/icon.ico'),
+        // icon: path.join(__dirname, '../assets/icon.png'), // Comentado temporalmente
         title: 'Sistema de Estimulación de Colaboradores',
-        show: false, // No mostrar hasta que esté listo
-        autoHideMenuBar: false,
-        resizable: true,
-        maximizable: true,
-        minimizable: true
+        show: false // No mostrar hasta que esté listo
     });
 
     // Cargar la aplicación
-    const startUrl = isDev 
-        ? 'http://localhost:3001' 
-        : 'http://localhost:3001';
+    const startUrl = 'http://localhost:3001';
     
-    // En producción, iniciar el servidor embebido
+    // En producción, iniciar el servidor
     if (!isDev) {
-        startServer();
-    }
-    
-    // Esperar un poco para que el servidor se inicie
-    setTimeout(() => {
+        const { spawn } = require('child_process');
+        const serverPath = path.join(__dirname, '../server.js');
+        
+        // Usar node directamente
+        serverProcess = spawn('node', [serverPath], {
+            stdio: 'pipe',
+            cwd: path.join(__dirname, '../')
+        });
+        
+        serverProcess.stdout.on('data', (data) => {
+            console.log('Servidor:', data.toString());
+        });
+        
+        serverProcess.stderr.on('data', (data) => {
+            console.error('Error servidor:', data.toString());
+        });
+        
+        // Esperar a que el servidor esté listo
+        setTimeout(() => {
+            mainWindow.loadURL(startUrl);
+        }, 3000);
+    } else {
         mainWindow.loadURL(startUrl);
-    }, 2000);
+    }
 
     // Mostrar la ventana cuando esté lista
     mainWindow.once('ready-to-show', () => {
@@ -164,69 +176,21 @@ app.whenReady().then(() => {
 
 // Salir cuando todas las ventanas estén cerradas
 app.on('window-all-closed', () => {
+    // Terminar el servidor si está ejecutándose
+    if (serverProcess) {
+        serverProcess.kill();
+    }
+    
     // En macOS es común que las aplicaciones permanezcan activas hasta que el usuario las cierre explícitamente
     if (process.platform !== 'darwin') {
         app.quit();
     }
 });
 
-// Función para iniciar el servidor embebido
-function startServer() {
-    const serverPath = path.join(__dirname, '../server.exe');
-    const nodePath = path.join(__dirname, '../node_modules/.bin/node');
-    
-    try {
-        // Intentar usar server.exe primero (si existe)
-        if (require('fs').existsSync(serverPath)) {
-            serverProcess = spawn(serverPath, [], {
-                stdio: 'pipe',
-                cwd: path.join(__dirname, '..')
-            });
-        } else {
-            // Fallback: usar node con server.js
-            serverProcess = spawn('node', ['server.js'], {
-                stdio: 'pipe',
-                cwd: path.join(__dirname, '..')
-            });
-        }
-        
-        serverProcess.stdout.on('data', (data) => {
-            console.log('Servidor:', data.toString());
-        });
-        
-        serverProcess.stderr.on('data', (data) => {
-            console.error('Error del servidor:', data.toString());
-        });
-        
-        serverProcess.on('error', (error) => {
-            console.error('Error al iniciar servidor:', error);
-            dialog.showErrorBox('Error del Servidor', 
-                'No se pudo iniciar el servidor backend. La aplicación puede no funcionar correctamente.');
-        });
-        
-        serverProcess.on('close', (code) => {
-            console.log('Servidor cerrado con código:', code);
-        });
-        
-    } catch (error) {
-        console.error('Error al iniciar servidor:', error);
-        dialog.showErrorBox('Error del Servidor', 
-            'No se pudo iniciar el servidor backend. La aplicación puede no funcionar correctamente.');
-    }
-}
-
-// Función para cerrar el servidor
-function stopServer() {
-    if (serverProcess) {
-        serverProcess.kill();
-        serverProcess = null;
-    }
-}
-
 // Manejar errores no capturados
 process.on('uncaughtException', (error) => {
     console.error('Error no capturado:', error);
-    dialog.showErrorBox('Error', 'Ha ocurrido un error inesperado en la aplicación.');
+    dialog.showErrorBox('Error', `Ha ocurrido un error inesperado en la aplicación.\n\nDetalles: ${error.message}`);
 });
 
 // Manejar advertencias
@@ -234,7 +198,10 @@ process.on('warning', (warning) => {
     console.warn('Advertencia:', warning);
 });
 
-// Cerrar el servidor cuando la aplicación se cierre
-app.on('before-quit', () => {
-    stopServer();
-}); 
+// Manejar errores del servidor
+if (serverProcess) {
+    serverProcess.on('error', (error) => {
+        console.error('Error del servidor:', error);
+        dialog.showErrorBox('Error del Servidor', `No se pudo iniciar el servidor.\n\nDetalles: ${error.message}`);
+    });
+} 

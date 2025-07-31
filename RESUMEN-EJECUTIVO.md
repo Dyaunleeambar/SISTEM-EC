@@ -12,6 +12,8 @@ El **Sistema de Estimulación de Colaboradores** es una aplicación web/desktop 
 - **Sistema de roles** (Admin, Editor, Viewer) con permisos específicos
 - **Exportación a Excel** para análisis y reportes
 - **Interfaz moderna y responsiva** (Web + Desktop)
+- **Sistema de respaldos automáticos** con gestión completa
+- **Seguridad mejorada** en el login con modal persistente
 
 ### 🎨 **Experiencia de Usuario**
 - **Diseño atractivo** con gradientes animados
@@ -53,6 +55,12 @@ npm start
 ```bash
 npm run electron-dev
 ```
+
+**Características de la aplicación Electron:**
+- **Icono personalizado** integrado
+- **Ventana optimizada** con controles completos
+- **Experiencia nativa** de escritorio
+- **Inicio automático** del servidor backend
 
 ## 🔧 Instalación Rápida
 
@@ -102,7 +110,8 @@ npm run electron-dev
 - **Reportes automáticos** en Excel
 - **Estadísticas en tiempo real**
 - **Historial completo** de cambios
-- **Backup automático** de datos
+- **Sistema de respaldos automáticos** (diario, semanal, mensual)
+- **Restauración segura** de datos con confirmación
 
 ## 🛡️ Seguridad
 
@@ -111,6 +120,8 @@ npm run electron-dev
 - **Cambio obligatorio** de contraseñas cada 30 días
 - **Auditoría completa** de todas las actividades
 - **Protección de datos** sensibles
+- **Modal de login persistente** - No se cierra accidentalmente
+- **Toggle de contraseña** - Visualización segura de contraseñas
 
 ## 📈 Métricas de Rendimiento
 
@@ -126,13 +137,19 @@ npm run electron-dev
 - **Integración con sistemas** externos
 - **Aplicación móvil** nativa
 - **Dashboard ejecutivo** con KPIs
+- **Respaldos en la nube** para mayor seguridad
+- **Notificaciones de respaldos** automáticas
 
 ## 📞 Soporte
 
-- **Email**: soporte@sistemaestimulacion.com
+- **Email**: danielf@mre.siecsa.cu
+- **Teléfono**: +58-416-6217-827
 - **Documentación completa**: `GUIA-USUARIO.md`
+- **Sistema de respaldos**: `SISTEMA_RESPALDOS.md`
 - **Horario**: Lunes a Viernes, 8:00 AM - 6:00 PM
 
 ---
 
 **© 2025 Sistema de Estimulación de Colaboradores**
+
+**Versión**: 2.0 - Con sistema de respaldos automáticos y mejoras de seguridad

@@ -2627,23 +2627,32 @@ window.addEventListener('beforeunload', function() {
         });
     }
     
-    // Cerrar modal de login
-    if (closeLoginModal) {
-        closeLoginModal.addEventListener('click', hideLoginModal);
-    }
-    
-    // Cerrar modal al hacer clic fuera
+    // Cerrar modal de configuración al hacer clic fuera
     window.addEventListener('click', function(event) {
-        const loginModal = document.getElementById('loginModal');
-        if (event.target === loginModal) {
-            hideLoginModal();
-        }
-        
         const configModal = document.getElementById('configModal');
         if (event.target === configModal) {
             hideConfigModal();
         }
     });
+    
+    // Funcionalidad del botón de ojo para mostrar/ocultar contraseña
+    const togglePassword = document.getElementById('togglePassword');
+    const passwordInput = document.getElementById('passwordInput');
+    
+    if (togglePassword && passwordInput) {
+        togglePassword.addEventListener('click', function() {
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            
+            // Cambiar el ícono
+            const icon = togglePassword.querySelector('i');
+            if (type === 'text') {
+                icon.className = 'fas fa-eye-slash';
+            } else {
+                icon.className = 'fas fa-eye';
+            }
+        });
+    }
     
     // Event listeners para el modal de configuración
     const closeConfigModal = document.getElementById('closeConfigModal');

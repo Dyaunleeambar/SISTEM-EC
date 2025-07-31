@@ -191,7 +191,6 @@
     <!-- Modal de Login -->
     <div id="loginModal" class="modal" style="display:none;">
       <div class="modal-content">
-        <span id="closeLoginModal" class="close">&times;</span>
         <h3>Iniciar Sesión</h3>
         <p style="text-align: center; color: #666; font-size: 12px; margin-bottom: 15px;">
           <i class="fas fa-info-circle"></i> La sesión se cerrará automáticamente al cerrar la aplicación
@@ -199,7 +198,12 @@
         <form id="loginForm">
           <input type="text" id="usernameInput" placeholder="Usuario" required>
           <div class="error-inline" id="usernameError"></div>
-          <input type="password" id="passwordInput" placeholder="Contraseña" required>
+          <div class="password-container">
+            <input type="password" id="passwordInput" placeholder="Contraseña" required>
+            <button type="button" id="togglePassword" class="password-toggle">
+              <i class="fas fa-eye"></i>
+            </button>
+          </div>
           <div class="error-inline" id="passwordError"></div>
           <div class="remember-me">
             <input type="checkbox" id="rememberMe">

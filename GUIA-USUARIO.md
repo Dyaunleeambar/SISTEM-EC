@@ -78,6 +78,13 @@ npm run electron-dev
 
 Esta opción abre la aplicación como una aplicación nativa de escritorio con todas las funcionalidades.
 
+**Características de la aplicación Electron:**
+- **Icono personalizado** integrado en la aplicación
+- **Ventana optimizada** con controles completos (minimizar, maximizar, cerrar)
+- **Experiencia nativa** de escritorio
+- **Inicio automático** del servidor backend
+- **Interfaz mejorada** con mejor rendimiento
+
 ## 👥 Usuarios del Sistema
 
 ### 🔐 Credenciales de Acceso
@@ -139,8 +146,10 @@ El sistema calcula automáticamente el derecho a estimulación basado en:
 
 1. **Acceder al sistema**
    - Ingresa tu usuario y contraseña
+   - **Nuevo**: Usa el botón de ojo para mostrar/ocultar tu contraseña
    - Marca "Recordar sesión" si deseas mantener la sesión activa
    - Haz clic en "Iniciar Sesión"
+   - **Nuevo**: El modal no se cerrará hasta ingresar credenciales correctas
 
 2. **Gestión de sesión**
    - La sesión se mantiene activa según tu configuración
@@ -317,6 +326,7 @@ Esta funcionalidad permite eliminar colaboradores que están en "Fin de Misión"
 
 #### 🔑 **No puedo iniciar sesión**
 - Verificar usuario y contraseña
+- **Nuevo**: Usar el botón de ojo para verificar que la contraseña esté correcta
 - Comprobar que la base de datos esté activa
 - Revisar configuración en `config.env`
 
@@ -324,6 +334,7 @@ Esta funcionalidad permite eliminar colaboradores que están en "Fin de Misión"
 - Verificar que MySQL esté ejecutándose
 - Comprobar credenciales en `config.env`
 - Revisar permisos de la base de datos
+- **Nuevo**: Usar el sistema de respaldos para restaurar si es necesario
 
 #### 🌐 **No se conecta al servidor**
 - Verificar que el puerto 3001 esté libre
@@ -334,6 +345,11 @@ Esta funcionalidad permite eliminar colaboradores que están en "Fin de Misión"
 - Verificar formato de fechas (YYYY-MM-DD)
 - Comprobar que la fecha de entrada sea posterior a la de salida
 - Revisar zona horaria del sistema
+
+#### 🖥️ **Problemas con la aplicación Electron**
+- Verificar que Node.js esté instalado correctamente
+- Comprobar que todas las dependencias estén instaladas
+- Revisar que el puerto 3001 no esté en uso por otra aplicación
 
 ### 🔧 **Comandos de Diagnóstico**
 
@@ -354,8 +370,8 @@ npm audit
 ## 📞 Soporte Técnico
 
 ### 📧 **Contacto**
-- **Email**: soporte@sistemaestimulacion.com
-- **Teléfono**: +58-xxx-xxx-xxxx
+- **Email**: danielf@mre.siecsa.cu
+- **Teléfono**: +58-416-6217-827
 - **Horario**: Lunes a Viernes, 8:00 AM - 6:00 PM
 
 ### 📋 **Información para Reportes**
@@ -371,16 +387,19 @@ npm audit
 - **README.md**: Documentación del desarrollador
 - **API Documentation**: Endpoints del servidor
 - **Database Schema**: Estructura de la base de datos
+- **backup/README_RESPALDOS.md**: Documentación del sistema de respaldos
 
 ### 🎥 **Videos Tutoriales**
 - **Instalación**: Guía paso a paso
 - **Primer uso**: Configuración inicial
 - **Funcionalidades**: Uso avanzado
+- **Sistema de respaldos**: Configuración y uso
 
 ### 📊 **Reportes y Estadísticas**
 - **Uso del sistema**: Métricas de utilización
 - **Rendimiento**: Tiempos de respuesta
 - **Errores**: Logs de problemas
+- **Respaldos**: Historial de respaldos automáticos
 
 ---
 
@@ -393,7 +412,11 @@ El **Sistema de Estimulación de Colaboradores** es una herramienta completa y p
 - **Reportes automáticos**: Generación programada
 - **Integración con otros sistemas**: APIs externas
 - **Aplicación móvil**: Versión para smartphones
+- **Respaldos en la nube**: Almacenamiento remoto de respaldos
+- **Notificaciones de respaldos**: Alertas de estado de respaldos automáticos
 
 ---
 
 **© 2025 Sistema de Estimulación de Colaboradores. Todos los derechos reservados.**
+
+**Versión**: 2.0 - Con sistema de respaldos automáticos y mejoras de seguridad

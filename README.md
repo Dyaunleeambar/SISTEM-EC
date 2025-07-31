@@ -9,7 +9,9 @@ Sistema web completo para la gestión y estimulación de colaboradores según su
 ### 🔐 Sistema de Autenticación
 - **Autenticación JWT** con tokens seguros
 - **Sistema de Roles**: admin, editor, viewer con permisos específicos
-- **Interfaz de Login** elegante con modal atractivo
+- **Interfaz de Login** elegante con modal atractivo y **seguridad mejorada**
+- **Modal de Login Persistente** - No se cierra hasta ingresar credenciales correctas
+- **Toggle de Contraseña** - Botón de ojo para mostrar/ocultar contraseña
 - **Sesión Persistente** con opción "Recordar sesión"
 - **Cambio de Contraseña** mensual obligatorio
 - **Rate Limiting** para prevenir abuso
@@ -49,10 +51,11 @@ Sistema web completo para la gestión y estimulación de colaboradores según su
 
 ### 🎨 Interfaz Moderna
 - Diseño responsivo y atractivo
-  - Codificación visual por colores
+- Codificación visual por colores
 - Fondo animado con gradientes
-- Modal de login elegante
-  - Mensajes de retroalimentación claros
+- Modal de login elegante con **seguridad mejorada**
+- Mensajes de retroalimentación claros
+- **Icono personalizado** para la aplicación Electron
 
 ## Requisitos del Sistema
 
@@ -122,6 +125,12 @@ npm run electron-dev
 
 Esto iniciará tanto el servidor backend como la aplicación Electron en modo desarrollo.
 
+**Características de la aplicación Electron:**
+- **Icono personalizado** integrado
+- **Ventana optimizada** con controles completos
+- **Experiencia nativa** de escritorio
+- **Inicio automático** del servidor backend
+
 ## Usuarios del Sistema
 
 ### Usuarios de Prueba Disponibles:
@@ -190,6 +199,7 @@ Esto iniciará tanto el servidor backend como la aplicación Electron en modo de
 
 ## Estructura del Proyecto
 
+### 📁 Archivos Principales
 - `index.html` - Página principal de la aplicación
 - `styles.css` - Estilos CSS con diseño moderno
 - `app.js` - Lógica principal del frontend con autenticación
@@ -197,7 +207,24 @@ Esto iniciará tanto el servidor backend como la aplicación Electron en modo de
 - `server.js` - Servidor Node.js/Express con autenticación JWT
 - `config.env` - Variables de entorno y configuración
 - `package.json` - Dependencias y scripts
+
+### 📁 Aplicación Electron
+- `electron/main.js` - Proceso principal de Electron
+- `electron/server.js` - Servidor integrado
+- `assets/icon.ico` - Icono de la aplicación
+
+### 📁 Sistema de Respaldos
+- `backup/backup_mysql.bat` - Script principal de respaldo
+- `backup/restore_mysql.bat` - Script de restauración
+- `backup/gestionar_respaldos.bat` - Gestión completa de respaldos
+- `backup/configurar_respaldo_automatico.bat` - Configuración automática
+- `backup/README_RESPALDOS.md` - Documentación del sistema de respaldos
+- `respaldo_rapido.bat` - Acceso rápido al sistema de respaldos
+
+### 📁 Documentación
 - `tests/` - Pruebas unitarias y de integración
+- `GUIA-USUARIO.md` - Guía de usuario completa
+- `RESUMEN-EJECUTIVO.md` - Resumen ejecutivo del proyecto
 
 ## Tecnologías Utilizadas
 
@@ -310,6 +337,11 @@ Esto iniciará tanto el servidor backend como la aplicación Electron en modo de
 - Contraseñas nunca se almacenan en texto plano
 - Cambio obligatorio cada 30 días
 
+### Seguridad de la Interfaz
+- **Modal de Login Persistente** - No se cierra accidentalmente
+- **Toggle de Contraseña** - Visualización segura de contraseñas
+- **Validación en Tiempo Real** - Feedback inmediato al usuario
+
 ## Testing
 
 ### Tests Unitarios (Frontend)
@@ -328,6 +360,47 @@ npx jest server.test.js
 - GitHub Actions ejecuta tests automáticamente
 - Workflow en `.github/workflows/nodejs.yml`
 
+## Sistema de Respaldos Automáticos
+
+### 🗂️ Características del Sistema de Respaldos
+- **Respaldos Automáticos**: Diario (2:00 AM), Semanal (Domingos 3:00 AM), Mensual (Día 1, 4:00 AM)
+- **Respaldos Manuales**: Creación bajo demanda con compresión automática
+- **Restauración Segura**: Con confirmación y respaldo de seguridad previo
+- **Gestión de Archivos**: Limpieza automática (mantiene últimos 10 archivos)
+- **Compresión**: Archivos .zip para optimizar espacio
+- **Interfaz de Gestión**: Menú completo para administrar respaldos
+
+### 🚀 Uso del Sistema de Respaldos
+
+#### Configuración Inicial (Ejecutar como Administrador)
+```cmd
+backup\configurar_respaldo_automatico.bat
+```
+
+#### Acceso Rápido
+```cmd
+respaldo_rapido.bat
+```
+
+#### Respaldo Manual
+```cmd
+backup\backup_mysql.bat
+```
+
+#### Restauración
+```cmd
+backup\restore_mysql.bat
+```
+
+### 📊 Monitoreo de Respaldos
+```cmd
+# Ver respaldos disponibles
+dir backup\backups\*.zip
+
+# Ver tareas programadas
+schtasks /query /tn "SistemaEstimulacion_*"
+```
+
 ## Contribución
 
 1. Haz un fork del proyecto
@@ -341,9 +414,12 @@ npx jest server.test.js
 Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más detalles.
 
 ## Contacto
-
+- **Email**: danielf@mre.siecsa.cu
+- **Teléfono**: +58-416-6217-827
 Para consultas o soporte, por favor contacta al equipo de desarrollo.
-
----
+- **Email**: danielf@mre.siecsa.cu
+- **Teléfono**: +58-416-6217-827
 
 **¡Sistema completo y listo para producción!** 🚀
+
+**Versión**: 2.0 - Con sistema de respaldos automáticos y mejoras de seguridad
