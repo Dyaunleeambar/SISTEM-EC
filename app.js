@@ -702,17 +702,55 @@ function getConciliationMonth() {
 
 // Función para calcular el estado de vacaciones
 function evaluateVacaciones(row) {
-    // Si tiene fecha de entrada, no está de vacaciones
     if (row['Fecha de Entrada'] && row['Fecha de Entrada'].trim() !== '') {
         return 'No';
     }
-    // Reglas de vacaciones:
-    // 1. Debe tener fecha de salida
-    // 2. No debe estar en fin de misión
     const hasSalida = row['Fecha de Salida'] && row['Fecha de Salida'].trim() !== '';
     const isInFinMision = row['Fin de Misión'] === 'Sí';
-
     return hasSalida && !isInFinMision ? 'Sí' : 'No';
+}
+
+/**
+ * Limpia automáticamente las fechas de colaboradores que regresaron al país
+ * en el mes anterior al mes de conciliación actual
+ * @param {Array} colaboradores - Lista de colaboradores
+ * @param {string} mesConciliacion - Mes de conciliación en formato YYYY-MM
+ * @returns {Array} - Lista de colaboradores con fechas limpiadas
+ */
+function limpiarFechasColaboradoresRegresados(colaboradores, mesConciliacion) {
+    if (!mesConciliacion || !colaboradores || colaboradores.length === 0) {
+        return colaboradores;
+    }
+
+    const [year, month] = mesConciliacion.split('-').map(Number);
+    const mesActual = new Date(year, month - 1, 1);
+    const mesAnterior = new Date(year, month - 2, 1); // Mes anterior al actual
+
+    return colaboradores.map(colaborador => {
+        // Solo procesar si tiene fecha de entrada
+        if (colaborador['Fecha de Entrada'] && colaborador['Fecha de Entrada'].trim() !== '') {
+            const fechaEntrada = parseDateYMD(colaborador['Fecha de Entrada']);
+            
+            if (fechaEntrada) {
+                // Verificar si la fecha de entrada fue en el mes anterior
+                const esMesAnterior = fechaEntrada.getFullYear() === mesAnterior.getFullYear() && 
+                                    fechaEntrada.getMonth() === mesAnterior.getMonth();
+                
+                if (esMesAnterior) {
+                    // Limpiar fechas y marcar como editado
+                    return {
+                        ...colaborador,
+                        'Fecha de Salida': '',
+                        'Fecha de Entrada': '',
+                        _edited: true,
+                        _fecha_limpiada: true,
+                        _fecha_limpiada_timestamp: new Date().toISOString()
+                    };
+                }
+            }
+        }
+        return colaborador;
+    });
 }
 
 function filtrarColaboradoresPorFinDeMision(colaboradores, mesConciliacion) {
@@ -1604,9 +1642,8 @@ async function fetchColaboradores() {
     try {
         const data = await fetchWithHandling('http://localhost:3001/api/colaboradores', {}, 'Error al cargar colaboradores del servidor.');
         const normalized = data.map(normalizeBackendRow);
-        allCollaborators = normalized;
-        storeOriginalState(allCollaborators);
-        // Aplicar el filtro de Fin de Misión para el mes de conciliación actual
+        
+        // Obtener mes de conciliación actual
         let mesConciliacion = '';
         const conciliationInput = document.getElementById('conciliationMonth');
         if (conciliationInput && conciliationInput.value) {
@@ -1615,11 +1652,36 @@ async function fetchColaboradores() {
             const now = new Date();
             mesConciliacion = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
         }
-        const visibles = filtrarColaboradoresPorFinDeMision(normalized, mesConciliacion);
+        
+        // Aplicar limpieza automática de fechas para colaboradores regresados
+        const colaboradoresLimpios = limpiarFechasColaboradoresRegresados(normalized, mesConciliacion);
+        
+        // Guardar estado original después de la limpieza
+        allCollaborators = colaboradoresLimpios;
+        storeOriginalState(allCollaborators);
+        
+        // Aplicar el filtro de Fin de Misión para el mes de conciliación actual
+        const visibles = filtrarColaboradoresPorFinDeMision(colaboradoresLimpios, mesConciliacion);
         applyActiveFilter();
         updateCounters(visibles);
         updateLocationCounters(visibles);
         checkConciliationMonth();
+        
+        // Mostrar mensaje si se limpiaron fechas y guardar cambios en backend
+        const colaboradoresLimpiosCount = colaboradoresLimpios.filter(c => c._fecha_limpiada).length;
+        if (colaboradoresLimpiosCount > 0) {
+            showMessage(`${colaboradoresLimpiosCount} colaborador(es) con fechas limpiadas automáticamente por regreso al país`, 'info');
+            
+            // Guardar cambios en el backend para los colaboradores con fechas limpiadas
+            const colaboradoresParaGuardar = colaboradoresLimpios.filter(c => c._fecha_limpiada);
+            for (const colaborador of colaboradoresParaGuardar) {
+                try {
+                    await updateColaboradorInBackend(colaborador);
+                } catch (error) {
+                    console.error(`Error guardando colaborador ${colaborador.id}:`, error);
+                }
+            }
+        }
     } catch (err) {
         showMessage(err.message, 'error');
         console.error(err);
@@ -2361,6 +2423,31 @@ if (conciliationInput) {
                 return;
             }
         }
+        
+        // Aplicar limpieza automática cuando se cambie el mes de conciliación
+        if (selected && allCollaborators && allCollaborators.length > 0) {
+            const colaboradoresLimpios = limpiarFechasColaboradoresRegresados(allCollaborators, selected);
+            const colaboradoresLimpiosCount = colaboradoresLimpios.filter(c => c._fecha_limpiada).length;
+            
+            if (colaboradoresLimpiosCount > 0) {
+                showMessage(`${colaboradoresLimpiosCount} colaborador(es) con fechas limpiadas automáticamente por regreso al país`, 'info');
+                
+                // Actualizar la lista global con los datos limpios
+                allCollaborators = colaboradoresLimpios;
+                storeOriginalState(allCollaborators);
+                
+                // Guardar cambios en el backend para los colaboradores con fechas limpiadas
+                const colaboradoresParaGuardar = colaboradoresLimpios.filter(c => c._fecha_limpiada);
+                colaboradoresParaGuardar.forEach(async (colaborador) => {
+                    try {
+                        await updateColaboradorInBackend(colaborador);
+                    } catch (error) {
+                        console.error(`Error guardando colaborador ${colaborador.id}:`, error);
+                    }
+                });
+            }
+        }
+        
         fetchColaboradores();
     });
 }
@@ -2760,7 +2847,8 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     calcularDiasPresencia,
     evaluateStimulation,
-    evaluateVacaciones
+    evaluateVacaciones,
+    limpiarFechasColaboradoresRegresados
   };
 }
 

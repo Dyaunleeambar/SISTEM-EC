@@ -104,8 +104,52 @@ function evaluateVacaciones(row) {
     return hasSalida && !isInFinMision ? 'Sí' : 'No';
 }
 
+/**
+ * Limpia automáticamente las fechas de colaboradores que regresaron al país
+ * en el mes anterior al mes de conciliación actual
+ * @param {Array} colaboradores - Lista de colaboradores
+ * @param {string} mesConciliacion - Mes de conciliación en formato YYYY-MM
+ * @returns {Array} - Lista de colaboradores con fechas limpiadas
+ */
+function limpiarFechasColaboradoresRegresados(colaboradores, mesConciliacion) {
+    if (!mesConciliacion || !colaboradores || colaboradores.length === 0) {
+        return colaboradores;
+    }
+
+    const [year, month] = mesConciliacion.split('-').map(Number);
+    const mesActual = new Date(year, month - 1, 1);
+    const mesAnterior = new Date(year, month - 2, 1); // Mes anterior al actual
+
+    return colaboradores.map(colaborador => {
+        // Solo procesar si tiene fecha de entrada
+        if (colaborador['Fecha de Entrada'] && colaborador['Fecha de Entrada'].trim() !== '') {
+            const fechaEntrada = parseDateYMD(colaborador['Fecha de Entrada']);
+            
+            if (fechaEntrada) {
+                // Verificar si la fecha de entrada fue en el mes anterior
+                const esMesAnterior = fechaEntrada.getFullYear() === mesAnterior.getFullYear() && 
+                                    fechaEntrada.getMonth() === mesAnterior.getMonth();
+                
+                if (esMesAnterior) {
+                    // Limpiar fechas y marcar como editado
+                    return {
+                        ...colaborador,
+                        'Fecha de Salida': '',
+                        'Fecha de Entrada': '',
+                        _edited: true,
+                        _fecha_limpiada: true,
+                        _fecha_limpiada_timestamp: new Date().toISOString()
+                    };
+                }
+            }
+        }
+        return colaborador;
+    });
+}
+
 module.exports = {
     calcularDiasPresencia,
     evaluateStimulation,
-    evaluateVacaciones
+    evaluateVacaciones,
+    limpiarFechasColaboradoresRegresados
 }; 

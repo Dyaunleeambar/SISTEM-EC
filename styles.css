@@ -1896,8 +1896,8 @@ input[type="month"] {
   box-sizing: border-box;
 }
 #conciliationMonth {
-  min-width: 120px;
-  max-width: 160px;
+  min-width: 140px;
+  max-width: 180px;
 }
 #searchInput {
   min-width: 140px;
