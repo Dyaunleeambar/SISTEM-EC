@@ -39,6 +39,7 @@ Sistema web completo para la gestión y estimulación de colaboradores según su
   - Determinación de derecho a estimulación basado en días de presencia
   - Cálculo de estado de vacaciones
   - Gestión de fin de misión
+  - **Limpieza automática de fechas**: Los colaboradores con fecha de entrada en el mes anterior al mes de conciliación actual tienen sus campos de fecha limpiados automáticamente para aplicar correctamente todas las validaciones
 
 ### 🔍 Filtrado y Búsqueda
   - Filtrado por ubicación/estado
@@ -56,6 +57,28 @@ Sistema web completo para la gestión y estimulación de colaboradores según su
 - Modal de login elegante con **seguridad mejorada**
 - Mensajes de retroalimentación claros
 - **Icono personalizado** para la aplicación Electron
+
+### 🔄 **Limpieza Automática de Fechas**
+
+El sistema incluye una funcionalidad automática que mejora la precisión de las validaciones:
+
+#### 🧹 **Funcionamiento**
+- **Limpieza automática**: Los colaboradores con fecha de entrada en el mes anterior al mes de conciliación actual tienen sus campos de fecha limpiados automáticamente
+- **Activación**: Se ejecuta al cargar colaboradores o cambiar el mes de conciliación
+- **Notificación**: El sistema informa cuántos colaboradores fueron procesados
+- **Persistencia**: Los cambios se guardan automáticamente en la base de datos
+
+#### 📋 **Criterios de Aplicación**
+- Solo colaboradores con fecha de entrada registrada
+- La fecha de entrada debe ser del mes anterior al mes de conciliación actual
+- Se limpian tanto "Fecha de Salida" como "Fecha de Entrada"
+- Se preserva el resto de la información del colaborador
+
+#### 🔍 **Beneficios**
+- **Validaciones precisas**: Asegura que se apliquen correctamente todas las validaciones establecidas
+- **Automatización**: No requiere intervención manual del usuario
+- **Auditoría**: Cada limpieza queda registrada con timestamp
+- **Integridad de datos**: Mantiene la consistencia de la información
 
 ## Requisitos del Sistema
 
@@ -203,7 +226,7 @@ Esto iniciará tanto el servidor backend como la aplicación Electron en modo de
 - `index.html` - Página principal de la aplicación
 - `styles.css` - Estilos CSS con diseño moderno
 - `app.js` - Lógica principal del frontend con autenticación
-- `logic.js` - Funciones auxiliares
+- `logic.js` - Funciones auxiliares y lógica de negocio (incluye limpieza automática de fechas)
 - `server.js` - Servidor Node.js/Express con autenticación JWT
 - `config.env` - Variables de entorno y configuración
 - `package.json` - Dependencias y scripts

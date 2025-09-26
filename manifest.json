@@ -1,0 +1,13 @@
+{
+  "name": "Sistema de Estimulación de Colaboradores",
+  "short_name": "Estimulación",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4a90e2",
+  "description": "Sistema para la gestión y estimulación de colaboradores.",
+  "icons": [
+    { "src": "assets/icon.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "assets/icon.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

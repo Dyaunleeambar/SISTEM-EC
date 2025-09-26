@@ -2853,38 +2853,104 @@ if (typeof module !== 'undefined' && module.exports) {
 }
 
 /**
- * Utilidad para fetch con manejo de errores centralizado y autenticación
+ * Utilidad para fetch con manejo de errores centralizado, autenticación y refresco de token
  */
 async function fetchWithHandling(url, options = {}, errorMsg = 'Error de red') {
-    try {
-        // Agregar headers de autenticación si el usuario está autenticado
-        if (isAuthenticated()) {
-            options.headers = {
-                ...options.headers,
-                ...getAuthHeaders()
-            };
-        }
+    // Flag para evitar bucles de refresco
+    let isRefreshing = false;
+    
+    // Función interna para realizar la petición
+    const doRequest = async (retry = false) => {
+        try {
+            // Clonar las opciones para evitar modificar el objeto original
+            const requestOptions = { ...options };
+            
+            // Agregar headers de autenticación si el usuario está autenticado
+            if (isAuthenticated()) {
+                requestOptions.headers = {
+                    ...requestOptions.headers,
+                    ...getAuthHeaders()
+                };
+            }
 
-        const res = await fetch(url, options);
-        
-        // Manejar errores de autenticación
-        if (res.status === 401) {
-            handleAuthError({ status: 401 });
-            throw new Error('No autorizado');
-        }
-        
-        if (!res.ok) {
-            let msg = errorMsg;
+            // Asegurarse de que el header Content-Type esté configurado para JSON si hay cuerpo
+            if (requestOptions.body && typeof requestOptions.body === 'object' && !(requestOptions.body instanceof FormData)) {
+                requestOptions.headers = {
+                    'Content-Type': 'application/json',
+                    ...requestOptions.headers
+                };
+                requestOptions.body = JSON.stringify(requestOptions.body);
+            }
+
+            const res = await fetch(url, requestOptions);
+            
+            // Si el token expiró y no estamos en medio de un refresco, intentar refrescar
+            if (res.status === 401 && !isRefreshing && !retry) {
+                isRefreshing = true;
+                
+                try {
+                    // Intentar refrescar el token
+                    const refreshResponse = await fetch('http://localhost:3001/api/auth/refresh', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ 
+                            refreshToken: localStorage.getItem('refreshToken') 
+                        })
+                    });
+
+                    if (refreshResponse.ok) {
+                        const { accessToken, refreshToken: newRefreshToken } = await refreshResponse.json();
+                        
+                        // Actualizar los tokens en localStorage
+                        localStorage.setItem('authToken', accessToken);
+                        localStorage.setItem('refreshToken', newRefreshToken);
+                        
+                        // Reintentar la petición original con el nuevo token
+                        return doRequest(true);
+                    } else {
+                        // Si el refresh falla, hacer logout
+                        console.error('Error al refrescar el token:', await refreshResponse.text());
+                        handleAuthError({ status: 401 });
+                        throw new Error('La sesión ha expirado. Por favor, inicie sesión nuevamente.');
+                    }
+                } catch (refreshError) {
+                    console.error('Error en el proceso de refresco de token:', refreshError);
+                    handleAuthError({ status: 401 });
+                    throw new Error('No se pudo renovar la sesión. Por favor, inicie sesión nuevamente.');
+                } finally {
+                    isRefreshing = false;
+                }
+            }
+            
+            // Si hay un error que no es de autenticación o ya se intentó refrescar
+            if (!res.ok) {
+                let msg = errorMsg;
+                try {
+                    const data = await res.json().catch(() => ({}));
+                    if (data && data.error) msg = data.error;
+                } catch {}
+                throw new Error(msg);
+            }
+            
+            // Si es una petición DELETE y fue exitosa, retornar true
+            if (requestOptions.method && requestOptions.method.toUpperCase() === 'DELETE') return true;
+            
+            // Para otras respuestas exitosas, intentar parsear como JSON
             try {
-                const data = await res.json();
-                if (data && data.error) msg = data.error;
-            } catch {}
-            throw new Error(msg);
+                return await res.json();
+            } catch (e) {
+                return {}; // Retornar objeto vacío si no hay contenido JSON
+            }
+        } catch (err) {
+            // Si es un error de autenticación después de un reintento, propagar el error
+            if (retry && err.message.includes('No autorizado')) {
+                handleAuthError({ status: 401 });
+            }
+            throw new Error(err.message || errorMsg);
         }
-        
-        if (options.method && options.method.toUpperCase() === 'DELETE') return true;
-        return await res.json();
-    } catch (err) {
-        throw new Error(err.message || errorMsg);
-    }
+    };
+    
+    return doRequest();
 }

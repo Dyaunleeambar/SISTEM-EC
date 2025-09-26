@@ -63,25 +63,11 @@ dbInit.query(`CREATE DATABASE IF NOT EXISTS colaboradores_db`, (err) => {
         )
     `);
 
-    // Forzar recreación de tablas de autenticación
-    console.log('Inicializando tablas de autenticación...');
+    console.log('Verificando tablas de autenticación...');
     
-    // Eliminar tablas existentes si hay problemas
-    db.query('DROP TABLE IF EXISTS cambios_password', (err) => {
-        if (err) console.error('Error eliminando tabla cambios_password:', err);
-    });
-    
-    db.query('DROP TABLE IF EXISTS sesiones', (err) => {
-        if (err) console.error('Error eliminando tabla sesiones:', err);
-    });
-    
-    db.query('DROP TABLE IF EXISTS usuarios', (err) => {
-        if (err) console.error('Error eliminando tabla usuarios:', err);
-    });
-    
-    // Crear tabla de usuarios
+    // Crear tabla de usuarios si no existe
     db.query(`
-        CREATE TABLE usuarios (
+        CREATE TABLE IF NOT EXISTS usuarios (
             id INT AUTO_INCREMENT PRIMARY KEY,
             username VARCHAR(50) UNIQUE NOT NULL,
             password_hash VARCHAR(255) NOT NULL,
@@ -89,20 +75,20 @@ dbInit.query(`CREATE DATABASE IF NOT EXISTS colaboradores_db`, (err) => {
             rol ENUM('admin', 'editor', 'viewer') DEFAULT 'viewer',
             fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             ultimo_login TIMESTAMP NULL,
-            ultimo_cambio_password TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            ultimo_cambio_password TIMESTAMP NULL,
             activo BOOLEAN DEFAULT TRUE,
             INDEX idx_username (username),
             INDEX idx_rol (rol)
         )
     `, (err) => {
         if (err) {
-            console.error('Error creando tabla usuarios:', err);
+            console.error('Error verificando tabla usuarios:', err);
         } else {
-            console.log('Tabla usuarios creada correctamente');
+            console.log('Tabla usuarios verificada correctamente');
         }
     });
 
-    // Crea la tabla de sesiones para auditoría
+    // Verificar/Crear tabla de sesiones
     db.query(`
         CREATE TABLE IF NOT EXISTS sesiones (
             id INT AUTO_INCREMENT PRIMARY KEY,
@@ -114,9 +100,15 @@ dbInit.query(`CREATE DATABASE IF NOT EXISTS colaboradores_db`, (err) => {
             user_agent TEXT,
             FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
         )
-    `);
+    `, (err) => {
+        if (err) {
+            console.error('Error verificando tabla sesiones:', err);
+        } else {
+            console.log('Tabla sesiones verificada correctamente');
+        }
+    });
 
-    // Crea la tabla de cambios de contraseña
+    // Verificar/Crear tabla de cambios de contraseña
     db.query(`
         CREATE TABLE IF NOT EXISTS cambios_password (
             id INT AUTO_INCREMENT PRIMARY KEY,
@@ -125,9 +117,15 @@ dbInit.query(`CREATE DATABASE IF NOT EXISTS colaboradores_db`, (err) => {
             ip_address VARCHAR(45),
             FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
         )
-    `);
+    `, (err) => {
+        if (err) {
+            console.error('Error verificando tabla cambios_password:', err);
+        } else {
+            console.log('Tabla cambios_password verificada correctamente');
+        }
+    });
     
-    // Crea la tabla de auditoría de cambios
+    // Verificar/Crear tabla de auditoría de cambios
     db.query(`
         CREATE TABLE IF NOT EXISTS auditoria_cambios (
             id INT AUTO_INCREMENT PRIMARY KEY,
@@ -141,7 +139,13 @@ dbInit.query(`CREATE DATABASE IF NOT EXISTS colaboradores_db`, (err) => {
             fecha_cambio TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
         )
-    `);
+    `, (err) => {
+        if (err) {
+            console.error('Error verificando tabla auditoria_cambios:', err);
+        } else {
+            console.log('Tabla auditoria_cambios verificada correctamente');
+        }
+    });
 
     // Agrega restricción UNIQUE a (nombre, estado) para evitar duplicados
     db.query(
@@ -273,18 +277,10 @@ dbInit.query(`CREATE DATABASE IF NOT EXISTS colaboradores_db`, (err) => {
                     return res.status(401).json({ error: 'Credenciales inválidas' });
                 }
 
-                // Verificar si la contraseña ha expirado
-                const ultimoCambio = new Date(usuario.ultimo_cambio_password);
-                const diasTranscurridos = (new Date() - ultimoCambio) / (1000 * 60 * 60 * 24);
-                const diasExpiracion = parseInt(process.env.PASSWORD_EXPIRY_DAYS) || 30;
+                // Verificación de expiración de contraseña deshabilitada permanentemente
+                // según solicitud del usuario
+                console.log('Nota: Verificación de expiración de contraseña deshabilitada permanentemente');
                 
-                if (diasTranscurridos > diasExpiracion) {
-                    return res.status(401).json({ 
-                        error: 'Contraseña expirada. Debe cambiarla.',
-                        passwordExpired: true 
-                    });
-                }
-
                 // Generar tokens
                 const tokens = generarTokens(usuario);
                 
@@ -334,6 +330,56 @@ dbInit.query(`CREATE DATABASE IF NOT EXISTS colaboradores_db`, (err) => {
         );
 
         res.json({ message: 'Logout exitoso' });
+    });
+
+    // Endpoint: Refrescar token
+    app.post('/api/auth/refresh', (req, res) => {
+        const { refreshToken } = req.body;
+        
+        if (!refreshToken) {
+            return res.status(400).json({ error: 'Se requiere un token de actualización' });
+        }
+
+        // Verificar el refresh token
+        jwt.verify(refreshToken, process.env.JWT_SECRET, (err, decoded) => {
+            if (err) {
+                return res.status(401).json({ error: 'Token de actualización inválido o expirado' });
+            }
+
+            // Obtener el usuario de la base de datos
+            db.query(
+                'SELECT id, username, email, rol, activo FROM usuarios WHERE id = ? AND activo = TRUE',
+                [decoded.id],
+                (err, results) => {
+                    if (err) {
+                        console.error('Error al buscar usuario para refrescar token:', err);
+                        return res.status(500).json({ error: 'Error en el servidor' });
+                    }
+                    
+                    if (results.length === 0) {
+                        return res.status(404).json({ error: 'Usuario no encontrado o inactivo' });
+                    }
+
+                    const user = results[0];
+                    
+                    // Generar nuevos tokens
+                    const tokens = generarTokens(user);
+                    
+                    // Registrar la sesión
+                    const tokenId = jwt.sign({ id: user.id, timestamp: Date.now() }, process.env.JWT_SECRET, { expiresIn: '1h' });
+                    db.query(
+                        `INSERT INTO sesiones (usuario_id, token_id, ip_address, user_agent) 
+                         VALUES (?, ?, ?, ?)`,
+                        [user.id, tokenId, req.ip, req.headers['user-agent']]
+                    );
+                    
+                    res.json({
+                        accessToken: tokens.accessToken,
+                        refreshToken: tokens.refreshToken
+                    });
+                }
+            );
+        });
     });
 
     // Endpoint: Cambiar contraseña

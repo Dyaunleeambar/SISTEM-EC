@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Estimulación de Colaboradores</title>
+    <meta http="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' https://cdnjs.cloudflare.com 'unsafe-inline'; img-src 'self' data:; connect-src 'self' http://localhost:3001; font-src 'self' https://cdnjs.cloudflare.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; worker-src 'self';">
     
     <!-- PWA Meta Tags -->
     <meta name="description" content="Sistema completo para la gestión y estimulación de colaboradores">
@@ -32,7 +33,7 @@
         <div class="header-main">
           <div class="title-user-container">
             <div class="user-info-placeholder"></div>
-            <h1 class="header-title">Retribución del pago adicional</h1>
+            <h1 class="header-title">Sistema de Retribución Adicional</h1>
           </div>            
           <div class="counters">
             <div class="counter-horizontal">
@@ -284,19 +285,20 @@
     
     <!-- PWA Service Worker Registration -->
     <script>
-      // Registrar el Service Worker
-      if ('serviceWorker' in navigator) {
+      // Detectar si corre dentro de Electron
+      const isElectron = !!(window && window.process && window.process.versions && window.process.versions.electron);
+
+      // Registrar el Service Worker solo fuera de Electron
+      if (!isElectron && 'serviceWorker' in navigator) {
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('/sw.js')
             .then((registration) => {
               console.log('Service Worker registrado exitosamente:', registration.scope);
-              
               // Verificar actualizaciones
               registration.addEventListener('updatefound', () => {
                 const newWorker = registration.installing;
                 newWorker.addEventListener('statechange', () => {
                   if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                    // Hay una nueva versión disponible
                     if (confirm('Hay una nueva versión disponible. ¿Deseas actualizar?')) {
                       newWorker.postMessage({ type: 'SKIP_WAITING' });
                       window.location.reload();
@@ -311,47 +313,47 @@
         });
       }
 
-      // Mostrar banner de instalación PWA
-      let deferredPrompt;
-      window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-        
-        // Mostrar botón de instalación si es necesario
-        const installButton = document.createElement('button');
-        installButton.textContent = 'Instalar App';
-        installButton.style.cssText = `
-          position: fixed;
-          top: 20px;
-          right: 20px;
-          z-index: 1000;
-          background: #4a90e2;
-          color: white;
-          border: none;
-          padding: 10px 20px;
-          border-radius: 5px;
-          cursor: pointer;
-          font-size: 14px;
-        `;
-        
-        installButton.addEventListener('click', () => {
-          deferredPrompt.prompt();
-          deferredPrompt.userChoice.then((choiceResult) => {
-            if (choiceResult.outcome === 'accepted') {
-              console.log('Usuario aceptó instalar la PWA');
-            }
-            deferredPrompt = null;
-            installButton.remove();
+      // Mostrar banner de instalación PWA solo fuera de Electron
+      if (!isElectron) {
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+          e.preventDefault();
+          deferredPrompt = e;
+          const installButton = document.createElement('button');
+          installButton.textContent = 'Instalar App';
+          installButton.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: #4a90e2;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+          `;
+          installButton.addEventListener('click', () => {
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then((choiceResult) => {
+              if (choiceResult.outcome === 'accepted') {
+                console.log('Usuario aceptó instalar la PWA');
+              }
+              deferredPrompt = null;
+              installButton.remove();
+            });
           });
+          document.body.appendChild(installButton);
         });
-        
-        document.body.appendChild(installButton);
-      });
+      }
 
       // Manejar instalación completada
-      window.addEventListener('appinstalled', (evt) => {
-        console.log('PWA instalada exitosamente');
-      });
+      if (!isElectron) {
+        window.addEventListener('appinstalled', (evt) => {
+          console.log('PWA instalada exitosamente');
+        });
+      }
 
       // Script original del toggle
       document.addEventListener('DOMContentLoaded', function() {

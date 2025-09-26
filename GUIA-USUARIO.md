@@ -238,7 +238,42 @@ El sistema calcula automáticamente el derecho a estimulación basado en:
 - Derecho a estimulación
 - Fecha de cálculo
 
-### 🧹 Limpieza de Fin de Misión Antiguos
+### 🧹 Limpieza Automática de Fechas
+
+#### 🔄 **Funcionalidad de Limpieza Automática**
+
+El sistema incluye una funcionalidad automática que limpia las fechas de colaboradores que regresaron al país en el mes anterior al mes de conciliación actual. Esto asegura que se apliquen correctamente todas las validaciones establecidas.
+
+**Funcionamiento automático**: No requiere intervención del usuario
+
+#### 📋 **Criterios de Limpieza**
+
+- **Colaboradores con fecha de entrada**: Solo se procesan colaboradores que tienen una fecha de entrada registrada
+- **Mes anterior**: La fecha de entrada debe ser del mes anterior al mes de conciliación actual
+- **Limpieza completa**: Se limpian tanto "Fecha de Salida" como "Fecha de Entrada"
+
+#### 🔍 **Comportamiento del Sistema**
+
+1. **Activación automática**
+   - Se ejecuta al cargar la lista de colaboradores
+   - Se ejecuta al cambiar el mes de conciliación
+   - No requiere acción manual del usuario
+
+2. **Notificación al usuario**
+   - El sistema informa cuántos colaboradores fueron procesados
+   - Mensaje: "X colaborador(es) con fechas limpiadas automáticamente por regreso al país"
+
+3. **Persistencia de cambios**
+   - Los cambios se guardan automáticamente en la base de datos
+   - Se mantiene un registro de auditoría de los cambios realizados
+
+#### ⚠️ **Consideraciones Importantes**
+- **Proceso automático**: No se puede desactivar manualmente
+- **Datos preservados**: Solo se limpian las fechas, el resto de la información se mantiene
+- **Validaciones aplicadas**: Después de la limpieza, se aplican todas las validaciones normales del sistema
+- **Auditoría**: Cada limpieza queda registrada con timestamp
+
+### 🗑️ **Limpieza de Fin de Misión Antiguos**
 
 #### 🗑️ **Funcionalidad de Limpieza**
 

@@ -28,6 +28,7 @@ El **Sistema de Estimulación de Colaboradores** es una aplicación web/desktop 
 - **Cálculo proporcional** basado en días reales en el país
 - **Validación automática** de fechas y estados
 - **Consideración de estados especiales** (vacaciones, fin de misión)
+- **Limpieza automática de fechas**: Los colaboradores con fecha de entrada en el mes anterior al mes de conciliación actual tienen sus campos de fecha limpiados automáticamente para aplicar correctamente todas las validaciones
 
 ### 📈 **Estados de Colaboradores**
 - 🟢 **Activo**: En servicio
@@ -152,4 +153,4 @@ npm run electron-dev
 
 **© 2025 Sistema de Estimulación de Colaboradores**
 
-**Versión**: 2.0 - Con sistema de respaldos automáticos y mejoras de seguridad
+**Versión**: 2.1 - Con limpieza automática de fechas y validaciones mejoradas

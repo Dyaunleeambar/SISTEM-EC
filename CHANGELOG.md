@@ -5,6 +5,50 @@ Todos los cambios importantes del proyecto están documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere al [Versionado Semántico](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2024-12-02
+
+### 🔄 Mejoras en Validación de Colaboradores
+
+#### 🧹 Limpieza Automática de Fechas
+- **Limpieza automática**: Los colaboradores con fecha de entrada en el mes anterior al mes de conciliación actual tienen sus campos de fecha limpiados automáticamente
+- **Aplicación de validaciones**: Después de la limpieza, se aplican todas las validaciones establecidas normalmente
+- **Notificación al usuario**: El sistema informa cuántos colaboradores fueron procesados automáticamente
+- **Persistencia en backend**: Los cambios se guardan automáticamente en la base de datos
+
+#### 🔍 Lógica de Validación Mejorada
+- **Función `limpiarFechasColaboradoresRegresados`**: Nueva función en `logic.js` que maneja la limpieza automática
+- **Integración en `fetchColaboradores`**: Se aplica la limpieza al cargar colaboradores
+- **Integración en cambio de mes**: Se aplica también al cambiar el mes de conciliación
+- **Marcado de cambios**: Los colaboradores procesados se marcan con `_fecha_limpiada` y `_fecha_limpiada_timestamp`
+
+#### 📊 Comportamiento del Sistema
+- **Activación automática**: Se ejecuta cada vez que se cargan colaboradores o se cambia el mes de conciliación
+- **Criterios de limpieza**: Solo colaboradores con fecha de entrada en el mes anterior al mes de conciliación actual
+- **Campos afectados**: Se limpian tanto "Fecha de Salida" como "Fecha de Entrada"
+- **Preservación de otros datos**: El resto de la información del colaborador se mantiene intacta
+
+### 🔧 Mejoras Técnicas
+
+#### Frontend (`app.js`)
+- **Integración de limpieza automática**: Se aplica en `fetchColaboradores()` y en el evento de cambio de mes de conciliación
+- **Mensajes informativos**: Notificación al usuario sobre colaboradores procesados
+- **Guardado automático**: Los cambios se persisten inmediatamente en el backend
+
+#### Backend (`logic.js`)
+- **Nueva función exportada**: `limpiarFechasColaboradoresRegresados` disponible para uso en otros módulos
+- **Validación robusta**: Manejo de casos edge y validación de parámetros
+- **Marcado de auditoría**: Registro de cuándo y qué colaboradores fueron procesados
+
+### 📚 Documentación Actualizada
+- **GUIA-USUARIO.md**: Nueva sección sobre limpieza automática de fechas
+- **README.md**: Información sobre el nuevo comportamiento del sistema
+- **RESUMEN-EJECUTIVO.md**: Actualización de funcionalidades
+
+### 🛠️ Correcciones
+- **Validación de fechas**: Mejorada la lógica para evitar inconsistencias
+- **Persistencia de datos**: Garantizada la integridad de los datos procesados
+- **Experiencia de usuario**: Feedback claro sobre las operaciones automáticas
+
 ## [2.0.0] - 2024-12-01
 
 ### 🚀 Nuevas Funcionalidades
